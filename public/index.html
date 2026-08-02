@@ -256,7 +256,7 @@ tr.row-low td:first-child{border-left:3px solid var(--warning);}
 <div id="app"><div class="loading-wrap">Loading your counter…</div></div>
 <div id="print-area"></div>
 <script>
-const BACKEND_URL='';
+const BACKEND_URL='https://cafe-yoto-backend.onrender.com';
 window.storage={
   async get(key){
     const res=await fetch(`${BACKEND_URL}/api/state/${encodeURIComponent(key)}`);
