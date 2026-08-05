@@ -269,6 +269,9 @@ let U={
   modal:null,mdata:null,
   sdraft:[],rdraft:[],
   shiftEmpId:null,
+  shiftSelDate:null,
+  shiftCalYear:null,
+  shiftCalMo:undefined,
   clockWorkType:'',
   backendDown:false
 };
@@ -521,24 +524,38 @@ function rClock(){
 setInterval(()=>{const el=document.getElementById('ctcard');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');},1000);
 
 async function timeIn(){
-  if(!U.activeEmpId)return;
-  let loc='Unknown location';
+  if(!U.activeEmpId||!U.clockWorkType)return;
+  const ua=navigator.userAgent;
+  const deviceType=/iPhone|iPad/.test(ua)?'iPhone/iPad':/Android/.test(ua)?'Android':'Desktop';
+  const browser=ua.match(/(Chrome|Firefox|Safari|Edge)\/[\d.]+/)?.[0]||'Browser';
+  const device=`${deviceType} · ${browser}`;
+  let loc='';
   try{
-    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));
+    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000,enableHighAccuracy:true}));
     const{latitude:lat,longitude:lng}=pos.coords;
     try{
       const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
       const d=await r.json();
       loc=d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     }catch{loc=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;}
-  }catch{loc='Location unavailable';}
-  S.shifts.push({id:uid(),employeeId:U.activeEmpId,workType:U.clockWorkType,timeIn:new Date().toISOString(),timeOut:null,lateExcused:false,tips:0,location:loc});
-  U.viewOnly=false;saveCore();ra();toast('Timed in!');
+  }catch(err){
+    if(err.code===1){
+      toast('⚠ Location is required to time in. Tap Allow when your browser asks for location, then try again.');
+      return;
+    }
+    loc='Location unavailable';
+  }
+  if(!loc)return;
+  const newShift={id:uid(),employeeId:U.activeEmpId,workType:U.clockWorkType,timeIn:new Date().toISOString(),timeOut:null,lateExcused:false,tips:0,location:loc,device};
+  S.shifts.push(newShift);
+  U.viewOnly=false;U.clockWorkType='';
+  await saveCore();
+  ra();toast('Timed in!');
 }
-function timeOut(){
+async function timeOut(){
   const s=actShift(U.activeEmpId);if(!s)return;
   s.timeOut=new Date().toISOString();
-  saveCore();ra();toast(`Shift ended — ${fdur(new Date(s.timeOut)-new Date(s.timeIn))} worked.`);
+  await saveCore();ra();toast(`Shift ended — ${fdur(new Date(s.timeOut)-new Date(s.timeIn))} worked.`);
 }
 function signOut(){timeOut();U.activeEmpId=null;setView('clock');}
 
@@ -872,27 +889,55 @@ function exportXls(){
 // SHIFTS
 function rShifts(){
   const isAdmin=U.isAdmin;
+  const emp=S.employees.find(e=>e.id===U.activeEmpId);
+  const isOwner=emp&&(emp.role||'').toLowerCase()==='owner';
   const empId=isAdmin?(U.shiftEmpId||S.employees[0]?.id):U.activeEmpId;
-  const emp=S.employees.find(e=>e.id===empId);
-  const myShifts=empId?S.shifts.filter(s=>s.employeeId===empId).sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn)):[];
-  const now=new Date();const yr=now.getFullYear();const mo=now.getMonth();
-  const dim=new Date(yr,mo+1,0).getDate();const fd=new Date(yr,mo,1).getDay();
-  const worked=new Set(myShifts.map(s=>new Date(s.timeIn).getDate()));
+  const viewEmp=S.employees.find(e=>e.id===empId);
+  const allShifts=empId?S.shifts.filter(s=>s.employeeId===empId):[];
+  const calYear=U.shiftCalYear||new Date().getFullYear();
+  const calMo=U.shiftCalMo!==undefined?U.shiftCalMo:new Date().getMonth();
+  const now=new Date();
+  const dim=new Date(calYear,calMo+1,0).getDate();
+  const fd=new Date(calYear,calMo,1).getDay();
+  const selDate=U.shiftSelDate;
+  let myShifts=selDate?allShifts.filter(s=>s.timeIn.slice(0,10)===selDate):[...allShifts];
+  myShifts.sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn));
+  const ownerSales=isOwner&&selDate?S.orders.filter(o=>{
+    if(o.isRefunded||o.status==='cancelled')return false;
+    return o.timestamp.slice(0,10)===selDate&&o.employeeId===U.activeEmpId;
+  }).reduce((s,o)=>s+o.total,0):null;
+  const moName=new Date(calYear,calMo).toLocaleString('en-PH',{month:'long',year:'numeric'});
+  const showPay=!isOwner;
   return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
     <h1 style="font-weight:800;font-size:1.25rem;">Shifts</h1>
-    ${isAdmin?`<select onchange="U.shiftEmpId=this.value;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">${S.employees.map(e=>`<option value="${e.id}" ${empId===e.id?'selected':''}>${e.name}</option>`).join('')}</select>`:''}
+    ${isAdmin?`<select onchange="U.shiftEmpId=this.value;U.shiftSelDate=null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">${S.employees.map(e=>`<option value="${e.id}" ${empId===e.id?'selected':''}>${e.name}</option>`).join('')}</select>`:''}
   </div>
-  ${emp?`<div class="card" style="padding:13px;margin-bottom:13px;">
-    <div style="font-weight:700;margin-bottom:9px;font-size:.88rem;">${emp.name} — ${new Date(yr,mo).toLocaleString('en-PH',{month:'long',year:'numeric'})}</div>
+  ${viewEmp?`<div class="card" style="padding:13px;margin-bottom:13px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+      <div style="font-weight:700;font-size:.88rem;">${viewEmp.name} &mdash; ${moName}</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button onclick="prevShiftMo()" style="width:26px;height:26px;border-radius:7px;background:var(--surf2);font-weight:700;">&lsaquo;</button>
+        <button onclick="nextShiftMo()" style="width:26px;height:26px;border-radius:7px;background:var(--surf2);font-weight:700;">&rsaquo;</button>
+        ${selDate?`<button class="btn btn-out btn-sm" onclick="U.shiftSelDate=null;ra();">Show All</button>`:''}
+      </div>
+    </div>
     <div class="cal-grid">
       ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div style="text-align:center;font-size:.62rem;font-weight:700;color:var(--ink3);padding-bottom:3px;">${d}</div>`).join('')}
       ${Array(fd).fill('<div></div>').join('')}
-      ${Array.from({length:dim},(_,i)=>i+1).map(d=>`<div class="cal-day ${worked.has(d)?'worked':''} ${d===now.getDate()&&mo===now.getMonth()?'today-d':''}">${d}</div>`).join('')}
+      ${Array.from({length:dim},(_,i)=>i+1).map(d=>{
+        const dStr=calYear+'-'+String(calMo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+        const isWorked=allShifts.some(s=>s.timeIn.slice(0,10)===dStr);
+        const isSel=selDate===dStr;
+        const isToday=d===now.getDate()&&calMo===now.getMonth()&&calYear===now.getFullYear();
+        return`<div class="cal-day ${isWorked?'worked':''} ${isToday?'today-d':''}" style="${isSel?'background:var(--blue);color:#fff;border:none;cursor:pointer;':isWorked?'cursor:pointer;':''}" onclick="${isWorked?`U.shiftSelDate='${dStr}';ra();`:''}">${d}</div>`;
+      }).join('')}
     </div>
+    ${selDate?`<div style="font-size:.76rem;color:var(--ink2);margin-top:8px;">Showing ${myShifts.length} shift(s) on ${fdt(selDate+'T00:00:00')}</div>`:''}
+    ${isOwner&&ownerSales!==null?`<div style="margin-top:8px;padding:8px 11px;background:var(--bluesoft);border-radius:9px;font-size:.82rem;font-weight:700;">Your sales on this day: ${peso(ownerSales)}</div>`:''}
   </div>`:''}
   <div class="card" style="overflow-x:auto;">
     <table>
-      <thead><tr><th>Date</th><th>Work Type</th><th>In</th><th>Out</th><th>Hours</th><th>Status</th><th>Pay</th>${isAdmin?`<th>Location</th><th></th>`:''}</tr></thead>
+      <thead><tr><th>Date</th><th>Work Type</th><th>In</th><th>Out</th><th>Hours</th><th>Status</th>${showPay?'<th>Pay</th>':''}${isAdmin?`<th>Location</th><th>Device</th><th></th>`:''}</tr></thead>
       <tbody>${myShifts.length?myShifts.map(s=>{
         const st=shiftStatus(s);
         const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
@@ -900,22 +945,26 @@ function rShifts(){
         const pay=calcPay(emp2,s);
         return`<tr>
           <td>${fdt(s.timeIn)}</td>
-          <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}">${s.workType||'—'}</span></td>
+          <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}">${s.workType||'&mdash;'}</span></td>
           <td>${ftm(s.timeIn)}</td>
-          <td>${s.timeOut?ftm(s.timeOut):'—'}</td>
+          <td>${s.timeOut?ftm(s.timeOut):'&mdash;'}</td>
           <td>${s.timeOut?dur.toFixed(2)+'h':'ongoing'}</td>
-          <td><span class="pill pill-${st}">${st==='late'?'Late':st==='valid'?'Valid':' On Time'}</span></td>
-          <td>${s.timeOut?peso(pay):'—'}</td>
-          ${isAdmin?`<td style="font-size:.72rem;color:var(--ink2);max-width:160px;word-break:break-all;">${s.location||'—'}</td>
+          <td><span class="pill pill-${st}">${st==='late'?'Late':st==='valid'?'Valid':'On Time'}</span></td>
+          ${showPay?`<td>${s.timeOut?peso(pay):'&mdash;'}</td>`:''}
+          ${isAdmin?`<td style="font-size:.7rem;color:var(--ink2);max-width:130px;word-break:break-all;">${s.location||'&mdash;'}</td>
+          <td style="font-size:.7rem;color:var(--ink2);white-space:nowrap;">${s.device||'&mdash;'}</td>
           <td><div style="display:flex;gap:3px;flex-wrap:wrap;">
             ${st==='late'?`<button class="btn btn-out btn-xs" onclick="acceptLate('${s.id}')">Accept Late</button>`:''}
             <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
           </div></td>`:''}
         </tr>`;
-      }).join(''):'<tr><td colspan="9" style="color:var(--ink3);">No shifts yet.</td></tr>'}
+      }).join(''):`<tr><td colspan="10" style="color:var(--ink3);">${selDate?'No shifts on this date.':'No shifts yet.'}</td></tr>`}
       </tbody>
     </table>
   </div>`;
+}
+function prevShiftMo(){if(U.shiftCalMo===undefined)U.shiftCalMo=new Date().getMonth();if(!U.shiftCalYear)U.shiftCalYear=new Date().getFullYear();U.shiftCalMo--;if(U.shiftCalMo<0){U.shiftCalMo=11;U.shiftCalYear--;}U.shiftSelDate=null;ra();}
+function nextShiftMo(){if(U.shiftCalMo===undefined)U.shiftCalMo=new Date().getMonth();if(!U.shiftCalYear)U.shiftCalYear=new Date().getFullYear();U.shiftCalMo++;if(U.shiftCalMo>11){U.shiftCalMo=0;U.shiftCalYear++;}U.shiftSelDate=null;ra();}
 }
 function acceptLate(id){if(!U.isAdmin)return;const s=S.shifts.find(x=>x.id===id);if(!s)return;s.lateExcused=true;saveCore();ra();toast('Late excuse accepted.');}
 
@@ -925,14 +974,55 @@ function rAdmin(){
   return`<div style="max-width:580px;">
     <h1 style="font-weight:800;font-size:1.25rem;margin-bottom:14px;">Admin Settings</h1>
     <div class="card" style="padding:14px;margin-bottom:12px;">
-      <div style="font-weight:700;margin-bottom:9px;">Receipt & Chit</div>
-      <div class="frow">
-        <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" oninput="S.settings.rcptHeader=this.value;"></div>
-        <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" oninput="S.settings.rcptFooter=this.value;"></div>
-      </div>
-      <div class="frow" style="margin-top:8px;">
-        <div class="field"><label>Chit Header</label><input value="${S.settings.chitHeader||''}" oninput="S.settings.chitHeader=this.value;"></div>
-        <div class="field"><label>Wifi Password</label><input value="${S.settings.wifiPw||''}" oninput="S.settings.wifiPw=this.value;"></div>
+      <div style="font-weight:700;margin-bottom:12px;">Receipt &amp; Chit Designer</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;">Fields</div>
+          <div style="display:flex;flex-direction:column;gap:9px;">
+            <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" oninput="S.settings.rcptHeader=this.value;updRcptPrev();"></div>
+            <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" oninput="S.settings.rcptFooter=this.value;updRcptPrev();"></div>
+            <div class="field"><label>Chit Header</label><input value="${S.settings.chitHeader||''}" oninput="S.settings.chitHeader=this.value;updChitPrev();"></div>
+            <div class="field"><label>Wifi Password (shown on chit)</label><input value="${S.settings.wifiPw||''}" oninput="S.settings.wifiPw=this.value;updChitPrev();"></div>
+            <div class="field"><label>Font Size (receipt)</label>
+              <input type="range" min="10" max="16" value="${S.settings.rcptFontSize||12}" oninput="S.settings.rcptFontSize=parseInt(this.value);updRcptPrev();document.getElementById('rcpt-fs-val').textContent=this.value+'px';">
+              <span id="rcpt-fs-val" style="font-size:.76rem;color:var(--ink2);">${S.settings.rcptFontSize||12}px</span>
+            </div>
+            <div class="field"><label>Paper Width (chit)</label>
+              <input type="range" min="160" max="320" value="${S.settings.chitWidth||200}" oninput="S.settings.chitWidth=parseInt(this.value);updChitPrev();document.getElementById('chit-w-val').textContent=this.value+'px';">
+              <span id="chit-w-val" style="font-size:.76rem;color:var(--ink2);">${S.settings.chitWidth||200}px</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;">Live Preview</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <div style="font-size:.68rem;color:var(--ink3);margin-bottom:4px;">Receipt</div>
+              <div id="rcpt-prev" style="font-family:monospace;font-size:${S.settings.rcptFontSize||12}px;background:#fff;padding:12px;border-radius:10px;border:1px dashed var(--border);line-height:1.7;max-width:260px;">
+                <div style="text-align:center;font-weight:800;">${S.settings.rcptHeader||'CAFE YOTO'}</div>
+                <div style="border-top:1px dashed #ccc;margin:5px 0;"></div>
+                <div style="display:flex;justify-content:space-between;"><span>#1</span><span>Dine In</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>10:00 AM</span><span>Cashier</span></div>
+                <div style="border-top:1px dashed #ccc;margin:5px 0;"></div>
+                <div style="display:flex;justify-content:space-between;"><span>1x Latte</span><span>&#8369;103.00</span></div>
+                <div style="border-top:1px dashed #ccc;margin:5px 0;"></div>
+                <div style="display:flex;justify-content:space-between;font-weight:800;"><span>TOTAL</span><span>&#8369;103.00</span></div>
+                <div style="border-top:1px dashed #ccc;margin:5px 0;"></div>
+                <div style="text-align:center;">${S.settings.rcptFooter||'Thank you, come again!'}</div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:.68rem;color:var(--ink3);margin-bottom:4px;">Chit</div>
+              <div id="chit-prev" style="font-family:monospace;font-size:13px;background:#fff;padding:12px;border-radius:10px;border:1px dashed var(--border);line-height:1.7;width:${S.settings.chitWidth||200}px;max-width:100%;overflow:hidden;">
+                <div style="font-size:28px;font-weight:900;color:var(--blue);">#1</div>
+                <div style="background:#000;color:#fff;display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-bottom:5px;">DINE IN</div>
+                <div><strong>1x Latte</strong></div>
+                <div style="border-top:1px dashed #ccc;margin:5px 0;font-size:11px;color:#666;">${new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}</div>
+                <div style="font-size:11px;color:#666;">WiFi: ${S.settings.wifiPw||'CafeYoto2024'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card" style="padding:14px;margin-bottom:12px;">
@@ -973,6 +1063,17 @@ async function checkAdmPw(){
   const v=document.getElementById('adm-pw')?.value;if(!v)return;
   const h=await hashStr(v);
   if(h===S.settings.adminHash){U.isAdmin=true;ra();}else toast('Incorrect password.');
+}
+function updRcptPrev(){
+  const el=document.getElementById('rcpt-prev');if(!el)return;
+  el.style.fontSize=(S.settings.rcptFontSize||12)+'px';
+  const hdr=el.querySelector('div:first-child');if(hdr)hdr.textContent=S.settings.rcptHeader||'CAFE YOTO';
+  const ftr=el.querySelector('div:last-child');if(ftr)ftr.textContent=S.settings.rcptFooter||'Thank you, come again!';
+}
+function updChitPrev(){
+  const el=document.getElementById('chit-prev');if(!el)return;
+  el.style.width=(S.settings.chitWidth||200)+'px';
+  const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
 }
 function saveAdm(){saveCore();toast('Settings saved.');}
 
