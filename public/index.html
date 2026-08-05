@@ -965,7 +965,7 @@ function rShifts(){
 }
 function prevShiftMo(){if(U.shiftCalMo===undefined)U.shiftCalMo=new Date().getMonth();if(!U.shiftCalYear)U.shiftCalYear=new Date().getFullYear();U.shiftCalMo--;if(U.shiftCalMo<0){U.shiftCalMo=11;U.shiftCalYear--;}U.shiftSelDate=null;ra();}
 function nextShiftMo(){if(U.shiftCalMo===undefined)U.shiftCalMo=new Date().getMonth();if(!U.shiftCalYear)U.shiftCalYear=new Date().getFullYear();U.shiftCalMo++;if(U.shiftCalMo>11){U.shiftCalMo=0;U.shiftCalYear++;}U.shiftSelDate=null;ra();}
-}
+
 function acceptLate(id){if(!U.isAdmin)return;const s=S.shifts.find(x=>x.id===id);if(!s)return;s.lateExcused=true;saveCore();ra();toast('Late excuse accepted.');}
 
 // ADMIN
