@@ -500,8 +500,8 @@ function rClock(){
       ${S.employees.map(e=>`<option value="${e.id}" ${U.activeEmpId===e.id?'selected':''}>${e.name}</option>`).join('')}
     </select>
     ${emp&&!sh?`
-    <select onchange="U.clockWorkType=this.value;" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:12px;font-size:.86rem;">
-      <option value="">Select work type for this shift…</option>
+    <select onchange="U.clockWorkType=this.value;ra();" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:12px;font-size:.86rem;">
+      <option value="" ${!U.clockWorkType?'selected':''} disabled>Select work type for this shift…</option>
       <option value="Barista" ${U.clockWorkType==='Barista'?'selected':''}>☕ Barista</option>
       <option value="Cat Front Desk" ${U.clockWorkType==='Cat Front Desk'?'selected':''}>🐱 Cat Front Desk</option>
     </select>`:''}
