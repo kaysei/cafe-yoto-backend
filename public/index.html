@@ -2,1410 +2,1208 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cafe Yoto Counter</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cafe Yoto</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
-  --bg:#F4F7FD;
-  --surface:#FFFFFF;
-  --surface-alt:#EEF3FC;
-  --ink:#161B26;
-  --ink-soft:#616B82;
-  --ink-faint:#9AA4BD;
-  --accent:#3B6FF0;
-  --accent-dark:#2952C4;
-  --accent-soft:#DCE6FE;
-  --success:#22A06B;
-  --success-soft:#DDF3E9;
-  --warning:#E0940F;
-  --warning-soft:#FCEBCF;
-  --danger:#EF4D5E;
-  --danger-soft:#FDE3E7;
-  --border:#E4E9F5;
-  --shadow:0 2px 10px rgba(22,27,38,0.06);
-  --shadow-lg:0 16px 36px rgba(22,27,38,0.14);
-  --radius:16px;
-  --font:'Plus Jakarta Sans',-apple-system,sans-serif;
+--bg:#F4F7FD;--surf:#fff;--surf2:#EEF3FC;--ink:#161B26;--ink2:#616B82;--ink3:#9AA4BD;
+--blue:#3B6FF0;--blue2:#2952C4;--bluesoft:#DCE6FE;
+--green:#22A06B;--greensoft:#DDF3E9;
+--yellow:#E0940F;--yellowsoft:#FCEBCF;
+--red:#EF4D5E;--redsoft:#FDE3E7;
+--border:#E4E9F5;--sh:0 2px 10px rgba(22,27,38,.06);--shlg:0 16px 36px rgba(22,27,38,.14);
+--r:14px;--font:'Plus Jakarta Sans',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
-button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
-input,select{font-family:inherit;}
-::selection{background:var(--accent-soft);}
-#app{display:flex;min-height:100vh;}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;}
+button{font-family:var(--font);cursor:pointer;border:none;background:none;color:inherit;}
+input,select,textarea{font-family:var(--font);}
+#app{display:flex;height:100vh;}
 
-.sidebar{width:216px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:22px 14px;gap:4px;}
-.brand{font-weight:800;font-size:1.28rem;color:var(--ink);padding:4px 10px 22px 10px;letter-spacing:-0.01em;display:flex;align-items:center;gap:10px;}
-.brand .dot3{width:24px;height:24px;border-radius:8px;background:var(--accent);flex-shrink:0;}
-.nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;font-size:0.92rem;font-weight:600;color:var(--ink-soft);transition:background 0.15s,color 0.15s;text-align:left;width:100%;position:relative;}
-.nav-item svg{flex-shrink:0;}
-.nav-item:hover{background:var(--surface-alt);color:var(--ink);}
-.nav-item.active{background:var(--accent-soft);color:var(--accent-dark);}
-.nav-dot{position:absolute;right:12px;width:7px;height:7px;border-radius:50%;background:var(--danger);}
-.sidebar-foot{margin-top:auto;padding:10px;font-size:0.72rem;color:var(--ink-faint);}
+/* SIDEBAR */
+.sb{width:60px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:2px;}
+.sb-logo{width:34px;height:34px;border-radius:10px;background:var(--blue);margin-bottom:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:0.8rem;}
+.ni{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--ink3);transition:all .15s;position:relative;cursor:pointer;}
+.ni:hover{background:var(--surf2);color:var(--ink);}
+.ni.act{background:var(--bluesoft);color:var(--blue);}
+.ni .tip{position:absolute;left:50px;background:var(--ink);color:#fff;padding:4px 9px;border-radius:7px;font-size:.72rem;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;z-index:99;}
+.ni:hover .tip{opacity:1;}
+.ni .dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--red);}
+.sb-foot{margin-top:auto;}
 
-.main-col{flex:1;display:flex;flex-direction:column;min-width:0;}
-.topbar{height:64px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 26px;}
-.topbar-left{display:flex;flex-direction:column;}
-.topbar-title{font-weight:800;font-size:1.12rem;}
-.topbar-sub{font-size:0.76rem;color:var(--ink-soft);}
-.topbar-right{display:flex;align-items:center;gap:14px;}
-.clock-live{font-size:0.85rem;color:var(--ink-soft);font-weight:600;}
-.cashier-chip{display:flex;align-items:center;gap:8px;background:var(--surface-alt);padding:7px 12px;border-radius:999px;font-size:0.82rem;font-weight:600;}
-.cashier-dot{width:8px;height:8px;border-radius:50%;background:var(--success);}
-.viewonly-chip{display:flex;align-items:center;gap:8px;background:var(--danger-soft);color:var(--danger);padding:7px 12px;border-radius:999px;font-size:0.78rem;font-weight:700;}
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{height:54px;flex-shrink:0;background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;gap:10px;}
+.tb-title{font-weight:800;font-size:.98rem;}
+.tb-right{display:flex;align-items:center;gap:10px;}
+.chip{display:flex;align-items:center;gap:6px;background:var(--surf2);padding:5px 10px;border-radius:999px;font-size:.76rem;font-weight:600;}
+.chip-dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
+.vo-chip{background:var(--yellowsoft);color:var(--yellow);padding:5px 10px;border-radius:999px;font-size:.73rem;font-weight:700;}
+.backend-warn{background:var(--redsoft);color:var(--red);padding:7px 18px;font-size:.76rem;font-weight:700;flex-shrink:0;}
+.content{flex:1;overflow-y:auto;padding:18px;}
 
-.content{flex:1;overflow-y:auto;padding:26px;}
-.view-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
-.view-head h1{font-weight:800;font-size:1.4rem;}
-.view-head p{color:var(--ink-soft);font-size:0.85rem;margin-top:2px;}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:9px;font-size:.8rem;font-weight:700;transition:transform .1s,background .15s;white-space:nowrap;}
+.btn:active{transform:scale(.97);}
+.btn-blue{background:var(--blue);color:#fff;}.btn-blue:hover{background:var(--blue2);}
+.btn-out{background:var(--surf);border:1.5px solid var(--border);color:var(--ink);}.btn-out:hover{border-color:var(--blue);color:var(--blue2);}
+.btn-red{background:var(--redsoft);color:var(--red);}.btn-red:hover{background:var(--red);color:#fff;}
+.btn-grn{background:var(--green);color:#fff;}
+.btn-sm{padding:5px 9px;font-size:.72rem;}
+.btn-xs{padding:3px 7px;font-size:.67rem;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);}
 
-.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;font-size:0.85rem;font-weight:700;transition:transform 0.1s,background 0.15s;white-space:nowrap;}
-.btn:active{transform:scale(0.97);}
-.btn-accent{background:var(--accent);color:#fff;}
-.btn-accent:hover{background:var(--accent-dark);}
-.btn-outline{background:var(--surface);border:1.5px solid var(--border);color:var(--ink);}
-.btn-outline:hover{border-color:var(--accent);color:var(--accent-dark);}
-.btn-danger{background:var(--danger-soft);color:var(--danger);}
-.btn-danger:hover{background:var(--danger);color:#fff;}
-.btn-success{background:var(--success);color:#fff;}
-.btn-sm{padding:6px 11px;font-size:0.76rem;}
-.btn:disabled{opacity:0.45;cursor:not-allowed;}
-
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
-.grid{display:grid;gap:16px;}
-
-.ticket-badge{width:56px;height:56px;border-radius:16px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:1.15rem;color:var(--accent-dark);}
-.ticket-badge.sm{width:40px;height:40px;font-size:0.85rem;border-radius:12px;}
-
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--ink-faint);text-align:center;gap:10px;}
-.empty-state svg{opacity:0.5;}
-.empty-state h3{color:var(--ink-soft);font-weight:700;font-size:1.05rem;}
-
-.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:0.7rem;font-weight:700;letter-spacing:0.02em;}
-.badge-prep{background:var(--danger-soft);color:var(--danger);}
-.badge-ready{background:var(--warning-soft);color:var(--warning);}
-.badge-done{background:var(--success-soft);color:var(--success);}
-
-.modal-overlay{position:fixed;inset:0;background:rgba(22,27,38,0.42);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
-.modal{background:var(--surface);border-radius:18px;box-shadow:var(--shadow-lg);width:100%;max-width:460px;max-height:88vh;overflow-y:auto;}
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);}
-.modal-head h2{font-size:1.08rem;font-weight:800;}
-.modal-body{padding:20px;display:flex;flex-direction:column;gap:14px;}
-.field{display:flex;flex-direction:column;gap:6px;}
-.field label{font-size:0.78rem;font-weight:700;color:var(--ink-soft);}
-.field input,.field select{padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9rem;background:var(--bg);color:var(--ink);}
-.field input:focus,.field select:focus{outline:none;border-color:var(--accent);}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.modal-foot{padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;}
-.recipe-row{display:grid;grid-template-columns:1fr 90px 30px;gap:8px;align-items:center;}
-.size-row{display:grid;grid-template-columns:1fr 100px 30px;gap:8px;align-items:center;}
-.cost-preview{background:var(--surface-alt);border-radius:10px;padding:10px 14px;font-size:0.82rem;display:flex;justify-content:space-between;}
-
-@media(max-width:880px){
-  #app{flex-direction:column;}
-  .sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:10px;border-right:none;border-bottom:1px solid var(--border);}
-  .brand{display:none;}
-  .nav-item{flex-direction:column;gap:4px;font-size:0.68rem;padding:8px 12px;white-space:nowrap;}
-  .nav-dot{top:4px;right:8px;}
-  .sidebar-foot{display:none;}
-}
-
-.lockgate{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 20px;text-align:center;gap:14px;}
-.lockgate .lock-ic{color:var(--ink-faint);}
-.lockgate h2{font-size:1.25rem;font-weight:800;}
-.lockgate p{color:var(--ink-soft);font-size:0.88rem;max-width:340px;}
-.lockgate .actions{display:flex;gap:10px;margin-top:10px;}
-
-.clockview-wrap{display:flex;justify-content:center;padding-top:20px;}
-.clockcard{width:100%;max-width:420px;padding:34px 28px;text-align:center;}
-.clockcard .big-time{font-size:2.1rem;font-weight:800;margin:6px 0 2px;}
-.clockcard .big-date{color:var(--ink-soft);font-size:0.85rem;margin-bottom:22px;}
-.emp-select{width:100%;margin-bottom:16px;}
-.status-line{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0 20px;font-size:0.88rem;color:var(--ink-soft);}
-.emp-list{margin-top:26px;text-align:left;}
-.emp-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:0.85rem;}
-.emp-row:last-child{border-bottom:none;}
-.viewonly-link{margin-top:16px;font-size:0.8rem;color:var(--ink-soft);text-decoration:underline;}
-
-.pos-layout{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;}
-@media(max-width:1100px){.pos-layout{grid-template-columns:1fr;}}
-.pos-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-.edit-toggle{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--border);font-size:0.8rem;font-weight:700;color:var(--ink-soft);background:var(--surface);}
-.edit-toggle.on{background:var(--accent);border-color:var(--accent);color:#fff;}
-.crumb{display:flex;align-items:center;gap:8px;font-size:0.85rem;font-weight:700;color:var(--ink-soft);margin-bottom:14px;}
-.crumb button{color:var(--accent);font-weight:700;}
-
-.catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
-.catcard{background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px;text-align:left;transition:border-color 0.15s,transform 0.1s;position:relative;}
-.catcard:hover{border-color:var(--accent);}
-.catcard.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
-.catcard .cc-name{font-weight:800;font-size:1rem;}
-.catcard .cc-count{font-size:0.76rem;color:var(--ink-soft);}
-.catcard .cc-badge{align-self:flex-start;padding:3px 10px;border-radius:999px;font-size:0.66rem;font-weight:700;}
-.cc-badge.avail{background:var(--success-soft);color:var(--success);}
-.cc-badge.restock{background:var(--danger-soft);color:var(--danger);}
-.catcard-ghost{border:1.5px dashed var(--border);border-radius:18px;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--ink-faint);font-weight:700;font-size:0.82rem;min-height:88px;}
-.catcard-edit{position:absolute;top:10px;right:10px;display:flex;gap:4px;}
-.catcard-edit button{width:22px;height:22px;border-radius:6px;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;}
-
-.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
-.prod-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;text-align:left;transition:border-color 0.15s,transform 0.1s;position:relative;}
-.prod-card:hover{border-color:var(--accent);}
-.prod-card:active{transform:scale(0.97);}
-.prod-card .statusdot{position:absolute;top:12px;right:12px;width:11px;height:11px;border-radius:50%;box-shadow:0 0 0 3px var(--surface);}
-.statusdot.ok{background:var(--success);}
-.statusdot.low{background:var(--warning);}
-.statusdot.soldout{background:var(--danger);}
-.prod-card .pname{font-weight:700;font-size:0.88rem;margin-bottom:4px;padding-right:16px;}
-.prod-card .pprice{color:var(--accent-dark);font-size:0.85rem;font-weight:700;}
-.prod-card .psize{font-size:0.7rem;color:var(--ink-faint);margin-top:2px;}
-.prod-card .pflag{font-size:0.68rem;color:var(--danger);margin-top:4px;font-weight:700;}
-.prod-card.editmode{border-style:dashed;}
-.prod-card-ghost{border:1.5px dashed var(--border);border-radius:16px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--ink-faint);font-weight:700;font-size:0.82rem;min-height:88px;}
-
-.cart-panel{position:sticky;top:0;}
-.cart-items{display:flex;flex-direction:column;gap:10px;max-height:220px;overflow-y:auto;padding:16px;}
-.cart-row{display:flex;align-items:center;gap:8px;font-size:0.83rem;}
-.cart-row .ciname{flex:1;font-weight:600;}
-.cart-row .ciprice{color:var(--ink-soft);font-size:0.78rem;}
-.qty-ctrl{display:flex;align-items:center;gap:6px;}
-.qty-ctrl button{width:22px;height:22px;border-radius:7px;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;font-weight:700;}
-.cart-divider{border-top:1px dashed var(--border);}
-.cart-summary{padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:0.85rem;}
-.sum-row{display:flex;justify-content:space-between;}
-.sum-row.total{font-weight:800;font-size:1.05rem;padding-top:8px;border-top:1px solid var(--border);}
-.disc-row{display:flex;gap:6px;padding:0 16px 10px;}
-.disc-btn{flex:1;padding:8px;border-radius:9px;border:1.5px solid var(--border);font-size:0.75rem;font-weight:700;color:var(--ink-soft);}
-.disc-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark);}
-.pay-row{display:flex;gap:6px;padding:0 16px 12px;}
-.pay-btn{flex:1;padding:9px;border-radius:9px;border:1.5px solid var(--border);font-size:0.75rem;font-weight:700;}
-.pay-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
-.mini-inputs{padding:0 16px 10px;display:flex;flex-direction:column;gap:8px;}
-.mini-inputs input{padding:8px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:0.82rem;background:var(--bg);}
-.tender-row{display:flex;gap:6px;padding:0 16px 8px;flex-wrap:wrap;}
-.tender-btn{flex:1;min-width:70px;padding:9px 6px;border-radius:9px;border:1.5px solid var(--border);font-size:0.78rem;font-weight:700;text-align:center;}
-.tender-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.size-pick{display:flex;flex-direction:column;gap:8px;}
-.size-pick button{display:flex;justify-content:space-between;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-weight:700;font-size:0.88rem;}
-.size-pick button:hover{border-color:var(--accent);}
-
-.orders-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
-.order-card{padding:16px;display:flex;flex-direction:column;gap:10px;}
-.order-card-head{display:flex;align-items:center;gap:12px;}
-.order-card-head .meta{flex:1;}
-.order-card-head .meta .t{font-size:0.7rem;color:var(--ink-faint);}
-.order-items-mini{font-size:0.78rem;color:var(--ink-soft);line-height:1.5;}
-.order-actions{display:flex;gap:8px;margin-top:auto;}
-
-.report-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
-.date-filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
-.date-preset{padding:7px 13px;border-radius:9px;border:1.5px solid var(--border);font-size:0.78rem;font-weight:700;color:var(--ink-soft);background:var(--surface);}
-.date-preset.active{background:var(--ink);color:#fff;border-color:var(--ink);}
-.date-inputs{display:flex;align-items:center;gap:6px;}
-.date-inputs input{padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:0.8rem;background:var(--surface);}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px;}
-.stat-card{padding:16px;}
-.stat-card .label{font-size:0.72rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;letter-spacing:0.03em;}
-.stat-card .val{font-size:1.5rem;font-weight:800;margin-top:4px;}
-table{width:100%;border-collapse:collapse;font-size:0.85rem;}
-th{text-align:left;padding:12px 16px;color:var(--ink-soft);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.03em;border-bottom:1px solid var(--border);}
-td{padding:13px 16px;border-bottom:1px solid var(--border);}
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:.82rem;}
+th{text-align:left;padding:9px 13px;color:var(--ink2);font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border);}
+td{padding:10px 13px;border-bottom:1px solid var(--border);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
-tr.row-soldout td:first-child{border-left:3px solid var(--danger);}
-tr.row-low td:first-child{border-left:3px solid var(--warning);}
-.top-flag{background:var(--accent-soft);color:var(--accent-dark);padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:800;margin-left:8px;}
+.pill{display:inline-flex;padding:2px 9px;border-radius:999px;font-size:.68rem;font-weight:700;}
+.pill-ok{background:var(--greensoft);color:var(--green);}
+.pill-low{background:var(--yellowsoft);color:var(--yellow);}
+.pill-so{background:var(--redsoft);color:var(--red);}
+.pill-late{background:var(--redsoft);color:var(--red);}
+.pill-ot{background:var(--greensoft);color:var(--green);}
+.pill-valid{background:var(--yellowsoft);color:var(--yellow);}
+.pill-cafe{background:var(--bluesoft);color:var(--blue2);}
+.pill-pers{background:var(--surf2);color:var(--ink2);}
 
-.inv-subtabs{display:flex;gap:8px;margin-bottom:16px;align-items:center;}
-.warncount{background:var(--danger);color:#fff;border-radius:999px;padding:1px 7px;font-size:0.68rem;margin-left:6px;}
-.statuspill{display:inline-flex;padding:3px 11px;border-radius:999px;font-size:0.72rem;font-weight:700;}
-.statuspill.ok{background:var(--success-soft);color:var(--success);}
-.statuspill.low{background:var(--warning-soft);color:var(--warning);}
-.statuspill.soldout{background:var(--danger-soft);color:var(--danger);}
-.low-banner{display:flex;align-items:center;gap:10px;background:var(--danger-soft);color:var(--danger);padding:12px 16px;border-radius:12px;font-size:0.84rem;font-weight:700;margin-bottom:16px;}
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(22,27,38,.46);display:flex;align-items:center;justify-content:center;z-index:200;padding:14px;}
+.modal{background:var(--surf);border-radius:18px;box-shadow:var(--shlg);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surf);z-index:1;}
+.mh h2{font-size:.96rem;font-weight:800;}
+.mb{padding:18px;display:flex;flex-direction:column;gap:11px;}
+.mf{padding:13px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surf);}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;}
+.field input,.field select,.field textarea{padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.86rem;background:var(--bg);color:var(--ink);}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.cprev{background:var(--surf2);border-radius:9px;padding:8px 12px;font-size:.8rem;display:flex;justify-content:space-between;font-weight:600;}
 
-.prod-inv-row{display:flex;align-items:center;gap:12px;padding:14px 16px;flex-wrap:wrap;}
-.margin-pill{font-size:0.7rem;font-weight:800;padding:3px 9px;border-radius:999px;background:var(--success-soft);color:var(--success);}
-.margin-pill.neg{background:var(--danger-soft);color:var(--danger);}
-.size-chip{background:var(--surface-alt);padding:3px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;color:var(--ink-soft);}
+/* NUMPAD */
+.np-ov{position:fixed;inset:0;background:rgba(22,27,38,.52);display:flex;align-items:flex-end;justify-content:center;z-index:300;}
+.np-sheet{background:var(--surf);border-radius:20px 20px 0 0;padding:14px;width:100%;max-width:360px;}
+.np-disp{font-size:1.9rem;font-weight:800;text-align:right;padding:8px 12px;background:var(--surf2);border-radius:11px;margin-bottom:10px;min-height:52px;}
+.np-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.np-key{padding:15px;border-radius:11px;font-size:1.05rem;font-weight:700;background:var(--surf2);text-align:center;transition:transform .1s,background .1s;}
+.np-key:active{transform:scale(.94);background:var(--border);}
+.np-key.kblue{background:var(--blue);color:#fff;}
+.np-key.kred{background:var(--redsoft);color:var(--red);}
 
-.receipt-view{font-size:0.8rem;background:var(--surface);padding:22px;border-radius:14px;border:1px dashed var(--border);width:280px;line-height:1.7;}
-.receipt-view .rc-center{text-align:center;}
-.receipt-view .rc-line{border-top:1px dashed var(--ink-faint);margin:8px 0;}
-.receipt-view .rc-row{display:flex;justify-content:space-between;}
+/* POS */
+.pos-wrap{display:flex;height:calc(100vh - 54px);overflow:hidden;}
+.pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.pos-right{width:335px;flex-shrink:0;background:var(--surf);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.pos-lhead{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0;}
+.cat-list{padding:12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;}
+.cat-card{display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:13px;border:1.5px solid var(--border);background:var(--surf);cursor:pointer;transition:all .15s;text-align:left;width:100%;}
+.cat-card:hover{border-color:var(--blue);background:var(--bluesoft);}
+.cat-icon{width:38px;height:38px;border-radius:11px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0;}
+.cat-name{font-weight:700;font-size:.9rem;}
+.cat-count{font-size:.72rem;color:var(--ink2);}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:9px;padding:12px;overflow-y:auto;flex:1;}
+.pc{background:var(--surf);border:1.5px solid var(--border);border-radius:13px;padding:11px;cursor:pointer;transition:all .15s;position:relative;}
+.pc:hover{border-color:var(--blue);}
+.pc:active{transform:scale(.97);}
+.pc.em{border-style:dashed;}
+.sdot{position:absolute;top:9px;right:9px;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 2px var(--surf);}
+.sdot-ok{background:var(--green);}
+.sdot-low{background:var(--yellow);}
+.sdot-so{background:var(--red);}
+.pc-name{font-weight:700;font-size:.83rem;padding-right:14px;margin-bottom:3px;}
+.pc-price{color:var(--blue2);font-size:.8rem;font-weight:700;}
+.pc-sizes{font-size:.67rem;color:var(--ink3);margin-top:2px;}
+.pc-ghost{border:1.5px dashed var(--border);border-radius:13px;display:flex;align-items:center;justify-content:center;gap:5px;color:var(--ink3);font-weight:700;font-size:.76rem;min-height:76px;cursor:pointer;}
+.edit-tog{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;border:1.5px solid var(--border);font-size:.73rem;font-weight:700;color:var(--ink2);background:var(--surf);margin-left:auto;}
+.edit-tog.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+/* CART */
+.ch{padding:11px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ch h3{font-weight:800;font-size:.92rem;}
+.ot-row{display:flex;gap:5px;padding:8px 13px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ot-btn{flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border);font-size:.7rem;font-weight:700;text-align:center;}
+.ot-btn.act{background:var(--ink);color:#fff;border-color:var(--ink);}
+.cart-items{flex:1;overflow-y:auto;padding:7px 9px;}
+.cib{background:var(--bg);border-radius:11px;padding:9px 11px;margin-bottom:7px;}
+.cim{display:flex;align-items:center;gap:7px;}
+.ci-name{flex:1;font-weight:700;font-size:.82rem;}
+.ci-price{font-size:.75rem;color:var(--ink2);}
+.qc{display:flex;align-items:center;gap:5px;}
+.qc button{width:22px;height:22px;border-radius:6px;background:var(--surf);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;}
+.ao-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.ao-chip{display:flex;align-items:center;gap:3px;padding:2px 7px;border-radius:999px;background:var(--bluesoft);color:var(--blue2);font-size:.67rem;font-weight:700;}
+.ao-add{padding:2px 8px;border-radius:999px;border:1.5px dashed var(--border);font-size:.67rem;font-weight:700;color:var(--ink3);}
+.note-inp{width:100%;margin-top:5px;padding:4px 8px;border:1px solid var(--border);border-radius:7px;font-size:.72rem;background:transparent;color:var(--ink);resize:none;}
+.note-inp::placeholder{color:var(--ink3);}
+.cart-bot{flex-shrink:0;border-top:1px solid var(--border);}
+.sect{padding:7px 13px;}
+.slabel{font-size:.67rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;}
+.disc-row{display:flex;gap:5px;}
+.db{flex:1;padding:6px;border-radius:8px;border:1.5px solid var(--border);font-size:.7rem;font-weight:700;color:var(--ink2);}
+.db.act{background:var(--bluesoft);border-color:var(--blue);color:var(--blue2);}
+.pay-row{display:flex;gap:5px;margin-bottom:7px;}
+.pb{flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border);font-size:.72rem;font-weight:700;}
+.pb.act{background:var(--ink);color:#fff;border-color:var(--ink);}
+.tender-row{display:flex;gap:5px;margin-bottom:5px;}
+.tb2{flex:1;padding:7px 3px;border-radius:8px;border:1.5px solid var(--border);font-size:.7rem;font-weight:700;text-align:center;}
+.tb2.exact{background:var(--green);color:#fff;border-color:var(--green);}
+.tb2.amt{background:var(--bluesoft);border-color:var(--blue);color:var(--blue2);}
+.sumbox{padding:7px 13px;border-top:1px solid var(--border);}
+.sr{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:2px;}
+.sr.tot{font-weight:800;font-size:.98rem;border-top:1px solid var(--border);padding-top:5px;margin-top:3px;}
+
+/* ORDERS */
+.ord-list{display:flex;flex-direction:column;gap:11px;}
+.oc{padding:13px;display:flex;flex-direction:column;gap:9px;}
+.och{display:flex;align-items:center;gap:9px;}
+.tbadge{width:36px;height:36px;border-radius:11px;background:var(--bluesoft);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.88rem;color:var(--blue2);}
+.drow{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+.drow:last-child{border-bottom:none;}
+.dchk{width:17px;height:17px;border-radius:5px;border:2px solid var(--border);flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;}
+.dchk.on{background:var(--green);border-color:var(--green);}
+.dname{font-weight:700;font-size:.82rem;}
+.dmeta{font-size:.7rem;color:var(--ink2);margin-top:2px;}
+
+/* STATS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:11px;margin-bottom:14px;}
+.sc{padding:13px;}
+.sc .lbl{font-size:.66rem;color:var(--ink2);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.sc .val{font-size:1.35rem;font-weight:800;margin-top:3px;}
+.dfbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+.dp{padding:5px 11px;border-radius:8px;border:1.5px solid var(--border);font-size:.74rem;font-weight:700;color:var(--ink2);background:var(--surf);}
+.dp.act{background:var(--ink);color:#fff;border-color:var(--ink);}
+.rtabs{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;}
+.tflag{background:var(--bluesoft);color:var(--blue2);padding:2px 7px;border-radius:5px;font-size:.64rem;font-weight:800;margin-left:5px;}
+
+/* SHIFTS */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px;}
+.cal-day{aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:600;background:var(--surf2);color:var(--ink3);}
+.cal-day.worked{background:var(--bluesoft);color:var(--blue2);}
+.cal-day.today-d{border:2px solid var(--blue);}
+
+/* LOCK */
+.lockgate{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;text-align:center;padding:40px;}
+.lockgate h2{font-size:1.2rem;font-weight:800;}
+.lockgate p{color:var(--ink2);font-size:.84rem;max-width:300px;}
+
+/* RECEIPT */
+.rcv{font-size:.78rem;background:var(--surf);padding:16px;border-radius:11px;border:1px dashed var(--border);line-height:1.75;}
+.rcc{text-align:center;}
+.rcl{border-top:1px dashed var(--ink3);margin:6px 0;}
+.rcr{display:flex;justify-content:space-between;}
+.chit{font-size:.8rem;background:var(--surf);padding:13px;border-radius:11px;border:1px dashed var(--border);width:200px;line-height:1.7;}
+.chit-num{font-size:2rem;font-weight:900;color:var(--blue);}
+.chit-type{font-size:.7rem;font-weight:700;background:var(--bluesoft);color:var(--blue2);padding:2px 9px;border-radius:999px;display:inline-block;margin-bottom:5px;}
 
 #print-area{display:none;}
-@media print{
-  body *{visibility:hidden;}
-  #print-area,#print-area *{visibility:visible;}
-  #print-area{display:block;position:absolute;top:0;left:0;width:280px;}
-}
-
-.exp-form{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:20px;}
-.exp-form .field input{padding:10px 12px;}
-
-.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:13px 20px;border-radius:12px;font-size:0.85rem;font-weight:600;box-shadow:var(--shadow-lg);z-index:200;display:flex;align-items:center;gap:10px;animation:toastin 0.2s ease-out;max-width:320px;}
-@keyframes toastin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-.loading-wrap{display:flex;align-items:center;justify-content:center;height:100vh;width:100%;color:var(--ink-soft);font-weight:700;}
+@media print{body *{visibility:hidden;}#print-area,#print-area *{visibility:visible;}#print-area{display:block;position:absolute;top:0;left:0;width:280px;}}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:.8rem;font-weight:600;box-shadow:var(--shlg);z-index:400;animation:ti .2s ease-out;max-width:280px;}
+@keyframes ti{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px 18px;color:var(--ink3);text-align:center;gap:7px;}
+.empty h3{color:var(--ink2);font-weight:700;font-size:.95rem;}
 </style>
 </head>
 <body>
-<div id="app"><div class="loading-wrap">Loading your counter…</div></div>
+<div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--ink2);font-weight:700;">Loading Cafe Yoto…</div></div>
 <div id="print-area"></div>
 <script>
-const BACKEND_URL='https://cafe-yoto-backend.onrender.com';
+const BK='https://cafe-yoto-backend.onrender.com';
 window.storage={
-  async get(key){
-    const res=await fetch(`${BACKEND_URL}/api/state/${encodeURIComponent(key)}`);
-    if(res.status===404)return null;
-    if(!res.ok)throw new Error('Backend not reachable at '+BACKEND_URL);
-    return await res.json();
-  },
-  async set(key,value){
-    const res=await fetch(`${BACKEND_URL}/api/state/${encodeURIComponent(key)}`,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({value})
-    });
-    if(!res.ok)throw new Error('Backend not reachable at '+BACKEND_URL);
-    return await res.json();
-  }
-};
-const ICONS={
-  clock:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
-  pos:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8l1.5-3h13L20 8"/><path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 12h6"/></svg>',
-  orders:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
-  inventory:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>',
-  reports:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
-  shifts:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>',
-  expenses:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M21 12h-4a2 2 0 0 0 0 4h4v-4z"/></svg>',
-  plus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
-  minus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"/></svg>',
-  x:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
-  trash:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>',
-  printer:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17h12v5H6z"/></svg>',
-  bluetooth:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/></svg>',
-  pencil:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
-  empty:'<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8l1.5-3h13L20 8"/><path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>',
-  lock:'<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
-  eye:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>',
-  download:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13m0 0l-4-4m4 4l4-4"/><path d="M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>',
-  signout:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>'
+  async get(k){const r=await fetch(`${BK}/api/state/${encodeURIComponent(k)}`);if(r.status===404)return null;if(!r.ok)throw new Error();return r.json();},
+  async set(k,v){const r=await fetch(`${BK}/api/state/${encodeURIComponent(k)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:v})});if(!r.ok)throw new Error();return r.json();}
 };
 
-let state={
+// ICONS
+const IC={
+  clk:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  pos:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 8l1.5-3h13L20 8"/><path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 12h6"/></svg>',
+  ord:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+  inv:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>',
+  rep:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
+  exp:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M21 12h-4a2 2 0 0 0 0 4h4v-4z"/></svg>',
+  shf:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>',
+  adm:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  pls:'<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  mns:'<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
+  xx:'<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  bk:'<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>',
+  tr:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>',
+  pr:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17h12v5H6z"/></svg>',
+  bt:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/></svg>',
+  pe:'<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  ck:'<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>',
+  dl:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 3v13m0 0l-4-4m4 4l4-4"/><path d="M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>',
+  so:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
+  ey:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+  loc:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+};
+
+// STATE
+let S={
   employees:[],shifts:[],products:[],ingredients:[],orders:[],expenses:[],
-  settings:{orderCounter:0,lastOrderDate:'',taxRate:0.12,discountRate:0.20},
+  settings:{
+    orderCounter:0,lastOrderDate:'',
+    shiftDefs:[{id:'s1',name:'Morning',start:'10:00',end:'14:00'},{id:'s2',name:'Afternoon',start:'14:00',end:'18:00'}],
+    wifiPw:'CafeYoto2024',
+    rcptHeader:'CAFE YOTO',rcptFooter:'Thank you, come again!',
+    chitHeader:'CAFE YOTO',
+    adminHash:'',
+    latePenalty:30,
+    discountRate:0.20
+  },
   categories:['Coffee','Non-Coffee','Pastries','Add-ons']
 };
-let ui={
-  view:'clock',activeEmployeeId:null,viewOnly:false,editMode:false,
-  posCategory:null,cart:[],discountType:'none',discName:'',discId:'',payMethod:'Cash',tendered:'',payRef:'',
-  reportTab:'summary',reportPreset:'today',reportStart:'',reportEnd:'',
-  expensePreset:'today',expenseStart:'',expenseEnd:'',
-  invFilter:'all',invTab:'menu',
-  showAddEmployee:false,showAddProduct:false,editProductId:null,showRecipeFor:null,showAddIngredient:false,editIngredientId:null,showSizePicker:null,
-  lowStockNoticeShown:false
+let U={
+  view:'clock',activeEmpId:null,viewOnly:false,isAdmin:false,
+  posCategory:null,editMode:false,
+  cart:[],discType:'none',discName:'',discId:'',payMethod:'Cash',tendered:0,payRef:'',orderType:'Dine In',
+  repTab:'summary',repPreset:'today',repStart:'',repEnd:'',
+  expPreset:'today',expStart:'',expEnd:'',expType:'Cafe',
+  invTab:'ingredients',invFilter:'all',
+  npShow:false,npVal:'',npTarget:null,
+  modal:null,mdata:null,
+  sdraft:[],rdraft:[],
+  shiftEmpId:null,
+  clockWorkType:'',
+  backendDown:false
 };
 
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
-function peso(n){return '₱'+(Math.round((n||0)*100)/100).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+// HELPERS
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const peso=n=>'₱'+(Math.round((n||0)*100)/100).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const ftm=iso=>new Date(iso).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+const fdt=iso=>new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+const fdur=ms=>{const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return h+'h '+m+'m';};
+const ingBy=id=>S.ingredients.find(i=>i.id===id);
+const ucost=i=>(i.purchasePrice+i.shippingCost)/i.purchaseQtyInBase;
+const pcost=p=>(p.recipe||[]).reduce((s,r)=>{const i=ingBy(r.ingredientId);return s+(i?ucost(i)*r.qty:0);},0);
+const isLow=i=>i.stockInBase<=i.lowThresh&&i.stockInBase>i.soThresh;
+const isSO=i=>i.stockInBase<=i.soThresh;
+const lowList=()=>S.ingredients.filter(i=>isLow(i));
+const soList=()=>S.ingredients.filter(i=>isSO(i));
+const addOnProds=()=>S.products.filter(p=>p.category==='Add-ons');
 
+function pStatus(p){
+  if(!p.recipe||!p.recipe.length)return'ok';
+  for(const r of p.recipe){const i=ingBy(r.ingredientId);if(!i)continue;if(isSO(i)||i.stockInBase<r.qty)return'so';}
+  for(const r of p.recipe){const i=ingBy(r.ingredientId);if(!i)continue;if(isLow(i))return'low';}
+  return'ok';
+}
+const pAvail=p=>pStatus(p)!=='so';
+
+async function hashStr(s){
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+// PAYROLL
+function calcPay(emp,shift){
+  if(!shift.timeOut)return 0;
+  const ms=new Date(shift.timeOut)-new Date(shift.timeIn);
+  const hrs=ms/3600000;
+  const fullHrs=Math.floor(hrs);
+  const rem=hrs-fullHrs;
+  const wt=(shift.workType||emp.role||'Barista').toLowerCase();
+  const isBarista=wt==='barista';
+  const hrRate=isBarista?(emp.hourlyRate||64):(emp.catRate||57);
+  const extraRate=isBarista?(emp.extraHalfRate||35):(emp.catExtraRate||30);
+  let pay=fullHrs*hrRate;
+  if(rem>=0.4)pay+=extraRate;
+  const st=shiftStatus(shift);
+  if(st==='late')pay-=(S.settings.latePenalty||30);
+  pay+=shift.tips||0;
+  return Math.max(0,pay);
+}
+
+function shiftStatus(shift){
+  if(shift.lateExcused)return'valid';
+  const tin=new Date(shift.timeIn);
+  const hm=tin.getHours()*60+tin.getMinutes();
+  const expected=S.settings.shiftDefs[0]?.start||'10:00';
+  const[eh,em]=expected.split(':').map(Number);
+  return hm>(eh*60+em)?'late':'ontime';
+}
+
+// PERSIST
 async function saveCore(){
-  try{await window.storage.set('yoto-core',JSON.stringify({employees:state.employees,shifts:state.shifts,products:state.products,ingredients:state.ingredients,expenses:state.expenses,settings:state.settings,categories:state.categories}));}
-  catch(e){toast('Save failed, changes may not persist');}
+  try{await window.storage.set('yoto-core',JSON.stringify({employees:S.employees,shifts:S.shifts,products:S.products,ingredients:S.ingredients,expenses:S.expenses,settings:S.settings,categories:S.categories}));}
+  catch(e){U.backendDown=true;}
 }
 async function saveOrders(){
-  try{await window.storage.set('yoto-orders',JSON.stringify({orders:state.orders}));}
-  catch(e){toast('Save failed, changes may not persist');}
+  try{await window.storage.set('yoto-orders',JSON.stringify({orders:S.orders}));}
+  catch(e){U.backendDown=true;}
 }
 
-function defaultIngredients(){
-  return [
-    {id:'ing-beans',name:'Beans',baseUnit:'g',purchaseLabel:'500g pack',purchaseQtyInBase:500,purchasePrice:535,shippingCost:123,stockInBase:500,lowStockPurchaseUnits:2},
-    {id:'ing-milk',name:'Milk',baseUnit:'mL',purchaseLabel:'1000mL pack',purchaseQtyInBase:1000,purchasePrice:99,shippingCost:20,stockInBase:1000,lowStockPurchaseUnits:3},
-    {id:'ing-ice',name:'Ice',baseUnit:'piece',purchaseLabel:'85-piece pack',purchaseQtyInBase:85,purchasePrice:85,shippingCost:20,stockInBase:85,lowStockPurchaseUnits:2},
-    {id:'ing-biscoff',name:'Biscoff',baseUnit:'g',purchaseLabel:'750g pack',purchaseQtyInBase:750,purchasePrice:575,shippingCost:20,stockInBase:750,lowStockPurchaseUnits:1},
-    {id:'ing-foam',name:'Foam',baseUnit:'mL',purchaseLabel:'1000mL pack',purchaseQtyInBase:1000,purchasePrice:215,shippingCost:20,stockInBase:1000,lowStockPurchaseUnits:1},
-    {id:'ing-cookiedough',name:'Cookie Dough',baseUnit:'mL',purchaseLabel:'750mL pack',purchaseQtyInBase:750,purchasePrice:285,shippingCost:20,stockInBase:750,lowStockPurchaseUnits:1},
-    {id:'ing-condense',name:'Condensed Milk',baseUnit:'mL',purchaseLabel:'1000mL pack',purchaseQtyInBase:1000,purchasePrice:115,shippingCost:20,stockInBase:1000,lowStockPurchaseUnits:1},
-    {id:'ing-darkchoco',name:'BS Dark Chocolate',baseUnit:'g',purchaseLabel:'500g pack',purchaseQtyInBase:500,purchasePrice:220,shippingCost:0,stockInBase:500,lowStockPurchaseUnits:1},
-    {id:'ing-matcha',name:'Matcha',baseUnit:'g',purchaseLabel:'1000g pack',purchaseQtyInBase:1000,purchasePrice:440,shippingCost:0,stockInBase:1000,lowStockPurchaseUnits:1},
-    {id:'ing-oatmilk',name:'Oat Milk',baseUnit:'mL',purchaseLabel:'1000mL pack',purchaseQtyInBase:1000,purchasePrice:125,shippingCost:50,stockInBase:1000,lowStockPurchaseUnits:1},
-    {id:'ing-samidori',name:'Samidori',baseUnit:'g',purchaseLabel:'100g pack',purchaseQtyInBase:100,purchasePrice:3400,shippingCost:100,stockInBase:100,lowStockPurchaseUnits:1},
-    {id:'ing-cups',name:'Cups',baseUnit:'piece',purchaseLabel:'100-pc pack',purchaseQtyInBase:100,purchasePrice:360,shippingCost:20,stockInBase:100,lowStockPurchaseUnits:2},
-    {id:'ing-straws',name:'Straws',baseUnit:'piece',purchaseLabel:'100-pc pack',purchaseQtyInBase:100,purchasePrice:40,shippingCost:0,stockInBase:100,lowStockPurchaseUnits:2}
-  ];
-}
-function sz(label,price){return {id:uid(),label,price};}
-function defaultProducts(){
-  return [
-    {id:'p-americano',name:'Americano',category:'Coffee',sizes:[sz('Regular',89)],recipe:[{ingredientId:'ing-beans',qty:18},{ingredientId:'ing-cups',qty:1}]},
-    {id:'p-latte',name:'Latte',category:'Coffee',sizes:[sz('Regular',103)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-foam',qty:10},{ingredientId:'ing-cups',qty:1}]},
-    {id:'p-biscoff',name:'Biscoff',category:'Non-Coffee',sizes:[sz('Regular',131)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cookiedough',qty:10},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-condense',qty:25},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straws',qty:1}]},
-    {id:'p-biscoffcoffee',name:'Biscoff Coffee',category:'Coffee',sizes:[sz('Regular',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cookiedough',qty:10},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-condense',qty:25},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straws',qty:1}]},
-    {id:'p-spanish',name:'Spanish',category:'Coffee',sizes:[sz('Regular',117),sz('Large',152)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-condense',qty:25},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cookiedough',qty:5},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straws',qty:1}]},
-    {id:'p-mocha',name:'Mocha',category:'Coffee',sizes:[sz('Regular',120)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-condense',qty:10},{ingredientId:'ing-foam',qty:30},{ingredientId:'ing-cookiedough',qty:10},{ingredientId:'ing-darkchoco',qty:20},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straws',qty:1}]},
-    {id:'p-matcha',name:'Matcha',category:'Non-Coffee',sizes:[sz('Regular',115)],recipe:[{ingredientId:'ing-milk',qty:80},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-matcha',qty:45},{ingredientId:'ing-oatmilk',qty:115},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straws',qty:1}]},
-    {id:'p-dirty',name:'Dirty Matcha',category:'Coffee',sizes:[sz('Regular',134)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:80},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-matcha',qty:45},{ingredientId:'ing-oatmilk',qty:115},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straws',qty:1}]},
-    {id:'p-samidori',name:'Samidori',category:'Non-Coffee',sizes:[sz('Regular',254)],recipe:[{ingredientId:'ing-samidori',qty:4},{ingredientId:'ing-ice',qty:6},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-oatmilk',qty:120},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straws',qty:1}]}
-  ];
-}
+// DEFAULT DATA
+function defIngs(){return[
+  {id:'ing-beans',name:'Beans',baseUnit:'g',purchaseLabel:'500g pack',purchaseQtyInBase:500,purchasePrice:535,shippingCost:123,stockInBase:500,lowThresh:200,soThresh:17},
+  {id:'ing-milk',name:'Milk',baseUnit:'mL',purchaseLabel:'1000mL pack',purchaseQtyInBase:1000,purchasePrice:99,shippingCost:20,stockInBase:1000,lowThresh:300,soThresh:50},
+  {id:'ing-ice',name:'Ice',baseUnit:'piece',purchaseLabel:'85-piece pack',purchaseQtyInBase:85,purchasePrice:85,shippingCost:20,stockInBase:85,lowThresh:20,soThresh:5},
+  {id:'ing-biscoff',name:'Biscoff',baseUnit:'g',purchaseLabel:'750g pack',purchaseQtyInBase:750,purchasePrice:575,shippingCost:20,stockInBase:750,lowThresh:150,soThresh:30},
+  {id:'ing-foam',name:'Foam',baseUnit:'mL',purchaseLabel:'1000mL pack',purchaseQtyInBase:1000,purchasePrice:215,shippingCost:20,stockInBase:1000,lowThresh:200,soThresh:30},
+  {id:'ing-cd',name:'Cookie Dough',baseUnit:'mL',purchaseLabel:'750mL pack',purchaseQtyInBase:750,purchasePrice:285,shippingCost:20,stockInBase:750,lowThresh:150,soThresh:20},
+  {id:'ing-cond',name:'Condensed Milk',baseUnit:'mL',purchaseLabel:'1000mL pack',purchaseQtyInBase:1000,purchasePrice:115,shippingCost:20,stockInBase:1000,lowThresh:200,soThresh:30},
+  {id:'ing-choc',name:'BS Dark Chocolate',baseUnit:'g',purchaseLabel:'500g pack',purchaseQtyInBase:500,purchasePrice:220,shippingCost:0,stockInBase:500,lowThresh:100,soThresh:20},
+  {id:'ing-matcha',name:'Matcha',baseUnit:'g',purchaseLabel:'1000g pack',purchaseQtyInBase:1000,purchasePrice:440,shippingCost:0,stockInBase:1000,lowThresh:200,soThresh:45},
+  {id:'ing-oat',name:'Oat Milk',baseUnit:'mL',purchaseLabel:'1000mL pack',purchaseQtyInBase:1000,purchasePrice:125,shippingCost:50,stockInBase:1000,lowThresh:200,soThresh:30},
+  {id:'ing-sami',name:'Samidori',baseUnit:'g',purchaseLabel:'100g pack',purchaseQtyInBase:100,purchasePrice:3400,shippingCost:100,stockInBase:100,lowThresh:20,soThresh:4},
+  {id:'ing-cups',name:'Cups',baseUnit:'piece',purchaseLabel:'100-pc pack',purchaseQtyInBase:100,purchasePrice:360,shippingCost:20,stockInBase:100,lowThresh:20,soThresh:1},
+  {id:'ing-straw',name:'Straws',baseUnit:'piece',purchaseLabel:'100-pc pack',purchaseQtyInBase:100,purchasePrice:40,shippingCost:0,stockInBase:100,lowThresh:20,soThresh:1}
+];}
+const sz=(l,p)=>({id:uid(),label:l,price:p});
+function defProds(){return[
+  {id:'p-am',name:'Americano',category:'Coffee',sizes:[sz('Regular',89)],recipe:[{ingredientId:'ing-beans',qty:18},{ingredientId:'ing-cups',qty:1}]},
+  {id:'p-la',name:'Latte',category:'Coffee',sizes:[sz('Regular',103)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-foam',qty:10},{ingredientId:'ing-cups',qty:1}]},
+  {id:'p-bi',name:'Biscoff',category:'Non-Coffee',sizes:[sz('Regular',131)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cd',qty:10},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
+  {id:'p-bc',name:'Biscoff Coffee',category:'Coffee',sizes:[sz('Regular',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cd',qty:10},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
+  {id:'p-sp',name:'Spanish',category:'Coffee',sizes:[sz('Regular',117),sz('Large',152)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cd',qty:5},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
+  {id:'p-mo',name:'Mocha',category:'Coffee',sizes:[sz('Regular',120)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-cond',qty:10},{ingredientId:'ing-foam',qty:30},{ingredientId:'ing-cd',qty:10},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
+  {id:'p-ma',name:'Matcha',category:'Non-Coffee',sizes:[sz('Regular',115)],recipe:[{ingredientId:'ing-milk',qty:80},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-matcha',qty:45},{ingredientId:'ing-oat',qty:115},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
+  {id:'p-dm',name:'Dirty Matcha',category:'Coffee',sizes:[sz('Regular',134)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:80},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-matcha',qty:45},{ingredientId:'ing-oat',qty:115},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
+  {id:'p-sa',name:'Samidori',category:'Non-Coffee',sizes:[sz('Regular',254)],recipe:[{ingredientId:'ing-sami',qty:4},{ingredientId:'ing-ice',qty:6},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-oat',qty:120},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
+  {id:'p-es',name:'Extra Shot',category:'Add-ons',sizes:[sz('',25)],recipe:[{ingredientId:'ing-beans',qty:9}]},
+  {id:'p-om',name:'Oat Milk',category:'Add-ons',sizes:[sz('',30)],recipe:[]},
+  {id:'p-wc',name:'Whipped Cream',category:'Add-ons',sizes:[sz('',20)],recipe:[]}
+];}
 
-function migrateProduct(p){
-  if(!p.sizes||!p.sizes.length){
-    p.sizes=[{id:uid(),label:'Regular',price:p.price||0}];
-  }
+function migrateP(p){
+  if(!p.sizes||!p.sizes.length)p.sizes=[{id:uid(),label:'Regular',price:p.price||0}];
   if(!p.recipe)p.recipe=[];
   return p;
 }
 
 async function loadData(){
   try{
-    const core=await window.storage.get('yoto-core');
-    if(core&&core.value){
-      const parsed=JSON.parse(core.value);
-      state.employees=parsed.employees||[];
-      state.shifts=parsed.shifts||[];
-      state.products=(parsed.products&&parsed.products.length?parsed.products:defaultProducts()).map(migrateProduct);
-      state.ingredients=parsed.ingredients&&parsed.ingredients.length?parsed.ingredients:defaultIngredients();
-      state.expenses=parsed.expenses||[];
-      state.settings=parsed.settings||state.settings;
-      state.categories=parsed.categories||state.categories;
-      if(!parsed.products||!parsed.products.length||!parsed.ingredients||!parsed.ingredients.length){await saveCore();}
-    }else{
-      state.products=defaultProducts();
-      state.ingredients=defaultIngredients();
-      await saveCore();
-    }
-  }catch(e){state.products=defaultProducts();state.ingredients=defaultIngredients();ui.backendDown=true;}
-  try{
-    const orders=await window.storage.get('yoto-orders');
-    if(orders&&orders.value){state.orders=JSON.parse(orders.value).orders||[];}
-  }catch(e){ui.backendDown=true;}
-  if(!ui.posCategory&&state.categories.length)ui.posCategory=state.categories[0];
+    const c=await window.storage.get('yoto-core');
+    if(c&&c.value){
+      const d=JSON.parse(c.value);
+      S.employees=d.employees||[];
+      S.shifts=d.shifts||[];
+      S.products=(d.products&&d.products.length?d.products:defProds()).map(migrateP);
+      S.ingredients=d.ingredients&&d.ingredients.length?d.ingredients:defIngs();
+      S.expenses=d.expenses||[];
+      S.settings={...S.settings,...d.settings};
+      S.categories=d.categories||S.categories;
+      if(!S.settings.shiftDefs)S.settings.shiftDefs=[{id:'s1',name:'Morning',start:'10:00',end:'14:00'},{id:'s2',name:'Afternoon',start:'14:00',end:'18:00'}];
+    }else{S.products=defProds();S.ingredients=defIngs();await saveCore();}
+  }catch(e){S.products=defProds();S.ingredients=defIngs();U.backendDown=true;}
+  try{const o=await window.storage.get('yoto-orders');if(o&&o.value)S.orders=JSON.parse(o.value).orders||[];}catch(e){U.backendDown=true;}
+  if(!U.posCategory&&S.categories.length)U.posCategory=S.categories[0];
+  if(!S.settings.adminHash)hashStr('Aekei14!').then(h=>{S.settings.adminHash=h;saveCore();});
 }
 
-function toast(msg){
-  const t=document.createElement('div');
-  t.className='toast';
-  t.innerHTML=msg;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(),3200);
+function toast(msg){const t=document.createElement('div');t.className='toast';t.innerHTML=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+
+function nextNum(){
+  const t=today();
+  if(S.settings.lastOrderDate!==t){S.settings.orderCounter=0;S.settings.lastOrderDate=t;}
+  S.settings.orderCounter=(S.settings.orderCounter%99)+1;
+  return String(S.settings.orderCounter);
 }
 
-function nextOrderNumber(){
-  const today=todayStr();
-  if(state.settings.lastOrderDate!==today){state.settings.orderCounter=0;state.settings.lastOrderDate=today;}
-  state.settings.orderCounter+=1;
-  if(state.settings.orderCounter>99)state.settings.orderCounter=1;
-  return String(state.settings.orderCounter);
+const curEmp=()=>S.employees.find(e=>e.id===U.activeEmpId);
+const actShift=id=>S.shifts.find(s=>s.employeeId===id&&!s.timeOut);
+const mode=()=>{if(U.activeEmpId&&actShift(U.activeEmpId))return'active';if(U.viewOnly)return'viewonly';return'locked';};
+const canM=()=>mode()==='active';
+
+// NUMPAD
+function openNP(target,cur){U.npShow=true;U.npTarget=target;U.npVal=cur?String(cur):'';ra();}
+function npPress(k){
+  if(k==='DEL')U.npVal=U.npVal.slice(0,-1);
+  else if(k==='.')U.npVal+=U.npVal.includes('.')?'':'.';
+  else U.npVal+=k;
+  const el=document.getElementById('np-disp');if(el)el.textContent=U.npVal||'0';
 }
-
-function fmtTime(iso){return new Date(iso).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});}
-function fmtDate(iso){return new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});}
-function fmtDur(ms){const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return h+'h '+m+'m';}
-
-function currentEmployee(){return state.employees.find(e=>e.id===ui.activeEmployeeId);}
-function activeShiftFor(empId){return state.shifts.find(s=>s.employeeId===empId&&!s.timeOut);}
-function currentMode(){
-  if(ui.activeEmployeeId&&activeShiftFor(ui.activeEmployeeId))return 'active';
-  if(ui.viewOnly)return 'viewonly';
-  return 'locked';
+function npConfirm(){
+  const v=parseFloat(U.npVal)||0;
+  if(U.npTarget==='tendered'){U.tendered=v;}
+  U.npShow=false;ra();
 }
-function canManage(){return currentMode()==='active';}
+function npCancel(){U.npShow=false;ra();}
 
-function ingredientById(id){return state.ingredients.find(i=>i.id===id);}
-function unitCostOf(ing){return (ing.purchasePrice+ing.shippingCost)/ing.purchaseQtyInBase;}
-function productCost(p){return (p.recipe||[]).reduce((s,r)=>{const ing=ingredientById(r.ingredientId);return s+(ing?unitCostOf(ing)*r.qty:0);},0);}
-function isLowStock(ing){return ing.stockInBase<=ing.lowStockPurchaseUnits*ing.purchaseQtyInBase;}
-function lowStockIngredients(){return state.ingredients.filter(isLowStock);}
-
-function productStatus(p){
-  if(!p.recipe||!p.recipe.length)return 'ok';
-  let worst='ok';
-  for(const r of p.recipe){
-    const ing=ingredientById(r.ingredientId);
-    if(!ing)continue;
-    if(ing.stockInBase<=0||ing.stockInBase<r.qty)return 'soldout';
-    if(isLowStock(ing))worst='low';
-  }
-  return worst;
+// RENDER
+function setView(v){U.view=v;ra();}
+let _rTimer=null;
+function ra(){
+  clearTimeout(_rTimer);
+  _rTimer=setTimeout(_ra,10);
 }
-function productAvailable(p){return productStatus(p)!=='soldout';}
-
-function setView(v){ui.view=v;render();}
-
-function render(){
-  const app=document.getElementById('app');
-  const mode=currentMode();
-  const low=lowStockIngredients();
-  app.innerHTML=`
-    <div class="sidebar">
-      <div class="brand"><span class="dot3"></span>Cafe Yoto</div>
-      ${navItem('clock','Time Clock',ICONS.clock)}
-      ${navItem('pos','POS',ICONS.pos)}
-      ${navItem('orders','Orders',ICONS.orders)}
-      ${navItem('inventory','Inventory',ICONS.inventory,low.length>0)}
-      ${navItem('expenses','Expenses',ICONS.expenses)}
-      ${navItem('reports','Reports',ICONS.reports)}
-      ${navItem('shifts','Shifts',ICONS.shifts)}
-      <div class="sidebar-foot">Cafe Yoto Counter<br>v3.0</div>
-    </div>
-    <div class="main-col">
-      <div class="topbar">
-        <div class="topbar-left">
-          <div class="topbar-title">${viewTitle()}</div>
-          <div class="topbar-sub">${fmtDate(new Date().toISOString())}</div>
-        </div>
-        <div class="topbar-right">
-          <div class="clock-live" id="liveclock"></div>
-          ${mode==='active'?`<div class="cashier-chip"><span class="cashier-dot"></span>${currentEmployee().name}</div><button class="btn btn-outline btn-sm" onclick="signOut()">${ICONS.signout} Sign Out</button>`:''}
-          ${mode==='viewonly'?`<div class="viewonly-chip">${ICONS.eye} View Only</div><button class="btn btn-outline btn-sm" onclick="ui.viewOnly=false;render();">Exit</button>`:''}
-        </div>
+function _ra(){
+  const m=mode();
+  const low=lowList().length+soList().length;
+  document.getElementById('app').innerHTML=`
+  <div class="sb">
+    <div class="sb-logo">CY</div>
+    ${ni('clock','Time Clock',IC.clk)}
+    ${ni('pos','POS',IC.pos)}
+    ${ni('orders','Orders',IC.ord)}
+    ${ni('inventory','Inventory',IC.inv,low>0)}
+    ${ni('expenses','Expenses',IC.exp)}
+    ${ni('reports','Reports',IC.rep)}
+    ${ni('shifts','Shifts',IC.shf)}
+    <div class="sb-foot">${ni('admin','Admin',IC.adm)}</div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-title">${vtitle()}</div>
+      <div class="tb-right">
+        <span class="clock-live" id="lc"></span>
+        ${m==='active'?`<div class="chip"><span class="chip-dot"></span>${curEmp().name}</div><button class="btn btn-out btn-sm" onclick="signOut()">${IC.so} Sign Out</button>`:''}
+        ${m==='viewonly'?`<div class="vo-chip">${IC.ey} View Only</div><button class="btn btn-out btn-sm" onclick="U.viewOnly=false;ra();">Exit</button>`:''}
       </div>
-      ${ui.backendDown?`<div style="background:var(--danger-soft);color:var(--danger);padding:10px 26px;font-size:0.82rem;font-weight:700;">Can't reach the backend — nothing will save. Make sure the server is running (<code>npm start</code> in cafe-yoto-backend), then refresh this page.</div>`:''}
-      <div class="content" id="content"></div>
     </div>
+    ${U.backendDown?`<div class="backend-warn">⚠ Can't reach backend — data won't save. Start server then refresh.</div>`:''}
+    <div class="content" id="content" style="${U.view==='pos'?'padding:0;overflow:hidden;display:flex;flex-direction:column;':''}">${vrender()}</div>
+  </div>
+  ${npRender()}
+  ${modalRender()}
   `;
-  renderView();
   tickClock();
 }
-
-function navItem(view,label,icon,dot){
-  return `<button class="nav-item ${ui.view===view?'active':''}" onclick="setView('${view}')">${icon}<span>${label}</span>${dot?'<span class="nav-dot"></span>':''}</button>`;
+function ni(view,label,icon,dot){
+  return`<div class="ni ${U.view===view?'act':''}" onclick="setView('${view}')" title="${label}">${icon}<span class="tip">${label}</span>${dot?'<span class="dot"></span>':''}</div>`;
 }
-function viewTitle(){
-  return {clock:'Time Clock',pos:'Point of Sale',orders:'Ongoing Orders',inventory:'Inventory',expenses:'Expenses',reports:'Sales Reports',shifts:'Shifts &amp; Receipts'}[ui.view];
-}
-function tickClock(){const el=document.getElementById('liveclock');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');}
-setInterval(()=>{const el=document.getElementById('liveclock');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');},1000);
+function vtitle(){return{clock:'Time Clock',pos:'Point of Sale',orders:'Ongoing Orders',inventory:'Inventory',expenses:'Expenses',reports:'Reports',shifts:'Shifts',admin:'Admin'}[U.view]||'';}
+function tickClock(){const el=document.getElementById('lc');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');}
+setInterval(()=>{const el=document.getElementById('lc');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');},1000);
 
-function renderView(){
-  const c=document.getElementById('content');
-  const mode=currentMode();
-  if(ui.view!=='clock'&&mode==='locked'){c.innerHTML=renderLockGate();return;}
-  if(ui.view==='clock')c.innerHTML=renderClock();
-  if(ui.view==='pos')c.innerHTML=renderPOS();
-  if(ui.view==='orders')c.innerHTML=renderOrders();
-  if(ui.view==='inventory')c.innerHTML=renderInventory();
-  if(ui.view==='expenses')c.innerHTML=renderExpenses();
-  if(ui.view==='reports')c.innerHTML=renderReports();
-  if(ui.view==='shifts')c.innerHTML=renderShifts();
-  attachModals();
-  if(ui.view==='inventory')wireIngredientMathPreview();
-  if(!ui.lowStockNoticeShown&&lowStockIngredients().length){
-    ui.lowStockNoticeShown=true;
-    toast(`Low stock: ${lowStockIngredients().map(i=>i.name).join(', ')}. Time to restock.`);
-  }
+function vrender(){
+  const m=mode();
+  if(U.view==='clock')return rClock();
+  if(U.view==='admin')return rAdmin();
+  if(m==='locked')return rLock();
+  if(U.view==='pos')return rPOS();
+  if(U.view==='orders')return rOrders();
+  if(U.view==='inventory')return rInventory();
+  if(U.view==='expenses')return rExpenses();
+  if(U.view==='reports')return rReports();
+  if(U.view==='shifts')return rShifts();
+  return'';
 }
+function rLock(){return`<div class="lockgate"><div style="font-size:2rem;">🔒</div><h2>Locked</h2><p>Time in or browse in View Only.</p><div style="display:flex;gap:9px;margin-top:10px;"><button class="btn btn-blue" onclick="setView('clock')">Time Clock</button><button class="btn btn-out" onclick="U.viewOnly=true;ra();">${IC.ey} View Only</button></div></div>`;}
 
-function renderLockGate(){
-  return `<div class="lockgate">
-    <div class="lock-ic">${ICONS.lock}</div>
-    <h2>This screen is locked</h2>
-    <p>Time in first so the system knows who's managing the counter, or continue in View Only to just browse without being tracked.</p>
-    <div class="actions">
-      <button class="btn btn-accent" onclick="setView('clock')">Go to Time Clock</button>
-      <button class="btn btn-outline" onclick="ui.viewOnly=true;render();">${ICONS.eye} Continue in View Only</button>
-    </div>
-  </div>`;
-}
-
-function renderClock(){
-  const emp=currentEmployee();
-  const shift=emp?activeShiftFor(emp.id):null;
-  return `
-  <div class="clockview-wrap"><div class="card clockcard">
-    <div class="big-time" id="clockcard-time"></div>
-    <div class="big-date">${fmtDate(new Date().toISOString())}</div>
-    <select class="field emp-select" onchange="ui.activeEmployeeId=this.value;render();" style="padding:10px;border:1.5px solid var(--border);border-radius:10px;">
+// CLOCK
+function rClock(){
+  const emp=curEmp();const sh=emp?actShift(emp.id):null;
+  return`<div style="display:flex;justify-content:center;padding-top:18px;">
+  <div class="card" style="width:100%;max-width:380px;padding:24px;text-align:center;">
+    <div style="font-size:1.9rem;font-weight:800;" id="ctcard"></div>
+    <div style="color:var(--ink2);font-size:.8rem;margin-bottom:18px;">${fdt(new Date().toISOString())}</div>
+    <select onchange="U.activeEmpId=this.value;U.clockWorkType='';ra();" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:10px;font-size:.86rem;">
       <option value="">Select employee…</option>
-      ${state.employees.map(e=>`<option value="${e.id}" ${ui.activeEmployeeId===e.id?'selected':''}>${e.name}</option>`).join('')}
+      ${S.employees.map(e=>`<option value="${e.id}" ${U.activeEmpId===e.id?'selected':''}>${e.name}</option>`).join('')}
     </select>
-    ${emp?`
-      <div class="status-line">${shift?`On shift since ${fmtTime(shift.timeIn)}`:'Not clocked in'}</div>
-      ${shift?
-        `<button class="btn btn-danger" style="width:100%;justify-content:center;padding:12px;" onclick="timeOut()">Time Out</button>`:
-        `<button class="btn btn-accent" style="width:100%;justify-content:center;padding:12px;" onclick="timeIn()">Time In</button>`
-      }
-    `:`<div class="status-line">Choose your name to time in or out</div>
-       <button class="viewonly-link" onclick="ui.viewOnly=true;setView('pos');">Continue in View Only instead</button>`}
-    <div class="emp-list">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span style="font-size:0.78rem;font-weight:700;color:var(--ink-soft);">TEAM</span>
-        <button class="btn btn-outline btn-sm" onclick="ui.showAddEmployee=true;render();">${ICONS.plus} Add</button>
+    ${emp&&!sh?`
+    <select onchange="U.clockWorkType=this.value;" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:12px;font-size:.86rem;">
+      <option value="">Select work type for this shift…</option>
+      <option value="Barista" ${U.clockWorkType==='Barista'?'selected':''}>☕ Barista</option>
+      <option value="Cat Front Desk" ${U.clockWorkType==='Cat Front Desk'?'selected':''}>🐱 Cat Front Desk</option>
+    </select>`:''}
+    ${emp?`<div style="margin:8px 0 16px;color:var(--ink2);font-size:.83rem;">${sh?`On shift since ${ftm(sh.timeIn)} · <strong>${sh.workType||'—'}</strong>`:'Not clocked in'}</div>
+    ${sh?`<button class="btn btn-red" style="width:100%;justify-content:center;padding:11px;" onclick="timeOut()">Time Out</button>`:
+    `<button class="btn btn-blue" style="width:100%;justify-content:center;padding:11px;" ${!U.clockWorkType?'disabled':''} onclick="timeIn()">Time In</button>`}`
+    :`<div style="margin:8px 0 16px;color:var(--ink2);font-size:.83rem;">Choose your name above</div><button style="font-size:.76rem;color:var(--ink2);text-decoration:underline;" onclick="U.viewOnly=true;setView('pos');">View Only mode</button>`}
+    <div style="margin-top:18px;text-align:left;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+        <span style="font-size:.7rem;font-weight:700;color:var(--ink2);">TEAM</span>
+        <button class="btn btn-out btn-sm" onclick="openModal('addEmp')">${IC.pls} Add</button>
       </div>
-      ${state.employees.length?state.employees.map(e=>{
-        const s=activeShiftFor(e.id);
-        return `<div class="emp-row"><span>${e.name}</span><span class="badge ${s?'badge-done':''}" style="${s?'':'color:var(--ink-faint);background:var(--surface-alt);'}">${s?'Clocked in':'Off shift'}</span></div>`;
-      }).join(''):'<div style="color:var(--ink-faint);font-size:0.82rem;">No employees yet.</div>'}
+      ${S.employees.map(e=>{const s=actShift(e.id);return`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.81rem;"><span>${e.name}</span><div style="display:flex;align-items:center;gap:6px;">${s?`<span style="font-size:.7rem;color:var(--ink2);">${s.workType||''}</span>`:''}<span class="pill ${s?'pill-ot':''}" style="${s?'':'background:var(--surf2);color:var(--ink3);'}">${s?'On shift':'Off'}</span></div></div>`;}).join('')||'<div style="color:var(--ink3);font-size:.8rem;">No employees yet.</div>'}
     </div>
   </div></div>`;
 }
-function renderClockCardTime(){const el=document.getElementById('clockcard-time');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');}
-setInterval(renderClockCardTime,1000);
+setInterval(()=>{const el=document.getElementById('ctcard');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');},1000);
 
-function timeIn(){
-  if(!ui.activeEmployeeId)return;
-  state.shifts.push({id:uid(),employeeId:ui.activeEmployeeId,timeIn:new Date().toISOString(),timeOut:null});
-  ui.viewOnly=false;
-  saveCore();
-  render();
-  toast('Timed in. Have a good shift!');
+async function timeIn(){
+  if(!U.activeEmpId)return;
+  let loc='Unknown location';
+  try{
+    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));
+    const{latitude:lat,longitude:lng}=pos.coords;
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+      const d=await r.json();
+      loc=d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    }catch{loc=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;}
+  }catch{loc='Location unavailable';}
+  S.shifts.push({id:uid(),employeeId:U.activeEmpId,workType:U.clockWorkType,timeIn:new Date().toISOString(),timeOut:null,lateExcused:false,tips:0,location:loc});
+  U.viewOnly=false;saveCore();ra();toast('Timed in!');
 }
 function timeOut(){
-  const s=activeShiftFor(ui.activeEmployeeId);
-  if(!s)return;
+  const s=actShift(U.activeEmpId);if(!s)return;
   s.timeOut=new Date().toISOString();
-  const dur=fmtDur(new Date(s.timeOut)-new Date(s.timeIn));
-  saveCore();
-  render();
-  toast(`Shift ended. Worked ${dur}. System is now locked.`);
+  saveCore();ra();toast(`Shift ended — ${fdur(new Date(s.timeOut)-new Date(s.timeIn))} worked.`);
 }
-function signOut(){timeOut();setView('clock');}
+function signOut(){timeOut();U.activeEmpId=null;setView('clock');}
 
-function toggleEditMode(){
-  if(!canManage()){toast('Time in to edit the menu');return;}
-  ui.editMode=!ui.editMode;
-  renderView();
-}
-
-function renderPOS(){
-  const manage=canManage();
-  const cats=state.categories;
-  const totals=computeCartTotals();
-  const tenderOptions=buildTenderOptions(totals.total);
-  const prods=state.products.filter(p=>p.category===ui.posCategory);
-  return `
-  ${!manage?`<div style="background:var(--surface-alt);color:var(--ink-soft);padding:10px 16px;border-radius:10px;font-size:0.8rem;margin-bottom:16px;">${ICONS.eye} Browsing in View Only — time in to take orders.</div>`:''}
-  <div class="pos-layout">
-    <div>
-      <div class="pos-toolbar">
-        <div class="crumb"><span>Categories</span>${ui.posCategory?`<span>›</span><span style="color:var(--ink);">${ui.posCategory}</span>`:''}</div>
-        <button class="edit-toggle ${ui.editMode?'on':''}" onclick="toggleEditMode()">${ICONS.pencil} ${ui.editMode?'Editing':'Edit Menu'}</button>
-      </div>
-      <div class="catgrid">
-        ${cats.map(c=>{
-          const items=state.products.filter(p=>p.category===c);
-          const needsRestock=items.some(p=>productStatus(p)!=='ok');
-          return `<div class="catcard ${ui.posCategory===c?'active':''}" onclick="selectCategory('${c}')">
-            ${ui.editMode?`<div class="catcard-edit"><button onclick="event.stopPropagation();renameCategory('${c}')">${ICONS.pencil}</button><button onclick="event.stopPropagation();deleteCategory('${c}')">${ICONS.x}</button></div>`:''}
-            <div class="cc-name">${c}</div>
-            <div class="cc-count">${items.length} item${items.length===1?'':'s'}</div>
-            <span class="cc-badge ${needsRestock?'restock':'avail'}">${needsRestock?'Need to re-stock':'Available'}</span>
-          </div>`;
-        }).join('')}
-        ${ui.editMode?`<div class="catcard-ghost" onclick="addCategory()">${ICONS.plus}<span>Add Category</span></div>`:''}
-      </div>
-      <div class="prod-grid">
-        ${prods.map(p=>{
-          const status=productStatus(p);
-          const avail=productAvailable(p);
-          const minPrice=Math.min(...p.sizes.map(s=>s.price));
-          const disabled=!ui.editMode&&(!manage||!avail);
-          return `<button class="prod-card ${ui.editMode?'editmode':''}" ${disabled?'disabled':''} onclick="${ui.editMode?`openProductModal('${p.id}')`:`addToCart('${p.id}')`}">
-            <span class="statusdot ${status}"></span>
-            <div class="pname">${p.name}</div>
-            <div class="pprice">${p.sizes.length>1?'from '+peso(minPrice):peso(minPrice)}</div>
-            <div class="psize">${p.sizes.map(s=>s.label).join(' · ')}</div>
-            ${!avail?`<div class="pflag">Out of stock</div>`:''}
-          </button>`;
-        }).join('')}
-        ${ui.editMode&&ui.posCategory?`<button class="prod-card-ghost" onclick="openProductModal(null)">${ICONS.plus}Add Item</button>`:''}
-        ${!prods.length&&!ui.editMode?'<div style="color:var(--ink-faint);font-size:0.85rem;">No items in this category yet.</div>':''}
-      </div>
+// POS
+function rPOS(){
+  const manage=canM();
+  const totals=calcTotals();
+  const prods=U.posCategory?S.products.filter(p=>p.category===U.posCategory):[];
+  return`<div class="pos-wrap">
+  <div class="pos-left">
+    ${!U.posCategory?`
+    <div class="pos-lhead">
+      <span style="font-weight:800;font-size:.92rem;">Categories</span>
+      ${manage?`<button class="edit-tog ${U.editMode?'on':''}" onclick="U.editMode=!U.editMode;ra();">${IC.pe} ${U.editMode?'Done':'Edit'}</button>`:''}
     </div>
-    <div class="card cart-panel">
-      <div style="padding:14px 16px 0;font-weight:800;">Current Order</div>
-      <div class="cart-items">
-        ${ui.cart.length?ui.cart.map(ci=>`
-          <div class="cart-row">
-            <div class="ciname">${ci.name}<br><span class="ciprice">${peso(ci.price)}</span></div>
-            <div class="qty-ctrl">
-              <button onclick="changeQty('${ci.productId}','${ci.sizeId}',-1)">${ICONS.minus}</button>
-              <span>${ci.qty}</span>
-              <button onclick="changeQty('${ci.productId}','${ci.sizeId}',1)">${ICONS.plus}</button>
-            </div>
+    <div class="cat-list">
+      ${S.categories.map(c=>{
+        const items=S.products.filter(p=>p.category===c);
+        const icons={'Coffee':'☕','Non-Coffee':'🧋','Pastries':'🥐','Add-ons':'✨'};
+        return`<button class="cat-card" onclick="U.posCategory='${c}';ra();">
+          <div class="cat-icon">${icons[c]||'🍵'}</div>
+          <div style="flex:1;text-align:left;"><div class="cat-name">${c}</div><div class="cat-count">${items.length} items</div></div>
+          ${U.editMode?`<div style="display:flex;gap:4px;" onclick="event.stopPropagation();">
+            <button class="btn btn-out btn-xs" onclick="renameCategory('${c}')">${IC.pe}</button>
+            <button class="btn btn-red btn-xs" onclick="deleteCategory('${c}')">${IC.xx}</button>
+          </div>`:''}
+        </button>`;
+      }).join('')}
+      ${U.editMode?`<button class="cat-card" style="border-style:dashed;color:var(--ink3);" onclick="addCategory()">${IC.pls} Add Category</button>`:''}
+    </div>`:`
+    <div class="pos-lhead">
+      <button style="width:32px;height:32px;border-radius:9px;background:var(--surf2);display:flex;align-items:center;justify-content:center;" onclick="U.posCategory=null;ra();">${IC.bk}</button>
+      <span style="font-weight:800;font-size:.92rem;">${U.posCategory}</span>
+      ${manage?`<button class="edit-tog ${U.editMode?'on':''}" onclick="U.editMode=!U.editMode;ra();">${IC.pe} ${U.editMode?'Done':'Edit'}</button>`:''}
+    </div>
+    <div class="prod-grid">
+      ${prods.map(p=>{
+        const st=pStatus(p);const avail=pAvail(p);
+        const minP=Math.min(...p.sizes.map(s=>s.price));
+        return`<div class="pc ${U.editMode?'em':''}" onclick="${U.editMode?`openModal('editProd','${p.id}')`:`${!avail||!manage?'':''}`}">
+          <span class="sdot sdot-${st==='so'?'so':st==='low'?'low':'ok'}"></span>
+          <div class="pc-name">${p.name}</div>
+          <div class="pc-price">${p.sizes.length>1?'from ':''} ${peso(minP)}</div>
+          ${p.sizes.length>1?`<div class="pc-sizes">${p.sizes.map(s=>s.label).join(' · ')}</div>`:''}
+          ${!U.editMode&&avail&&manage?`<div style="position:absolute;inset:0;border-radius:13px;" onclick="addToCart('${p.id}')"></div>`:''}
+          ${!avail?`<div style="font-size:.66rem;color:var(--red);font-weight:700;margin-top:3px;">Out of stock</div>`:''}
+        </div>`;
+      }).join('')}
+      ${U.editMode?`<div class="pc-ghost" onclick="openModal('addProd',null)">${IC.pls} Add Item</div>`:''}
+    </div>`}
+  </div>
+  <div class="pos-right">
+    <div class="ch"><h3>Current Order</h3>${U.cart.length?`<button class="btn btn-red btn-sm" onclick="clearCart()">Clear</button>`:''}</div>
+    <div class="ot-row">${['Dine In','Take Out','Grab'].map(t=>`<button class="ot-btn ${U.orderType===t?'act':''}" onclick="U.orderType='${t}';ra();">${t}</button>`).join('')}</div>
+    <div class="cart-items">
+      ${U.cart.length?U.cart.map((ci,idx)=>`
+      <div class="cib">
+        <div class="cim">
+          <div class="qc">
+            <button onclick="changeQty(${idx},-1)">${IC.mns}</button>
+            <span style="font-weight:700;font-size:.82rem;min-width:16px;text-align:center;">${ci.qty}</span>
+            <button onclick="changeQty(${idx},1)">${IC.pls}</button>
           </div>
-        `).join(''):'<div style="color:var(--ink-faint);font-size:0.82rem;">Cart is empty. Tap an item to add.</div>'}
-      </div>
-      <div class="cart-divider"></div>
-      <div style="padding:12px 16px 4px;font-size:0.76rem;font-weight:700;color:var(--ink-soft);">DISCOUNT</div>
-      <div class="disc-row">
-        <button class="disc-btn ${ui.discountType==='none'?'active':''}" onclick="setDiscount('none')">None</button>
-        <button class="disc-btn ${ui.discountType==='senior'?'active':''}" onclick="setDiscount('senior')">Senior</button>
-        <button class="disc-btn ${ui.discountType==='pwd'?'active':''}" onclick="setDiscount('pwd')">PWD</button>
-      </div>
-      ${ui.discountType!=='none'?`
-        <div class="mini-inputs">
-          <input placeholder="ID holder name" value="${ui.discName}" oninput="ui.discName=this.value;">
-          <input placeholder="ID number" value="${ui.discId}" oninput="ui.discId=this.value;">
+          <div style="flex:1;"><div class="ci-name">${ci.name}</div><div class="ci-price">${peso(ci.price)}</div></div>
+          <button onclick="U.cart.splice(${idx},1);ra();" style="color:var(--ink3);">${IC.xx}</button>
         </div>
-      `:''}
-      <div style="padding:0 16px 4px;font-size:0.76rem;font-weight:700;color:var(--ink-soft);">PAYMENT</div>
-      <div class="pay-row">
-        ${['Cash','GCash','Maya'].map(m=>`<button class="pay-btn ${ui.payMethod===m?'active':''}" onclick="ui.payMethod='${m}';ui.tendered='';renderView();">${m}</button>`).join('')}
-      </div>
-      ${ui.payMethod==='Cash'?`
-        <div class="tender-row">
-          ${tenderOptions.map(v=>`<button class="tender-btn ${String(ui.tendered)===String(v)?'active':''}" onclick="ui.tendered='${v}';renderView();">${peso(v)}</button>`).join('')}
+        <div class="ao-row">
+          ${(ci.addons||[]).map((a,ai)=>`<span class="ao-chip">+${a.name}<button onclick="U.cart[${idx}].addons.splice(${ai},1);ra();" style="margin-left:2px;opacity:.6;font-size:.7rem;">×</button></span>`).join('')}
+          <button class="ao-add" onclick="openModal('addAddon','${idx}')">+ Add-on</button>
         </div>
-        <div class="mini-inputs">
-          <input type="number" placeholder="Other amount given" value="${ui.tendered&&!tenderOptions.map(String).includes(String(ui.tendered))?ui.tendered:''}" oninput="ui.tendered=this.value;renderView();">
-        </div>
-      `:`
-        <div class="mini-inputs"><input placeholder="Reference no. (optional)" value="${ui.payRef}" oninput="ui.payRef=this.value;"></div>
-      `}
-      <div class="cart-summary">
-        <div class="sum-row"><span>Subtotal</span><span>${peso(totals.subtotal)}</span></div>
-        ${totals.discount>0?`<div class="sum-row"><span>Discount (20%)</span><span>-${peso(totals.discount)}</span></div>`:''}
-        <div class="sum-row"><span>VAT ${ui.discountType!=='none'?'(exempt)':'(12% incl.)'}</span><span>${peso(totals.vat)}</span></div>
-        <div class="sum-row total"><span>Total</span><span>${peso(totals.total)}</span></div>
-        ${ui.payMethod==='Cash'&&ui.tendered?`<div class="sum-row"><span>Change</span><span>${peso(Math.max(0,(parseFloat(ui.tendered)||0)-totals.total))}</span></div>`:''}
-      </div>
-      <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
-        <button class="btn btn-accent" style="justify-content:center;padding:12px;" ${ui.cart.length&&manage?'':'disabled'} onclick="completeSale()">Send to Queue &amp; Pay</button>
-        <button class="btn btn-outline" style="justify-content:center;" ${ui.cart.length?'':'disabled'} onclick="clearCart()">Clear Order</button>
-      </div>
+        <textarea class="note-inp" rows="1" placeholder="Note (e.g. less sugar)…" oninput="U.cart[${idx}].note=this.value;">${ci.note||''}</textarea>
+      </div>`).join(''):`<div class="empty"><p>Tap a drink to add it</p></div>`}
     </div>
-  </div>`;
+    <div class="cart-bot">
+      <div class="sect">
+        <div class="slabel">Discount</div>
+        <div class="disc-row">
+          ${['none','senior','pwd'].map(d=>`<button class="db ${U.discType===d?'act':''}" onclick="U.discType='${d}';ra();">${d==='none'?'None':d.charAt(0).toUpperCase()+d.slice(1)}</button>`).join('')}
+        </div>
+        ${U.discType!=='none'?`<div style="display:flex;gap:5px;margin-top:5px;">
+          <input placeholder="ID holder name" value="${U.discName}" oninput="U.discName=this.value;" style="flex:1;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
+          <input placeholder="ID #" value="${U.discId}" oninput="U.discId=this.value;" style="width:80px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
+        </div>`:''}
+      </div>
+      <div class="sect">
+        <div class="slabel">Payment</div>
+        <div class="pay-row">${['Cash','GCash','Maya'].map(m=>`<button class="pb ${U.payMethod===m?'act':''}" onclick="U.payMethod='${m}';U.tendered=0;ra();">${m}</button>`).join('')}</div>
+        ${U.payMethod==='Cash'?`
+        <div class="tender-row">
+          <button class="tb2 exact" onclick="U.tendered=${totals.total.toFixed(2)};ra();">Exact ${peso(totals.total)}</button>
+          <button class="tb2 amt" onclick="openNP('tendered',U.tendered)">Enter Amount</button>
+        </div>
+        ${U.tendered&&U.tendered!==totals.total?`<div style="font-size:.78rem;color:var(--ink2);padding:2px;">Change: <strong>${peso(Math.max(0,U.tendered-totals.total))}</strong></div>`:''}`
+        :`<input placeholder="Reference no." value="${U.payRef}" oninput="U.payRef=this.value;" style="width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);margin-bottom:5px;">`}
+      </div>
+      <div class="sumbox">
+        <div class="sr"><span>Subtotal</span><span>${peso(totals.sub)}</span></div>
+        ${totals.disc>0?`<div class="sr" style="color:var(--green);"><span>Discount (20%)</span><span>-${peso(totals.disc)}</span></div>`:''}
+        <div class="sr" style="font-size:.75rem;"><span>VAT ${U.discType!=='none'?'(exempt)':'(12% incl.)'}</span><span>${peso(totals.vat)}</span></div>
+        <div class="sr tot"><span>Total</span><span>${peso(totals.total)}</span></div>
+      </div>
+      <div style="padding:8px 13px 12px;"><button class="btn btn-blue" style="width:100%;justify-content:center;padding:11px;" ${U.cart.length&&canM()?'':'disabled'} onclick="completeSale()">Send to Queue &amp; Pay</button></div>
+    </div>
+  </div></div>`;
 }
-function selectCategory(c){ui.posCategory=c;renderView();}
 
-function buildTenderOptions(total){
-  if(total<=0)return [];
-  const exact=Math.round(total*100)/100;
-  const denoms=[20,50,100,200,500,1000];
-  const ups=denoms.filter(d=>d>=exact).sort((a,b)=>a-b);
-  const opts=[exact];
-  for(const d of ups){if(opts.length>=4)break;if(!opts.includes(d))opts.push(d);}
-  return opts.slice(0,4);
+function calcTotals(){
+  const sub=U.cart.reduce((s,c)=>s+(c.price+(c.addons||[]).reduce((a,x)=>a+x.price,0))*c.qty,0);
+  if(U.discType!=='none'){const ve=sub/1.12,disc=ve*0.2;return{sub,disc,vat:0,total:ve-disc};}
+  return{sub,disc:0,vat:sub-sub/1.12,total:sub};
 }
-
-function computeCartTotals(){
-  const subtotal=ui.cart.reduce((s,c)=>s+c.price*c.qty,0);
-  if(ui.discountType!=='none'){
-    const vatExempt=subtotal/1.12;
-    const discount=vatExempt*state.settings.discountRate;
-    return {subtotal,discount,vat:0,total:vatExempt-discount};
-  }else{
-    const vatableSales=subtotal/1.12;
-    const vat=subtotal-vatableSales;
-    return {subtotal,discount:0,vat,total:subtotal};
-  }
-}
-
 function addToCart(productId){
-  if(!canManage())return;
-  const p=state.products.find(x=>x.id===productId);
-  if(!p||!productAvailable(p))return;
-  if(p.sizes.length>1){ui.showSizePicker=productId;renderView();return;}
-  pushCartItem(p,p.sizes[0]);
-  renderView();
+  if(!canM())return;
+  const p=S.products.find(x=>x.id===productId);if(!p||!pAvail(p))return;
+  if(p.sizes.length>1){openModal('pickSize',productId);return;}
+  U.cart.push({productId:p.id,sizeId:p.sizes[0].id,name:p.name,price:p.sizes[0].price,qty:1,addons:[],note:''});
+  ra();
 }
-function pushCartItem(p,size){
-  const existing=ui.cart.find(c=>c.productId===p.id&&c.sizeId===size.id);
-  if(existing)existing.qty+=1;
-  else ui.cart.push({productId:p.id,sizeId:size.id,name:p.name+(p.sizes.length>1?' ('+size.label+')':''),price:size.price,qty:1});
-  ui.tendered='';
-}
-function pickSize(productId,sizeId){
-  const p=state.products.find(x=>x.id===productId);
-  const size=p.sizes.find(s=>s.id===sizeId);
-  if(!p||!size)return;
-  pushCartItem(p,size);
-  ui.showSizePicker=null;
-  closeModal('size-modal');
-  renderView();
-}
-function changeQty(productId,sizeId,delta){
-  const ci=ui.cart.find(c=>c.productId===productId&&c.sizeId===sizeId);
-  if(!ci)return;
-  ci.qty+=delta;
-  if(ci.qty<=0)ui.cart=ui.cart.filter(c=>!(c.productId===productId&&c.sizeId===sizeId));
-  ui.tendered='';
-  renderView();
-}
-function clearCart(){ui.cart=[];ui.discountType='none';ui.discName='';ui.discId='';ui.tendered='';ui.payRef='';renderView();}
-function setDiscount(t){ui.discountType=t;renderView();}
+function changeQty(idx,d){U.cart[idx].qty+=d;if(U.cart[idx].qty<=0)U.cart.splice(idx,1);ra();}
+function clearCart(){U.cart=[];U.discType='none';U.discName='';U.discId='';U.tendered=0;U.payRef='';ra();}
 
 function completeSale(){
-  if(!canManage()||!ui.cart.length)return;
-  const totals=computeCartTotals();
-  if(ui.discountType!=='none'&&(!ui.discName.trim()||!ui.discId.trim())){toast('Enter the ID holder name and number for the discount');return;}
-  if(ui.payMethod==='Cash'&&(parseFloat(ui.tendered)||0)<totals.total){toast('Amount tendered is less than the total');return;}
-  ui.cart.forEach(ci=>{
-    const p=state.products.find(x=>x.id===ci.productId);
-    if(p&&p.recipe){
-      p.recipe.forEach(r=>{
-        const ing=ingredientById(r.ingredientId);
-        if(ing)ing.stockInBase=Math.max(0,ing.stockInBase-r.qty*ci.qty);
-      });
-    }
+  if(!canM()||!U.cart.length)return;
+  const t=calcTotals();
+  if(U.discType!=='none'&&(!U.discName.trim()||!U.discId.trim())){toast('Enter ID holder name and number.');return;}
+  if(U.payMethod==='Cash'&&U.tendered>0&&U.tendered<t.total){toast('Amount tendered less than total.');return;}
+  U.cart.forEach(ci=>{
+    const p=S.products.find(x=>x.id===ci.productId);
+    if(p&&p.recipe)p.recipe.forEach(r=>{const i=ingBy(r.ingredientId);if(i)i.stockInBase=Math.max(0,i.stockInBase-r.qty*ci.qty);});
+    (ci.addons||[]).forEach(a=>{const ap=S.products.find(x=>x.id===a.productId);if(ap&&ap.recipe)ap.recipe.forEach(r=>{const i=ingBy(r.ingredientId);if(i)i.stockInBase=Math.max(0,i.stockInBase-r.qty*ci.qty);});});
   });
   const order={
-    id:uid(),number:nextOrderNumber(),
-    items:ui.cart.map(c=>{
-      const p=state.products.find(x=>x.id===c.productId);
-      return {name:c.name,price:c.price,qty:c.qty,category:p?p.category:'',costEach:p?productCost(p):0};
-    }),
-    employeeId:ui.activeEmployeeId,employeeName:currentEmployee().name,
-    discountType:ui.discountType,discName:ui.discName,discId:ui.discId,
-    paymentMethod:ui.payMethod,payRef:ui.payRef,
-    tendered:ui.payMethod==='Cash'?parseFloat(ui.tendered)||0:null,
-    subtotal:totals.subtotal,discount:totals.discount,vat:totals.vat,total:totals.total,
-    status:'preparing',timestamp:new Date().toISOString()
+    id:uid(),number:nextNum(),orderType:U.orderType,
+    items:U.cart.map(c=>({...c,category:S.products.find(x=>x.id===c.productId)?.category||'',costEach:pcost(S.products.find(x=>x.id===c.productId)||{}),checked:false})),
+    employeeId:U.activeEmpId,employeeName:curEmp().name,
+    discountType:U.discType,discName:U.discName,discId:U.discId,
+    paymentMethod:U.payMethod,payRef:U.payRef,
+    tendered:U.payMethod==='Cash'?U.tendered:null,
+    sub:t.sub,discount:t.disc,vat:t.vat,total:t.total,
+    status:'preparing',timestamp:new Date().toISOString(),isRefunded:false
   };
-  state.orders.push(order);
-  saveCore();saveOrders();
-  const oid=order.id;
-  clearCart();
-  renderView();
-  toast(`Order #${order.number} sent to queue`);
-  openReceipt(oid);
+  S.orders.push(order);saveCore();saveOrders();
+  const oid=order.id;clearCart();ra();
+  toast(`#${order.number} sent to queue`);
+  openModal('receipt',oid);
 }
 
-function renderOrders(){
-  const active=state.orders.filter(o=>o.status!=='completed'&&o.status!=='cancelled').sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-  const manage=canManage();
-  return `
-  <div class="view-head"><div><h1>Ongoing Orders</h1><p>${active.length} order${active.length===1?'':'s'} in the queue</p></div></div>
-  ${active.length?`<div class="orders-grid">${active.map(o=>`
-    <div class="card order-card">
-      <div class="order-card-head">
-        <div class="ticket-badge sm">${o.number}</div>
-        <div class="meta"><div style="font-weight:700;font-size:0.85rem;">${o.employeeName}</div><div class="t">${fmtTime(o.timestamp)}</div></div>
-        <span class="badge ${o.status==='preparing'?'badge-prep':'badge-ready'}">${o.status}</span>
-      </div>
-      <div class="order-items-mini">${o.items.map(i=>i.qty+'x '+i.name).join(', ')}</div>
-      <div style="font-weight:800;">${peso(o.total)}</div>
-      <div class="order-actions">
-        ${o.status==='preparing'?`<button class="btn btn-outline btn-sm" style="flex:1;" ${manage?'':'disabled'} onclick="advanceOrder('${o.id}','ready')">Mark Ready</button>`:''}
-        ${o.status==='ready'?`<button class="btn btn-success btn-sm" style="flex:1;" ${manage?'':'disabled'} onclick="advanceOrder('${o.id}','completed')">Complete</button>`:''}
-        <button class="btn btn-outline btn-sm" onclick="openReceipt('${o.id}')">${ICONS.printer}</button>
-      </div>
-    </div>
-  `).join('')}</div>`:`<div class="empty-state">${ICONS.empty}<h3>Queue is empty</h3><p>New orders from the POS will show up here.</p></div>`}
-  `;
-}
-function advanceOrder(id,status){
-  if(!canManage())return;
-  const o=state.orders.find(x=>x.id===id);
-  if(!o)return;
-  o.status=status;
-  saveOrders();
-  renderView();
-}
-
-function renderInventory(){
-  const manage=canManage();
-  const low=lowStockIngredients();
-  return `
-  <div class="view-head">
-    <div><h1>Inventory</h1><p>${state.ingredients.length} ingredients &middot; ${state.products.length} menu items</p></div>
-    ${manage?(ui.invTab==='ingredients'?`<button class="btn btn-accent" onclick="openIngredientModal(null)">${ICONS.plus} Add Ingredient</button>`:`<button class="btn btn-accent" onclick="openProductModal(null)">${ICONS.plus} Add Menu Item</button>`):''}
+// ORDERS
+function rOrders(){
+  const active=S.orders.filter(o=>o.status!=='completed'&&o.status!=='cancelled'&&!o.isRefunded).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div><h1 style="font-weight:800;font-size:1.25rem;">Ongoing Orders</h1><p style="color:var(--ink2);font-size:.8rem;">${active.length} in queue</p></div>
   </div>
-  ${!manage?`<div style="background:var(--surface-alt);color:var(--ink-soft);padding:10px 16px;border-radius:10px;font-size:0.8rem;margin-bottom:16px;">${ICONS.eye} Read-only in View Only mode. Time in to edit.</div>`:''}
-  <div class="inv-subtabs">
-    <button class="date-preset ${ui.invTab==='menu'?'active':''}" onclick="ui.invTab='menu';renderView();">Menu Items</button>
-    <button class="date-preset ${ui.invTab==='ingredients'?'active':''}" onclick="ui.invTab='ingredients';renderView();">Ingredients</button>
-  </div>
-  ${ui.invTab==='menu'?renderMenuTab(manage):renderIngredientsTab(manage,low)}
-  `;
-}
-
-function renderMenuTab(manage){
-  return `<div class="inv-list" style="display:flex;flex-direction:column;gap:10px;">
-    ${state.products.map(p=>{
-      const cost=productCost(p);
-      const status=productStatus(p);
-      return `
-      <div class="card prod-inv-row">
-        <span class="statusdot ${status}" style="position:static;box-shadow:none;"></span>
-        <div style="flex:1;min-width:140px;font-weight:700;font-size:0.88rem;">${p.name}</div>
-        <div class="in-cat" style="font-size:0.72rem;color:var(--ink-soft);background:var(--surface-alt);padding:2px 9px;border-radius:999px;">${p.category}</div>
-        ${p.sizes.map(s=>{
-          const margin=s.price>0?((s.price-cost)/s.price*100):0;
-          return `<span class="size-chip">${s.label} ${peso(s.price)} <span class="margin-pill ${margin<0?'neg':''}" style="margin-left:4px;">${margin.toFixed(0)}%</span></span>`;
-        }).join('')}
-        <div style="font-size:0.72rem;color:var(--ink-soft);">Cost ${peso(cost)}</div>
-        ${manage?`<button class="btn btn-outline btn-sm" onclick="openProductModal('${p.id}')">Edit</button>
-        <button class="btn btn-outline btn-sm" onclick="openRecipeModal('${p.id}')">Recipe</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">${ICONS.trash}</button>`:''}
-      </div>`;
-    }).join('')}
+  <div class="ord-list">
+  ${active.length?active.map(o=>{
+    const allDone=o.items.every(i=>i.checked);
+    return`<div class="card oc">
+      <div class="och">
+        <div class="tbadge">${o.number}</div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">${o.employeeName} · <span class="pill ${o.orderType==='Grab'?'pill-late':o.orderType==='Take Out'?'pill-low':'pill-ot'}">${o.orderType}</span></div><div style="font-size:.68rem;color:var(--ink3);">${ftm(o.timestamp)}</div></div>
+        <span class="pill ${o.status==='preparing'?'pill-so':'pill-low'}">${o.status}</span>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          ${o.status==='preparing'?`<button class="btn btn-out btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','ready')">Ready</button>`:''}
+          ${o.status==='ready'&&allDone?`<button class="btn btn-grn btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','completed')">Complete</button>`:''}
+          <button class="btn btn-out btn-sm" onclick="openModal('receipt','${o.id}')">${IC.pr}</button>
+          ${canM()?`<button class="btn btn-red btn-sm" onclick="refundOrder('${o.id}')">Refund</button>`:''}
+        </div>
+      </div>
+      <div>${o.items.map((item,idx)=>`
+        <div class="drow">
+          <div class="dchk ${item.checked?'on':''}" onclick="${canM()?`toggleCheck('${o.id}',${idx})`:''}">
+            ${item.checked?IC.ck:''}
+          </div>
+          <div style="flex:1;">
+            <div class="dname">${item.qty}x ${item.name}</div>
+            ${(item.addons&&item.addons.length)?`<div class="dmeta">+${item.addons.map(a=>a.name).join(', +')}</div>`:''}
+            ${item.note?`<div class="dmeta" style="font-style:italic;">📝 ${item.note}</div>`:''}
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty"><h3>Queue is empty</h3><p>New orders appear here.</p></div>`}
   </div>`;
 }
-function renderIngredientsTab(manage,low){
-  const filterWarning=ui.invFilter==='warning';
-  const rows=state.ingredients.filter(ing=>filterWarning?isLowStock(ing):true);
-  return `
-  <div class="inv-subtabs">
-    <button class="date-preset ${!filterWarning?'active':''}" onclick="ui.invFilter='all';renderView();">All</button>
-    <button class="date-preset ${filterWarning?'active':''}" onclick="ui.invFilter='warning';renderView();">Stock Warning${low.length?`<span class="warncount">${low.length}</span>`:''}</button>
+function toggleCheck(oid,idx){const o=S.orders.find(x=>x.id===oid);if(!o)return;o.items[idx].checked=!o.items[idx].checked;saveOrders();ra();}
+function advOrder(id,status){if(!canM())return;const o=S.orders.find(x=>x.id===id);if(!o)return;o.status=status;saveOrders();ra();}
+function refundOrder(id){
+  if(!canM())return;
+  const o=S.orders.find(x=>x.id===id);if(!o)return;
+  if(!confirm(`Refund order #${o.number} for ${peso(o.total)}?`))return;
+  o.isRefunded=true;o.status='cancelled';
+  o.items.forEach(ci=>{const p=S.products.find(x=>x.id===ci.productId);if(p&&p.recipe)p.recipe.forEach(r=>{const i=ingBy(r.ingredientId);if(i)i.stockInBase+=r.qty*ci.qty;});});
+  saveCore();saveOrders();ra();toast(`Order #${o.number} refunded.`);
+}
+
+// INVENTORY
+function rInventory(){
+  const manage=canM();const low=lowList();const so=soList();
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <h1 style="font-weight:800;font-size:1.25rem;">Inventory</h1>
+    ${manage?`<button class="btn btn-blue" onclick="openModal('${U.invTab==='ingredients'?'addIng':'addProd'}')">${IC.pls} ${U.invTab==='ingredients'?'Add Ingredient':'Add Item'}</button>`:''}
   </div>
-  <div class="card" style="overflow-x:auto;">
-  <table>
-    <thead><tr><th>Name</th><th>In Stock</th><th>Low Stock</th><th>Status</th>${manage?'<th></th>':''}</tr></thead>
-    <tbody>
-    ${rows.map(ing=>{
-      const status=ing.stockInBase<=0?'soldout':(isLowStock(ing)?'low':'ok');
-      const label=status==='soldout'?'Sold Out':status==='low'?'Low Stock':'Available';
-      const rowclass=status==='soldout'?'row-soldout':status==='low'?'row-low':'';
-      return `<tr class="${rowclass}">
+  ${low.length||so.length?`<div style="background:var(--redsoft);color:var(--red);padding:9px 13px;border-radius:10px;font-size:.8rem;font-weight:700;margin-bottom:12px;">⚠ ${so.map(i=>i.name+' (Sold Out)').concat(low.map(i=>i.name+' (Low)')).join(' · ')}</div>`:''}
+  <div style="display:flex;gap:7px;margin-bottom:11px;">
+    <button class="dp ${U.invTab==='menu'?'act':''}" onclick="U.invTab='menu';ra();">Menu Items</button>
+    <button class="dp ${U.invTab==='ingredients'?'act':''}" onclick="U.invTab='ingredients';ra();">Ingredients</button>
+    ${U.invTab==='ingredients'?`<button class="dp ${U.invFilter==='warn'?'act':''}" onclick="U.invFilter=U.invFilter==='warn'?'all':'warn';ra();">⚠ Warning ${low.length+so.length?`<span style="background:var(--red);color:#fff;border-radius:999px;padding:1px 6px;font-size:.62rem;margin-left:3px;">${low.length+so.length}</span>`:''}</button>`:''}
+  </div>
+  ${U.invTab==='menu'?rMenuTab(manage):rIngTab(manage)}`;
+}
+function rMenuTab(manage){
+  return`<div class="card" style="overflow-x:auto;"><table>
+    <thead><tr><th>Name</th><th>Category</th><th>Sizes & Prices</th><th>Cost</th><th>Margin</th><th>Status</th>${manage?'<th></th>':''}</tr></thead>
+    <tbody>${S.products.map(p=>{
+      const cost=pcost(p);const st=pStatus(p);
+      return`<tr>
+        <td style="font-weight:700;">${p.name}</td>
+        <td>${p.category}</td>
+        <td>${p.sizes.map(s=>`${s.label?s.label+' ':''}<strong>${peso(s.price)}</strong>`).join(' · ')}</td>
+        <td>${peso(cost)}</td>
+        <td>${p.sizes.map(s=>{const m=s.price>0?(s.price-cost)/s.price*100:0;return`<span class="pill ${m<0?'pill-so':'pill-ot'}">${m.toFixed(0)}%</span>`;}).join(' ')}</td>
+        <td><span class="pill ${st==='ok'?'pill-ok':st==='low'?'pill-low':'pill-so'}">${st==='ok'?'Available':st==='low'?'Low Stock':'Sold Out'}</span></td>
+        ${manage?`<td><div style="display:flex;gap:4px;"><button class="btn btn-out btn-xs" onclick="openModal('editProd','${p.id}')">${IC.pe}</button><button class="btn btn-out btn-xs" onclick="openModal('editRecipe','${p.id}')">Recipe</button><button class="btn btn-red btn-xs" onclick="delProd('${p.id}')">${IC.tr}</button></div></td>`:''}
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+function rIngTab(manage){
+  const rows=S.ingredients.filter(i=>U.invFilter==='warn'?(isLow(i)||isSO(i)):true);
+  return`<div class="card" style="overflow-x:auto;"><table>
+    <thead><tr><th>Name</th><th>In Stock</th><th>Low Stock At</th><th>Sold Out At</th><th>Status</th>${manage?'<th></th>':''}</tr></thead>
+    <tbody>${rows.map(ing=>{
+      const st=isSO(ing)?'so':isLow(ing)?'low':'ok';
+      return`<tr>
         <td style="font-weight:700;">${ing.name}</td>
         <td>${ing.stockInBase} ${ing.baseUnit}</td>
-        <td>${(ing.lowStockPurchaseUnits*ing.purchaseQtyInBase)} ${ing.baseUnit}</td>
-        <td><span class="statuspill ${status}">${label}</span></td>
-        ${manage?`<td style="display:flex;gap:6px;"><button class="btn btn-outline btn-sm" onclick="restockIngredient('${ing.id}')">+1 pack</button><button class="btn btn-outline btn-sm" onclick="openIngredientModal('${ing.id}')">Edit</button></td>`:''}
+        <td>${ing.lowThresh} ${ing.baseUnit}</td>
+        <td>${ing.soThresh} ${ing.baseUnit}</td>
+        <td><span class="pill ${st==='ok'?'pill-ok':st==='low'?'pill-low':'pill-so'}">${st==='ok'?'Available':st==='low'?'Low Stock':'Sold Out'}</span></td>
+        ${manage?`<td><div style="display:flex;gap:4px;"><button class="btn btn-out btn-xs" onclick="restockIng('${ing.id}')">+1 pack</button><button class="btn btn-out btn-xs" onclick="openModal('editIng','${ing.id}')">${IC.pe}</button><button class="btn btn-red btn-xs" onclick="delIng('${ing.id}')">${IC.tr}</button></div></td>`:''}
       </tr>`;
-    }).join('')||`<tr><td colspan="5" style="color:var(--ink-faint);">Nothing here.</td></tr>`}
-    </tbody>
-  </table>
-  </div>`;
+    }).join('')||'<tr><td colspan="6" style="color:var(--ink3);">Nothing here.</td></tr>'}</tbody>
+  </table></div>`;
 }
-function adjustIngredientStock(id,delta){
-  if(!canManage())return;
-  const ing=ingredientById(id);
-  if(!ing)return;
-  ing.stockInBase=Math.max(0,ing.stockInBase+delta);
-  saveCore();renderView();
-}
-function restockIngredient(id){
-  if(!canManage())return;
-  const ing=ingredientById(id);
-  if(!ing)return;
-  ing.stockInBase+=ing.purchaseQtyInBase;
-  saveCore();renderView();
-  toast(`Restocked ${ing.name} by 1 ${ing.purchaseLabel}`);
-}
-function deleteIngredient(id){
-  if(!canManage())return;
-  state.ingredients=state.ingredients.filter(i=>i.id!==id);
-  state.products.forEach(p=>{p.recipe=(p.recipe||[]).filter(r=>r.ingredientId!==id);});
-  saveCore();renderView();
-}
-function deleteProduct(id){
-  if(!canManage())return;
-  state.products=state.products.filter(p=>p.id!==id);
-  saveCore();renderView();
-}
+function restockIng(id){if(!canM())return;const i=ingBy(id);if(!i)return;i.stockInBase+=i.purchaseQtyInBase;saveCore();ra();toast(`Restocked ${i.name}`);}
+function delIng(id){if(!canM())return;S.ingredients=S.ingredients.filter(i=>i.id!==id);S.products.forEach(p=>{p.recipe=(p.recipe||[]).filter(r=>r.ingredientId!==id);});saveCore();ra();}
+function delProd(id){if(!canM())return;S.products=S.products.filter(p=>p.id!==id);saveCore();ra();}
 
-function addCategory(){
-  if(!canManage())return;
-  const name=prompt('New category name');
-  if(name&&name.trim()&&!state.categories.includes(name.trim())){
-    state.categories.push(name.trim());
-    ui.posCategory=name.trim();
-    saveCore();renderView();
-  }
-}
-function renameCategory(oldName){
-  if(!canManage())return;
-  const name=prompt('Rename category',oldName);
-  if(name&&name.trim()){
-    state.categories=state.categories.map(c=>c===oldName?name.trim():c);
-    state.products.forEach(p=>{if(p.category===oldName)p.category=name.trim();});
-    if(ui.posCategory===oldName)ui.posCategory=name.trim();
-    saveCore();renderView();
-  }
-}
-function deleteCategory(name){
-  if(!canManage())return;
-  if(state.products.some(p=>p.category===name)){toast('Move or delete items in this category first');return;}
-  if(confirm('Delete category "'+name+'"?')){
-    state.categories=state.categories.filter(c=>c!==name);
-    if(ui.posCategory===name)ui.posCategory=state.categories[0]||null;
-    saveCore();renderView();
-  }
-}
-
-function openIngredientModal(id){ui.editIngredientId=id;ui.showAddIngredient=true;renderView();}
-function openProductModal(id){ui.editProductId=id;ui.showAddProduct=true;renderView();}
-function openRecipeModal(productId){ui.showRecipeFor=productId;renderView();}
-
-function attachModals(){
-  if(ui.showSizePicker){
-    const p=state.products.find(x=>x.id===ui.showSizePicker);
-    if(p){
-      injectModal('size-modal',`
-        <div class="modal-head"><h2>Choose Size — ${p.name}</h2><button onclick="ui.showSizePicker=null;closeModal('size-modal');">${ICONS.x}</button></div>
-        <div class="modal-body"><div class="size-pick">
-          ${p.sizes.map(s=>`<button onclick="pickSize('${p.id}','${s.id}')"><span>${s.label}</span><span>${peso(s.price)}</span></button>`).join('')}
-        </div></div>
-      `);
-    }
-  }
-  if(ui.showAddEmployee){
-    injectModal('emp-modal',`
-      <div class="modal-head"><h2>Add Employee</h2><button onclick="ui.showAddEmployee=false;closeModal('emp-modal');">${ICONS.x}</button></div>
-      <div class="modal-body"><div class="field"><label>Name</label><input id="new-emp-name" placeholder="e.g. Maria Santos"></div></div>
-      <div class="modal-foot"><button class="btn btn-outline" onclick="ui.showAddEmployee=false;closeModal('emp-modal');">Cancel</button><button class="btn btn-accent" onclick="saveNewEmployee()">Add</button></div>
-    `);
-  }
-  if(ui.showAddIngredient){
-    const ing=ui.editIngredientId?ingredientById(ui.editIngredientId):null;
-    injectModal('ing-modal',`
-      <div class="modal-head"><h2>${ing?'Edit':'Add'} Ingredient</h2><button onclick="ui.showAddIngredient=false;closeModal('ing-modal');">${ICONS.x}</button></div>
-      <div class="modal-body">
-        <div class="field"><label>Name</label><input id="ing-name" value="${ing?ing.name:''}" placeholder="e.g. Coffee Beans"></div>
-        <div class="field-row">
-          <div class="field"><label>Base unit</label><select id="ing-unit"><option value="g" ${ing&&ing.baseUnit==='g'?'selected':''}>grams (g)</option><option value="mL" ${ing&&ing.baseUnit==='mL'?'selected':''}>milliliters (mL)</option><option value="piece" ${ing&&ing.baseUnit==='piece'?'selected':''}>pieces</option></select></div>
-          <div class="field"><label>Purchase label</label><input id="ing-label" value="${ing?ing.purchaseLabel:''}" placeholder="e.g. 1kg bag"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Qty per purchase (base unit)</label><input id="ing-pqty" type="number" value="${ing?ing.purchaseQtyInBase:''}" placeholder="e.g. 1000"></div>
-          <div class="field"><label>Current stock (base unit)</label><input id="ing-stock" type="number" value="${ing?ing.stockInBase:''}" placeholder="e.g. 5000"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Purchase price (₱)</label><input id="ing-price" type="number" value="${ing?ing.purchasePrice:''}" placeholder="e.g. 650"></div>
-          <div class="field"><label>Shipping cost (₱)</label><input id="ing-ship" type="number" value="${ing?ing.shippingCost:0}" placeholder="e.g. 30"></div>
-        </div>
-        <div class="field"><label>Low-stock alert (purchase units left)</label><input id="ing-low" type="number" value="${ing?ing.lowStockPurchaseUnits:2}" placeholder="e.g. 2"></div>
-        <div class="cost-preview" id="ing-cost-preview"><span>Unit cost</span><span>—</span></div>
-      </div>
-      <div class="modal-foot"><button class="btn btn-outline" onclick="ui.showAddIngredient=false;closeModal('ing-modal');">Cancel</button><button class="btn btn-accent" onclick="saveIngredient()">Save</button></div>
-    `);
-  }
-  if(ui.showAddProduct){
-    const p=ui.editProductId?state.products.find(x=>x.id===ui.editProductId):null;
-    sizeDraft=p?p.sizes.map(s=>({...s})):[{id:uid(),label:'Regular',price:0}];
-    injectModal('prod-modal',`
-      <div class="modal-head"><h2>${p?'Edit':'Add'} Menu Item</h2><button onclick="ui.showAddProduct=false;closeModal('prod-modal');">${ICONS.x}</button></div>
-      <div class="modal-body">
-        <div class="field"><label>Name</label><input id="new-prod-name" value="${p?p.name:''}" placeholder="e.g. Iced Caramel Latte"></div>
-        <div class="field"><label>Category</label><select id="new-prod-cat">${state.categories.map(c=>`<option value="${c}" ${(p?p.category:ui.posCategory)===c?'selected':''}>${c}</option>`).join('')}</select></div>
-        <div class="field"><label>Sizes &amp; Prices</label><div id="size-rows-wrap">${renderSizeRows()}</div></div>
-      </div>
-      <div class="modal-foot" style="justify-content:space-between;">
-        <button class="btn btn-outline btn-sm" onclick="addSizeRow()">${ICONS.plus} Add size</button>
-        <button class="btn btn-accent" onclick="saveProduct()">Save</button>
-      </div>
-    `);
-  }
-  if(ui.showRecipeFor){
-    const p=state.products.find(x=>x.id===ui.showRecipeFor);
-    if(p){
-      injectModal('recipe-modal',`
-        <div class="modal-head"><h2>${p.name} — Recipe</h2><button onclick="ui.showRecipeFor=null;closeModal('recipe-modal');">${ICONS.x}</button></div>
-        <div class="modal-body" id="recipe-rows-wrap">${renderRecipeRows(p)}</div>
-        <div class="modal-foot" style="justify-content:space-between;">
-          <button class="btn btn-outline btn-sm" onclick="addRecipeRow()">${ICONS.plus} Add ingredient</button>
-          <button class="btn btn-accent" onclick="saveRecipe()">Save Recipe</button>
-        </div>
-      `);
-    }
-  }
-}
-function injectModal(id,inner){
-  const modal=document.createElement('div');
-  modal.className='modal-overlay';
-  modal.id=id;
-  modal.innerHTML=`<div class="modal">${inner}</div>`;
-  document.body.appendChild(modal);
-}
-function closeModal(id){const m=document.getElementById(id);if(m)m.remove();}
-
-function wireIngredientMathPreview(){
-  const nameI=document.getElementById('ing-price'),shipI=document.getElementById('ing-ship'),pqI=document.getElementById('ing-pqty'),unitI=document.getElementById('ing-unit'),preview=document.getElementById('ing-cost-preview');
-  if(!nameI||!preview)return;
-  const upd=()=>{
-    const price=parseFloat(nameI.value)||0,ship=parseFloat(shipI.value)||0,pq=parseFloat(pqI.value)||1;
-    const unit=unitI.value;
-    preview.innerHTML=`<span>Unit cost</span><span>${peso((price+ship)/pq)}/${unit}</span>`;
-  };
-  [nameI,shipI,pqI,unitI].forEach(el=>el.addEventListener('input',upd));
-  upd();
-}
-
-let recipeDraft=[];
-function renderRecipeRows(p){
-  recipeDraft=(p.recipe||[]).map(r=>({...r}));
-  return `<div id="recipe-rows">${recipeDraft.map((r,idx)=>recipeRowHTML(r,idx)).join('')||'<div style="color:var(--ink-faint);font-size:0.85rem;">No ingredients yet. This item will always show as available.</div>'}</div>
-  <div class="cost-preview" style="margin-top:10px;"><span>Total cost per item</span><span id="recipe-cost-total">${peso(recipeDraft.reduce((s,r)=>{const ing=ingredientById(r.ingredientId);return s+(ing?unitCostOf(ing)*r.qty:0);},0))}</span></div>`;
-}
-function recipeRowHTML(r,idx){
-  return `<div class="recipe-row" style="margin-bottom:8px;">
-    <select onchange="recipeDraft[${idx}].ingredientId=this.value;refreshRecipeCost();">
-      ${state.ingredients.map(ing=>`<option value="${ing.id}" ${r.ingredientId===ing.id?'selected':''}>${ing.name} (${ing.baseUnit})</option>`).join('')}
-    </select>
-    <input type="number" value="${r.qty}" oninput="recipeDraft[${idx}].qty=parseFloat(this.value)||0;refreshRecipeCost();">
-    <button onclick="recipeDraft.splice(${idx},1);document.getElementById('recipe-rows-wrap').innerHTML=renderRecipeRows({recipe:recipeDraft});">${ICONS.x}</button>
-  </div>`;
-}
-function addRecipeRow(){
-  if(!state.ingredients.length){toast('Add an ingredient first');return;}
-  recipeDraft.push({ingredientId:state.ingredients[0].id,qty:1});
-  document.getElementById('recipe-rows-wrap').innerHTML=renderRecipeRows({recipe:recipeDraft});
-}
-function refreshRecipeCost(){
-  const el=document.getElementById('recipe-cost-total');
-  if(el)el.textContent=peso(recipeDraft.reduce((s,r)=>{const ing=ingredientById(r.ingredientId);return s+(ing?unitCostOf(ing)*r.qty:0);},0));
-}
-function saveRecipe(){
-  const p=state.products.find(x=>x.id===ui.showRecipeFor);
-  if(!p)return;
-  p.recipe=recipeDraft.filter(r=>r.ingredientId&&r.qty>0);
-  saveCore();
-  ui.showRecipeFor=null;
-  closeModal('recipe-modal');
-  renderView();
-  toast('Recipe saved');
-}
-
-let sizeDraft=[];
-function renderSizeRows(){
-  return sizeDraft.map((s,idx)=>sizeRowHTML(s,idx)).join('');
-}
-function sizeRowHTML(s,idx){
-  return `<div class="size-row" style="margin-bottom:8px;">
-    <input value="${s.label}" placeholder="e.g. Regular" oninput="sizeDraft[${idx}].label=this.value;">
-    <input type="number" value="${s.price}" placeholder="Price" oninput="sizeDraft[${idx}].price=parseFloat(this.value)||0;">
-    <button onclick="sizeDraft.splice(${idx},1);document.getElementById('size-rows-wrap').innerHTML=renderSizeRows();">${ICONS.x}</button>
-  </div>`;
-}
-function addSizeRow(){
-  sizeDraft.push({id:uid(),label:'',price:0});
-  document.getElementById('size-rows-wrap').innerHTML=renderSizeRows();
-}
-
-function saveNewEmployee(){
-  const name=document.getElementById('new-emp-name').value.trim();
-  if(!name)return;
-  state.employees.push({id:uid(),name});
-  saveCore();
-  ui.showAddEmployee=false;
-  closeModal('emp-modal');
-  render();
-}
-function saveIngredient(){
-  const name=document.getElementById('ing-name').value.trim();
-  const baseUnit=document.getElementById('ing-unit').value;
-  const purchaseLabel=document.getElementById('ing-label').value.trim()||'unit';
-  const purchaseQtyInBase=parseFloat(document.getElementById('ing-pqty').value)||1;
-  const stockInBase=parseFloat(document.getElementById('ing-stock').value)||0;
-  const purchasePrice=parseFloat(document.getElementById('ing-price').value)||0;
-  const shippingCost=parseFloat(document.getElementById('ing-ship').value)||0;
-  const lowStockPurchaseUnits=parseFloat(document.getElementById('ing-low').value)||1;
-  if(!name)return;
-  if(ui.editIngredientId){
-    const ing=ingredientById(ui.editIngredientId);
-    Object.assign(ing,{name,baseUnit,purchaseLabel,purchaseQtyInBase,stockInBase,purchasePrice,shippingCost,lowStockPurchaseUnits});
-  }else{
-    state.ingredients.push({id:uid(),name,baseUnit,purchaseLabel,purchaseQtyInBase,stockInBase,purchasePrice,shippingCost,lowStockPurchaseUnits});
-  }
-  saveCore();
-  ui.showAddIngredient=false;ui.editIngredientId=null;
-  closeModal('ing-modal');
-  renderView();
-}
-function saveProduct(){
-  const name=document.getElementById('new-prod-name').value.trim();
-  const category=document.getElementById('new-prod-cat').value;
-  const sizes=sizeDraft.filter(s=>s.label.trim()&&s.price>0).map(s=>({id:s.id,label:s.label.trim(),price:s.price}));
-  if(!name||!sizes.length)return;
-  if(ui.editProductId){
-    const p=state.products.find(x=>x.id===ui.editProductId);
-    Object.assign(p,{name,category,sizes});
-  }else{
-    state.products.push({id:uid(),name,category,sizes,recipe:[]});
-  }
-  saveCore();
-  ui.showAddProduct=false;ui.editProductId=null;
-  closeModal('prod-modal');
-  renderView();
-}
-
-function renderExpenses(){
-  const range=dateRange(ui.expensePreset,ui.expenseStart,ui.expenseEnd);
-  const expenses=state.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=range.start&&d<=range.end;}).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-  const orders=state.orders.filter(o=>{if(o.status==='cancelled')return false;const d=new Date(o.timestamp);return d>=range.start&&d<=range.end;});
-  const netSales=orders.reduce((s,o)=>s+o.total,0);
-  const totalExpenses=expenses.reduce((s,e)=>s+e.amount,0);
-  const manage=canManage();
-  const presets=[['today','Today'],['week','Last 7 days'],['month','Last 30 days'],['all','All time'],['custom','Custom']];
-  return `
-  <div class="view-head"><div><h1>Expenses</h1><p>Track what you spend so you know what's actually left from sales</p></div></div>
-  ${manage?`
-  <div class="card" style="padding:16px;margin-bottom:20px;">
-    <div class="exp-form">
-      <div class="field"><label>What did you buy</label><input id="exp-name" placeholder="e.g. Coffee beans restock"></div>
-      <div class="field"><label>Amount (₱)</label><input id="exp-amount" type="number" placeholder="0.00"></div>
-      <div class="field"><label>Date</label><input value="${fmtDate(new Date().toISOString())}" disabled style="color:var(--ink-faint);"></div>
-      <button class="btn btn-accent" onclick="addExpense()">${ICONS.plus} Add</button>
+// EXPENSES
+function rExpenses(){
+  const rng=dRange(U.expPreset,U.expStart,U.expEnd);
+  const exps=S.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=rng.s&&d<=rng.e;}).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  const ords=S.orders.filter(o=>{if(o.isRefunded||o.status==='cancelled')return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
+  const netSales=ords.reduce((s,o)=>s+o.total,0);
+  const cafeExp=exps.filter(e=>e.type==='Cafe').reduce((s,e)=>s+e.amount,0);
+  const persExp=exps.filter(e=>e.type==='Personal').reduce((s,e)=>s+e.amount,0);
+  const manage=canM();
+  const presets=[['today','Today'],['week','7 days'],['month','30 days'],['all','All'],['custom','Custom']];
+  return`<h1 style="font-weight:800;font-size:1.25rem;margin-bottom:12px;">Expenses</h1>
+  ${manage?`<div class="card" style="padding:13px;margin-bottom:14px;">
+    <div style="display:flex;gap:7px;margin-bottom:10px;">
+      <button onclick="U.expType='Cafe';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Cafe'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">☕ Cafe</button>
+      <button onclick="U.expType='Personal';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Personal'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">👤 Personal</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:9px;align-items:end;">
+      <div class="field"><label>What did you buy</label><input id="exp-name" placeholder="e.g. Coffee beans"></div>
+      <div class="field"><label>Amount (₱)</label><input id="exp-amt" type="number" placeholder="0.00"></div>
+      <button class="btn btn-blue" onclick="addExp()">${IC.pls} Add</button>
     </div>
   </div>`:''}
-  <div class="date-filter-bar">
-    ${presets.map(([k,l])=>`<button class="date-preset ${ui.expensePreset===k?'active':''}" onclick="setExpensePreset('${k}')">${l}</button>`).join('')}
-    ${ui.expensePreset==='custom'?`
-      <div class="date-inputs">
-        <input type="date" value="${ui.expenseStart}" onchange="ui.expenseStart=this.value;renderView();">
-        <span>to</span>
-        <input type="date" value="${ui.expenseEnd}" onchange="ui.expenseEnd=this.value;renderView();">
-      </div>
-    `:''}
-  </div>
+  <div class="dfbar">${presets.map(([k,l])=>`<button class="dp ${U.expPreset===k?'act':''}" onclick="setExpPreset('${k}')">${l}</button>`).join('')}${U.expPreset==='custom'?`<div style="display:flex;align-items:center;gap:5px;"><input type="date" value="${U.expStart}" onchange="U.expStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.expEnd}" onchange="U.expEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:''}</div>
   <div class="stat-grid">
-    <div class="card stat-card"><div class="label">Net Sales</div><div class="val">${peso(netSales)}</div></div>
-    <div class="card stat-card"><div class="label">Expenses</div><div class="val">${peso(totalExpenses)}</div></div>
-    <div class="card stat-card"><div class="label">Money Left</div><div class="val">${peso(netSales-totalExpenses)}</div></div>
+    <div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(netSales)}</div></div>
+    <div class="card sc"><div class="lbl">Cafe Expenses</div><div class="val">${peso(cafeExp)}</div></div>
+    <div class="card sc"><div class="lbl">Personal</div><div class="val">${peso(persExp)}</div></div>
+    <div class="card sc"><div class="lbl">Money Left</div><div class="val">${peso(netSales-cafeExp)}</div></div>
   </div>
-  <div class="card"><table><thead><tr><th>Date</th><th>Item</th><th>Amount</th>${manage?'<th></th>':''}</tr></thead><tbody>
-    ${expenses.map(e=>`<tr><td>${fmtDate(e.timestamp)}</td><td>${e.name}</td><td>${peso(e.amount)}</td>${manage?`<td><button class="btn btn-danger btn-sm" onclick="deleteExpense('${e.id}')">${ICONS.trash}</button></td>`:''}</tr>`).join('')||`<tr><td colspan="4" style="color:var(--ink-faint);">No expenses logged in this range.</td></tr>`}
-  </tbody></table></div>
-  `;
+  <div class="card"><table>
+    <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Amount</th>${manage?'<th></th>':''}</tr></thead>
+    <tbody>${exps.map(e=>`<tr><td>${fdt(e.timestamp)}</td><td><span class="pill ${e.type==='Cafe'?'pill-cafe':'pill-pers'}">${e.type}</span></td><td>${e.name}</td><td>${peso(e.amount)}</td>${manage?`<td><button class="btn btn-red btn-xs" onclick="delExp('${e.id}')">${IC.tr}</button></td>`:''}</tr>`).join('')||'<tr><td colspan="5" style="color:var(--ink3);">No expenses.</td></tr>'}</tbody>
+  </table></div>`;
 }
-function setExpensePreset(k){
-  ui.expensePreset=k;
-  if(k==='custom'&&!ui.expenseStart){const t=todayStr();ui.expenseStart=t;ui.expenseEnd=t;}
-  renderView();
+function setExpPreset(k){U.expPreset=k;if(k==='custom'&&!U.expStart){const t=today();U.expStart=t;U.expEnd=t;}ra();}
+function addExp(){
+  if(!canM())return;
+  const name=document.getElementById('exp-name')?.value.trim();
+  const amount=parseFloat(document.getElementById('exp-amt')?.value)||0;
+  if(!name||amount<=0){toast('Enter item and amount.');return;}
+  S.expenses.push({id:uid(),name,amount,type:U.expType,timestamp:new Date().toISOString(),employeeId:U.activeEmpId});
+  saveCore();ra();toast('Expense logged.');
 }
-function addExpense(){
-  if(!canManage())return;
-  const name=document.getElementById('exp-name').value.trim();
-  const amount=parseFloat(document.getElementById('exp-amount').value)||0;
-  if(!name||amount<=0){toast('Enter what you bought and the amount');return;}
-  state.expenses.push({id:uid(),name,amount,timestamp:new Date().toISOString(),employeeId:ui.activeEmployeeId,employeeName:currentEmployee().name});
-  saveCore();
-  renderView();
-  toast('Expense logged');
-}
-function deleteExpense(id){
-  if(!canManage())return;
-  state.expenses=state.expenses.filter(e=>e.id!==id);
-  saveCore();
-  renderView();
-}
+function delExp(id){if(!canM())return;S.expenses=S.expenses.filter(e=>e.id!==id);saveCore();ra();}
 
-function dateRange(preset,startStr,endStr){
-  const now=new Date();
-  const startOfToday=new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0);
-  const endOfToday=new Date(now.getFullYear(),now.getMonth(),now.getDate(),23,59,59);
-  if(preset==='today')return {start:startOfToday,end:endOfToday};
-  if(preset==='week'){const s=new Date(startOfToday);s.setDate(s.getDate()-6);return {start:s,end:endOfToday};}
-  if(preset==='month'){const s=new Date(startOfToday);s.setDate(s.getDate()-29);return {start:s,end:endOfToday};}
-  if(preset==='all')return {start:new Date(2000,0,1),end:endOfToday};
-  if(preset==='custom'&&startStr&&endStr)return {start:new Date(startStr+'T00:00:00'),end:new Date(endStr+'T23:59:59')};
-  return {start:startOfToday,end:endOfToday};
-}
-
-function renderReports(){
-  const range=dateRange(ui.reportPreset,ui.reportStart,ui.reportEnd);
-  const orders=state.orders.filter(o=>{if(o.status==='cancelled')return false;const d=new Date(o.timestamp);return d>=range.start&&d<=range.end;});
-  const grossSales=orders.reduce((s,o)=>s+o.subtotal,0);
-  const discounts=orders.reduce((s,o)=>s+o.discount,0);
-  const netSales=orders.reduce((s,o)=>s+o.total,0);
-  const cogs=orders.reduce((s,o)=>s+o.items.reduce((ss,i)=>ss+(i.costEach||0)*i.qty,0),0);
-  const grossProfit=netSales-cogs;
-  const avg=orders.length?netSales/orders.length:0;
-
-  const itemMap={};
-  orders.forEach(o=>o.items.forEach(i=>{itemMap[i.name]=itemMap[i.name]||{qty:0,revenue:0};itemMap[i.name].qty+=i.qty;itemMap[i.name].revenue+=i.qty*i.price;}));
+// REPORTS
+function rReports(){
+  const rng=dRange(U.repPreset,U.repStart,U.repEnd);
+  const ords=S.orders.filter(o=>{if(o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
+  const gross=ords.reduce((s,o)=>s+o.sub,0);
+  const discs=ords.reduce((s,o)=>s+o.discount,0);
+  const net=ords.reduce((s,o)=>s+o.total,0);
+  const cogs=ords.reduce((s,o)=>s+o.items.reduce((ss,i)=>ss+(i.costEach||0)*i.qty,0),0);
+  const refunds=S.orders.filter(o=>o.isRefunded).reduce((s,o)=>s+o.total,0);
+  const itemMap={};ords.forEach(o=>o.items.forEach(i=>{itemMap[i.name]=itemMap[i.name]||{qty:0,rev:0};itemMap[i.name].qty+=i.qty;itemMap[i.name].rev+=i.qty*i.price;}));
   const itemRows=Object.entries(itemMap).sort((a,b)=>b[1].qty-a[1].qty);
-  const topItem=itemRows[0]?itemRows[0][0]:null;
-
-  const catMap={};
-  orders.forEach(o=>o.items.forEach(i=>{catMap[i.category]=catMap[i.category]||{qty:0,revenue:0};catMap[i.category].qty+=i.qty;catMap[i.category].revenue+=i.qty*i.price;}));
-
-  const empMap={};
-  orders.forEach(o=>{empMap[o.employeeName]=empMap[o.employeeName]||{count:0,revenue:0};empMap[o.employeeName].count+=1;empMap[o.employeeName].revenue+=o.total;});
-
+  const catMap={};ords.forEach(o=>o.items.forEach(i=>{catMap[i.category]=catMap[i.category]||{qty:0,rev:0};catMap[i.category].qty+=i.qty;catMap[i.category].rev+=i.qty*i.price;}));
+  const empMap={};ords.forEach(o=>{empMap[o.employeeName]=empMap[o.employeeName]||{count:0,rev:0};empMap[o.employeeName].count++;empMap[o.employeeName].rev+=o.total;});
+  const presets=[['today','Today'],['week','7 days'],['month','30 days'],['all','All'],['custom','Custom']];
   const tabs=[['summary','Summary'],['item','By Item'],['category','By Category'],['employee','By Employee']];
-  const presets=[['today','Today'],['week','Last 7 days'],['month','Last 30 days'],['all','All time'],['custom','Custom']];
-
   let body='';
-  if(ui.reportTab==='summary'){
-    body=`<div class="stat-grid">
-      <div class="card stat-card"><div class="label">Gross Sales</div><div class="val">${peso(grossSales)}</div></div>
-      <div class="card stat-card"><div class="label">Discounts</div><div class="val">${peso(discounts)}</div></div>
-      <div class="card stat-card"><div class="label">Net Sales</div><div class="val">${peso(netSales)}</div></div>
-      <div class="card stat-card"><div class="label">Gross Profit</div><div class="val">${peso(grossProfit)}</div></div>
-      <div class="card stat-card"><div class="label">Orders</div><div class="val">${orders.length}</div></div>
-      <div class="card stat-card"><div class="label">Avg Order</div><div class="val">${peso(avg)}</div></div>
-    </div>`;
-  }else if(ui.reportTab==='item'){
-    body=`<div class="card"><table><thead><tr><th>Item</th><th>Qty Sold</th><th>Revenue</th></tr></thead><tbody>
-      ${itemRows.map(([name,d],idx)=>`<tr><td>${name}${idx===0?'<span class="top-flag">TOP SELLER</span>':''}</td><td>${d.qty}</td><td>${peso(d.revenue)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink-faint);">No sales in this range.</td></tr>'}
-    </tbody></table></div>`;
-  }else if(ui.reportTab==='category'){
-    body=`<div class="card"><table><thead><tr><th>Category</th><th>Qty Sold</th><th>Revenue</th></tr></thead><tbody>
-      ${Object.entries(catMap).sort((a,b)=>b[1].revenue-a[1].revenue).map(([name,d])=>`<tr><td>${name}</td><td>${d.qty}</td><td>${peso(d.revenue)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink-faint);">No sales in this range.</td></tr>'}
-    </tbody></table></div>`;
-  }else if(ui.reportTab==='employee'){
-    body=`<div class="card"><table><thead><tr><th>Employee</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>
-      ${Object.entries(empMap).sort((a,b)=>b[1].revenue-a[1].revenue).map(([name,d])=>`<tr><td>${name}</td><td>${d.count}</td><td>${peso(d.revenue)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink-faint);">No sales in this range.</td></tr>'}
-    </tbody></table></div>`;
+  if(U.repTab==='summary')body=`<div class="stat-grid"><div class="card sc"><div class="lbl">Gross Sales</div><div class="val">${peso(gross)}</div></div><div class="card sc"><div class="lbl">Discounts</div><div class="val">${peso(discs)}</div></div><div class="card sc"><div class="lbl">Refunds</div><div class="val">${peso(refunds)}</div></div><div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(net)}</div></div><div class="card sc"><div class="lbl">Gross Profit</div><div class="val">${peso(net-cogs)}</div></div><div class="card sc"><div class="lbl">Orders</div><div class="val">${ords.length}</div></div></div>`;
+  else if(U.repTab==='item')body=`<div class="card"><table><thead><tr><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${itemRows.map(([n,d],i)=>`<tr><td>${n}${i===0?'<span class="tflag">TOP</span>':''}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
+  else if(U.repTab==='category')body=`<div class="card"><table><thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${Object.entries(catMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
+  else if(U.repTab==='employee')body=`<div class="card"><table><thead><tr><th>Employee</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>${Object.entries(empMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.count}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><h1 style="font-weight:800;font-size:1.25rem;">Reports</h1><button class="btn btn-out" onclick="exportXls()">${IC.dl} Export Excel</button></div>
+  <div class="dfbar">${presets.map(([k,l])=>`<button class="dp ${U.repPreset===k?'act':''}" onclick="setRepPreset('${k}')">${l}</button>`).join('')}${U.repPreset==='custom'?`<div style="display:flex;align-items:center;gap:5px;"><input type="date" value="${U.repStart}" onchange="U.repStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.repEnd}" onchange="U.repEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:''}</div>
+  <div class="rtabs">${tabs.map(([k,l])=>`<button class="dp ${U.repTab===k?'act':''}" onclick="U.repTab='${k}';ra();">${l}</button>`).join('')}</div>
+  ${body}`;
+}
+function setRepPreset(k){U.repPreset=k;if(k==='custom'&&!U.repStart){const t=today();U.repStart=t;U.repEnd=t;}ra();}
+function exportXls(){
+  const rng=dRange(U.repPreset,U.repStart,U.repEnd);
+  const ords=S.orders.filter(o=>{if(o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
+  const net=ords.reduce((s,o)=>s+o.total,0);const gross=ords.reduce((s,o)=>s+o.sub,0);const discs=ords.reduce((s,o)=>s+o.discount,0);
+  const itemMap={};ords.forEach(o=>o.items.forEach(i=>{itemMap[i.name]=itemMap[i.name]||{qty:0,rev:0};itemMap[i.name].qty+=i.qty;itemMap[i.name].rev+=i.qty*i.price;}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Cafe Yoto Sales'],[],['Gross Sales',gross],['Discounts',discs],['Net Sales',net],['Orders',ords.length]]),'Summary');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Item','Qty','Revenue'],...Object.entries(itemMap).map(([n,d])=>[n,d.qty,d.rev])]),'By Item');
+  XLSX.writeFile(wb,`CafeYoto-${today()}.xlsx`);
+}
+
+// SHIFTS
+function rShifts(){
+  const isAdmin=U.isAdmin;
+  const empId=isAdmin?(U.shiftEmpId||S.employees[0]?.id):U.activeEmpId;
+  const emp=S.employees.find(e=>e.id===empId);
+  const myShifts=empId?S.shifts.filter(s=>s.employeeId===empId).sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn)):[];
+  const now=new Date();const yr=now.getFullYear();const mo=now.getMonth();
+  const dim=new Date(yr,mo+1,0).getDate();const fd=new Date(yr,mo,1).getDay();
+  const worked=new Set(myShifts.map(s=>new Date(s.timeIn).getDate()));
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <h1 style="font-weight:800;font-size:1.25rem;">Shifts</h1>
+    ${isAdmin?`<select onchange="U.shiftEmpId=this.value;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">${S.employees.map(e=>`<option value="${e.id}" ${empId===e.id?'selected':''}>${e.name}</option>`).join('')}</select>`:''}
+  </div>
+  ${emp?`<div class="card" style="padding:13px;margin-bottom:13px;">
+    <div style="font-weight:700;margin-bottom:9px;font-size:.88rem;">${emp.name} — ${new Date(yr,mo).toLocaleString('en-PH',{month:'long',year:'numeric'})}</div>
+    <div class="cal-grid">
+      ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div style="text-align:center;font-size:.62rem;font-weight:700;color:var(--ink3);padding-bottom:3px;">${d}</div>`).join('')}
+      ${Array(fd).fill('<div></div>').join('')}
+      ${Array.from({length:dim},(_,i)=>i+1).map(d=>`<div class="cal-day ${worked.has(d)?'worked':''} ${d===now.getDate()&&mo===now.getMonth()?'today-d':''}">${d}</div>`).join('')}
+    </div>
+  </div>`:''}
+  <div class="card" style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Date</th><th>Work Type</th><th>In</th><th>Out</th><th>Hours</th><th>Status</th><th>Pay</th>${isAdmin?`<th>Location</th><th></th>`:''}</tr></thead>
+      <tbody>${myShifts.length?myShifts.map(s=>{
+        const st=shiftStatus(s);
+        const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
+        const emp2=S.employees.find(e=>e.id===s.employeeId)||{};
+        const pay=calcPay(emp2,s);
+        return`<tr>
+          <td>${fdt(s.timeIn)}</td>
+          <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}">${s.workType||'—'}</span></td>
+          <td>${ftm(s.timeIn)}</td>
+          <td>${s.timeOut?ftm(s.timeOut):'—'}</td>
+          <td>${s.timeOut?dur.toFixed(2)+'h':'ongoing'}</td>
+          <td><span class="pill pill-${st}">${st==='late'?'Late':st==='valid'?'Valid':' On Time'}</span></td>
+          <td>${s.timeOut?peso(pay):'—'}</td>
+          ${isAdmin?`<td style="font-size:.72rem;color:var(--ink2);max-width:160px;word-break:break-all;">${s.location||'—'}</td>
+          <td><div style="display:flex;gap:3px;flex-wrap:wrap;">
+            ${st==='late'?`<button class="btn btn-out btn-xs" onclick="acceptLate('${s.id}')">Accept Late</button>`:''}
+            <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
+          </div></td>`:''}
+        </tr>`;
+      }).join(''):'<tr><td colspan="9" style="color:var(--ink3);">No shifts yet.</td></tr>'}
+      </tbody>
+    </table>
+  </div>`;
+}
+function acceptLate(id){if(!U.isAdmin)return;const s=S.shifts.find(x=>x.id===id);if(!s)return;s.lateExcused=true;saveCore();ra();toast('Late excuse accepted.');}
+
+// ADMIN
+function rAdmin(){
+  if(!U.isAdmin){return`<div class="lockgate"><div style="font-size:2rem;">🔐</div><h2>Admin Access</h2><p>Owner only. Enter password to unlock.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;}
+  return`<div style="max-width:580px;">
+    <h1 style="font-weight:800;font-size:1.25rem;margin-bottom:14px;">Admin Settings</h1>
+    <div class="card" style="padding:14px;margin-bottom:12px;">
+      <div style="font-weight:700;margin-bottom:9px;">Receipt & Chit</div>
+      <div class="frow">
+        <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" oninput="S.settings.rcptHeader=this.value;"></div>
+        <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" oninput="S.settings.rcptFooter=this.value;"></div>
+      </div>
+      <div class="frow" style="margin-top:8px;">
+        <div class="field"><label>Chit Header</label><input value="${S.settings.chitHeader||''}" oninput="S.settings.chitHeader=this.value;"></div>
+        <div class="field"><label>Wifi Password</label><input value="${S.settings.wifiPw||''}" oninput="S.settings.wifiPw=this.value;"></div>
+      </div>
+    </div>
+    <div class="card" style="padding:14px;margin-bottom:12px;">
+      <div style="font-weight:700;margin-bottom:9px;">Shift Schedule</div>
+      ${(S.settings.shiftDefs||[]).map((sh,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 28px;gap:7px;align-items:end;margin-bottom:7px;">
+        <div class="field"><label>Name</label><input value="${sh.name}" oninput="S.settings.shiftDefs[${i}].name=this.value;"></div>
+        <div class="field"><label>Start</label><input type="time" value="${sh.start}" oninput="S.settings.shiftDefs[${i}].start=this.value;"></div>
+        <div class="field"><label>End</label><input type="time" value="${sh.end}" oninput="S.settings.shiftDefs[${i}].end=this.value;"></div>
+        <button class="btn btn-red btn-xs" onclick="S.settings.shiftDefs.splice(${i},1);ra();">${IC.xx}</button>
+      </div>`).join('')}
+      <button class="btn btn-out btn-sm" onclick="S.settings.shiftDefs.push({id:uid(),name:'Shift',start:'08:00',end:'16:00'});ra();">${IC.pls} Add Shift</button>
+    </div>
+    <div class="card" style="padding:14px;margin-bottom:12px;">
+      <div style="font-weight:700;margin-bottom:4px;">Late Penalty (₱)</div>
+      <input type="number" value="${S.settings.latePenalty||30}" oninput="S.settings.latePenalty=parseFloat(this.value)||0;" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.86rem;width:120px;background:var(--bg);">
+    </div>
+    <div class="card" style="padding:14px;margin-bottom:12px;">
+      <div style="font-weight:700;margin-bottom:9px;">Employee Rates</div>
+      <div style="font-size:.74rem;color:var(--ink2);margin-bottom:10px;">Pay = full hours × rate + extra half-hour bonus if ≥ 0.4h remainder. Late deducts penalty. Tips added after.</div>
+      ${S.employees.map((e,i)=>`<div style="background:var(--bg);border-radius:10px;padding:10px 12px;margin-bottom:9px;">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:8px;">${e.name}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:7px;">
+          <div class="field"><label>Barista ₱/hr</label><input type="number" value="${e.hourlyRate||64}" oninput="S.employees[${i}].hourlyRate=parseFloat(this.value)||0;"></div>
+          <div class="field"><label>Barista ½hr</label><input type="number" value="${e.extraHalfRate||35}" oninput="S.employees[${i}].extraHalfRate=parseFloat(this.value)||0;"></div>
+          <div class="field"><label>Cat ₱/hr</label><input type="number" value="${e.catRate||57}" oninput="S.employees[${i}].catRate=parseFloat(this.value)||0;"></div>
+          <div class="field"><label>Cat ½hr</label><input type="number" value="${e.catExtraRate||30}" oninput="S.employees[${i}].catExtraRate=parseFloat(this.value)||0;"></div>
+          <div class="field"><label>Tips (₱)</label><input type="number" value="${e.tips||0}" oninput="S.employees[${i}].tips=parseFloat(this.value)||0;"></div>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:9px;">
+      <button class="btn btn-blue" onclick="saveAdm()">Save All</button>
+      <button class="btn btn-out" onclick="U.isAdmin=false;ra();">Lock Admin</button>
+    </div>
+  </div>`;
+}
+async function checkAdmPw(){
+  const v=document.getElementById('adm-pw')?.value;if(!v)return;
+  const h=await hashStr(v);
+  if(h===S.settings.adminHash){U.isAdmin=true;ra();}else toast('Incorrect password.');
+}
+function saveAdm(){saveCore();toast('Settings saved.');}
+
+// NUMPAD RENDER
+function npRender(){
+  if(!U.npShow)return'';
+  const keys=['7','8','9','4','5','6','1','2','3','.','0','DEL'];
+  return`<div class="np-ov" onclick="npCancel()"><div class="np-sheet" onclick="event.stopPropagation()">
+    <div class="np-disp" id="np-disp">${U.npVal||'0'}</div>
+    <div class="np-grid">${keys.map(k=>`<button class="np-key ${k==='DEL'?'kred':''}" onclick="npPress('${k}')">${k}</button>`).join('')}</div>
+    <div style="display:flex;gap:7px;margin-top:9px;">
+      <button class="btn btn-out" style="flex:1;" onclick="npCancel()">Cancel</button>
+      <button class="btn btn-blue" style="flex:1;" onclick="npConfirm()">Confirm</button>
+    </div>
+  </div></div>`;
+}
+
+// MODALS
+function openModal(type,data){U.modal=type;U.mdata=data;ra();}
+function closeModal(){U.modal=null;U.mdata=null;U.sdraft=[];U.rdraft=[];ra();}
+
+function modalRender(){
+  if(!U.modal)return'';
+  const t=U.modal;const d=U.mdata;
+
+  if(t==='addEmp')return mwrap('Add Employee',`<div class="field"><label>Name</label><input id="m-en" placeholder="e.g. Maria Santos" autofocus></div><div class="frow"><div class="field"><label>Role</label><select id="m-er"><option value="barista">Barista</option><option value="cat">Cat Care</option></select></div><div class="field"><label>Rate/hr (₱)</label><input type="number" id="m-ehr" value="64"></div></div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveEmp()">Add</button>`);
+
+  if(t==='pickSize'){
+    const p=S.products.find(x=>x.id===d);if(!p)return'';
+    return mwrap(`${p.name} — Size`,`<div style="display:flex;flex-direction:column;gap:7px;">${p.sizes.map(s=>`<button onclick="pickSz('${p.id}','${s.id}')" style="display:flex;justify-content:space-between;padding:13px 15px;border:1.5px solid var(--border);border-radius:11px;font-weight:700;font-size:.88rem;width:100%;"><span>${s.label}</span><span>${peso(s.price)}</span></button>`).join('')}</div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button>`);
   }
 
-  return `
-  <div class="view-head">
-    <div><h1>Sales Reports</h1><p>Performance overview for Cafe Yoto</p></div>
-    <button class="btn btn-outline" onclick="exportSummary()">${ICONS.download} Export to Excel</button>
-  </div>
-  <div class="date-filter-bar">
-    ${presets.map(([k,l])=>`<button class="date-preset ${ui.reportPreset===k?'active':''}" onclick="setReportPreset('${k}')">${l}</button>`).join('')}
-    ${ui.reportPreset==='custom'?`
-      <div class="date-inputs">
-        <input type="date" value="${ui.reportStart}" onchange="ui.reportStart=this.value;renderView();">
-        <span>to</span>
-        <input type="date" value="${ui.reportEnd}" onchange="ui.reportEnd=this.value;renderView();">
+  if(t==='addAddon'){
+    const aos=addOnProds();
+    return mwrap('Add Add-on',`<div style="display:flex;flex-direction:column;gap:7px;">${aos.map(a=>`<button onclick="applyAO('${d}','${a.id}')" style="display:flex;justify-content:space-between;padding:11px 14px;border:1.5px solid var(--border);border-radius:11px;font-weight:700;width:100%;font-size:.86rem;"><span>${a.name}</span><span>+${peso(a.sizes[0]?.price||0)}</span></button>`).join('')||'<p style="color:var(--ink3);">No add-ons defined yet.</p>'}</div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button>`);
+  }
+
+  if(t==='addProd'||t==='editProd'){
+    const p=d?S.products.find(x=>x.id===d):null;
+    if(!U.sdraft.length&&!U.sdraft._set){U.sdraft=p?p.sizes.map(s=>({...s})):[{id:uid(),label:'Regular',price:0}];U.sdraft._set=true;}
+    return mwrap(p?`Edit ${p.name}`:'Add Menu Item',`
+      <div class="field"><label>Name</label><input id="m-pn" value="${p?p.name:''}" placeholder="Drink name"></div>
+      <div class="field"><label>Category</label><select id="m-pc">${S.categories.map(c=>`<option value="${c}" ${(p?p.category:U.posCategory)===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="field"><label>Sizes & Prices</label><div id="m-szrows">${rSzRows()}</div><button class="btn btn-out btn-sm" style="margin-top:5px;" onclick="addSzRow()">${IC.pls} Add size</button></div>
+    `,`<button class="btn btn-out" onclick="closeModal()">Cancel</button>${p?`<button class="btn btn-red" onclick="delProd('${p.id}');closeModal();">${IC.tr}</button>`:''}<button class="btn btn-blue" onclick="saveProd()">Save</button>`);
+  }
+
+  if(t==='addIng'||t==='editIng'){
+    const ing=d?ingBy(d):null;
+    return mwrap(ing?`Edit ${ing.name}`:'Add Ingredient',`
+      <div class="field"><label>Name</label><input id="m-in" value="${ing?ing.name:''}" placeholder="e.g. Coffee Beans"></div>
+      <div class="frow">
+        <div class="field"><label>Base unit</label><select id="m-iu"><option value="g" ${ing?.baseUnit==='g'?'selected':''}>grams (g)</option><option value="mL" ${ing?.baseUnit==='mL'?'selected':''}>mL</option><option value="piece" ${ing?.baseUnit==='piece'?'selected':''}>pieces</option></select></div>
+        <div class="field"><label>Purchase label</label><input id="m-il" value="${ing?ing.purchaseLabel:''}" placeholder="e.g. 1kg bag"></div>
       </div>
-    `:''}
-  </div>
-  <div class="report-tabs">${tabs.map(([k,l])=>`<button class="date-preset ${ui.reportTab===k?'active':''}" onclick="ui.reportTab='${k}';renderView();">${l}</button>`).join('')}</div>
-  ${body}
-  `;
+      <div class="frow">
+        <div class="field"><label>Qty per purchase</label><input id="m-ipq" type="number" value="${ing?ing.purchaseQtyInBase:''}"></div>
+        <div class="field"><label>Current stock</label><input id="m-ist" type="number" value="${ing?ing.stockInBase:''}"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Purchase price (₱)</label><input id="m-ipp" type="number" value="${ing?ing.purchasePrice:''}"></div>
+        <div class="field"><label>Shipping (₱)</label><input id="m-ish" type="number" value="${ing?ing.shippingCost:0}"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Low stock at (base unit)</label><input id="m-ilo" type="number" value="${ing?ing.lowThresh:100}"></div>
+        <div class="field"><label>Sold out at (base unit)</label><input id="m-iso" type="number" value="${ing?ing.soThresh:20}"></div>
+      </div>
+    `,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveIng('${d||''}')">Save</button>`);
+  }
+
+  if(t==='editRecipe'){
+    const p=S.products.find(x=>x.id===d);if(!p)return'';
+    if(!U.rdraft.length&&!U.rdraft._set){U.rdraft=(p.recipe||[]).map(r=>({...r}));U.rdraft._set=true;}
+    const cost=U.rdraft.reduce((s,r)=>{const i=ingBy(r.ingredientId);return s+(i?ucost(i)*r.qty:0);},0);
+    return mwrap(`Recipe — ${p.name}`,`
+      <div id="m-rrows">${rRcpRows()}</div>
+      <div class="cprev"><span>Cost per item</span><span id="m-rcost">${peso(cost)}</span></div>
+    `,`<button class="btn btn-out btn-sm" onclick="addRcpRow()">${IC.pls} Add</button><button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveRcp('${d}')">Save</button>`);
+  }
+
+  if(t==='receipt'){
+    const o=S.orders.find(x=>x.id===d);if(!o)return'';
+    return mwrap(`Order #${o.number}`,`
+      <div style="display:flex;gap:11px;flex-wrap:wrap;">
+        <div class="chit">
+          <div class="chit-num">#${o.number}</div>
+          <div class="chit-type">${o.orderType}</div>
+          ${o.items.map(i=>`<div style="margin-bottom:4px;"><strong>${i.qty}x ${i.name}</strong>${(i.addons&&i.addons.length)?`<br><span style="font-size:.72rem;color:var(--ink2);">+${i.addons.map(a=>a.name).join(', +')}</span>`:''}${i.note?`<br><span style="font-size:.7rem;color:var(--ink2);font-style:italic;">📝${i.note}</span>`:''}</div>`).join('')}
+          <div style="border-top:1px dashed var(--ink3);margin:7px 0;font-size:.7rem;color:var(--ink2);">${fdt(o.timestamp)} · ${ftm(o.timestamp)}</div>
+          <div style="font-size:.7rem;color:var(--ink2);">WiFi: ${S.settings.wifiPw||'—'}</div>
+        </div>
+        <div class="rcv" style="flex:1;min-width:180px;">
+          <div class="rcc" style="font-weight:800;">${S.settings.rcptHeader||'CAFE YOTO'}</div>
+          <div class="rcl"></div>
+          <div class="rcr"><span>#${o.number}</span><span>${o.orderType}</span></div>
+          <div class="rcr"><span>${ftm(o.timestamp)}</span><span>${o.employeeName}</span></div>
+          <div class="rcl"></div>
+          ${o.items.map(i=>`<div class="rcr"><span>${i.qty}x ${i.name}</span><span>${peso(i.qty*i.price)}</span></div>${(i.addons||[]).map(a=>`<div style="padding-left:9px;color:var(--ink2);font-size:.74rem;"> +${a.name} ${peso(a.price)}</div>`).join('')}${i.note?`<div style="padding-left:9px;font-style:italic;color:var(--ink2);font-size:.72rem;">📝${i.note}</div>`:''}`).join('')}
+          <div class="rcl"></div>
+          <div class="rcr"><span>Subtotal</span><span>${peso(o.sub)}</span></div>
+          ${o.discount>0?`<div class="rcr"><span>Discount</span><span>-${peso(o.discount)}</span></div>`:''}
+          <div class="rcr"><span>VAT</span><span>${peso(o.vat)}</span></div>
+          <div class="rcr" style="font-weight:800;"><span>TOTAL</span><span>${peso(o.total)}</span></div>
+          <div class="rcl"></div>
+          <div class="rcr"><span>${o.paymentMethod}</span>${o.paymentMethod==='Cash'&&o.tendered?`<span>Change: ${peso(Math.max(0,o.tendered-o.total))}</span>`:''}</div>
+          ${o.payRef?`<div class="rcr"><span>Ref</span><span>${o.payRef}</span></div>`:''}
+          ${o.discName?`<div>ID: ${o.discName} / ${o.discId}</div>`:''}
+          <div class="rcl"></div>
+          <div class="rcc">${S.settings.rcptFooter||'Thank you, come again!'}</div>
+        </div>
+      </div>
+    `,`<button class="btn btn-out btn-sm" onclick="btPrint('chit','${o.id}')">${IC.bt} Print Chit</button><button class="btn btn-out btn-sm" onclick="btPrint('receipt','${o.id}')">${IC.bt} Print Receipt</button><button class="btn btn-blue btn-sm" onclick="printBoth('${o.id}')">${IC.pr} Print Both</button><button class="btn btn-out" onclick="closeModal()">Close</button>`);
+  }
+
+  if(t==='editShift'){
+    const s=S.shifts.find(x=>x.id===d);if(!s)return'';
+    return mwrap('Edit Shift',`
+      <div class="field"><label>Time In</label><input type="datetime-local" id="m-si" value="${new Date(s.timeIn).toISOString().slice(0,16)}"></div>
+      <div class="field"><label>Time Out</label><input type="datetime-local" id="m-so2" value="${s.timeOut?new Date(s.timeOut).toISOString().slice(0,16):''}"></div>
+      <div class="field"><label>Tips (₱)</label><input type="number" id="m-stips" value="${s.tips||0}"></div>
+    `,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveShiftEd('${s.id}')">Save</button>`);
+  }
+  return'';
 }
-function setReportPreset(k){
-  ui.reportPreset=k;
-  if(k==='custom'&&!ui.reportStart){const t=todayStr();ui.reportStart=t;ui.reportEnd=t;}
-  renderView();
-}
-
-function exportSummary(){
-  const range=dateRange(ui.reportPreset,ui.reportStart,ui.reportEnd);
-  const orders=state.orders.filter(o=>{if(o.status==='cancelled')return false;const d=new Date(o.timestamp);return d>=range.start&&d<=range.end;});
-  const grossSales=orders.reduce((s,o)=>s+o.subtotal,0);
-  const discounts=orders.reduce((s,o)=>s+o.discount,0);
-  const netSales=orders.reduce((s,o)=>s+o.total,0);
-  const cogs=orders.reduce((s,o)=>s+o.items.reduce((ss,i)=>ss+(i.costEach||0)*i.qty,0),0);
-  const grossProfit=netSales-cogs;
-  const itemMap={};
-  orders.forEach(o=>o.items.forEach(i=>{itemMap[i.name]=itemMap[i.name]||{qty:0,revenue:0};itemMap[i.name].qty+=i.qty;itemMap[i.name].revenue+=i.qty*i.price;}));
-
-  const summarySheet=[
-    ['Cafe Yoto Sales Summary'],
-    ['Range',ui.reportStart&&ui.reportEnd?ui.reportStart+' to '+ui.reportEnd:ui.reportPreset],
-    [],
-    ['Metric','Amount'],
-    ['Gross Sales',grossSales.toFixed(2)],
-    ['Discounts',discounts.toFixed(2)],
-    ['Net Sales',netSales.toFixed(2)],
-    ['Gross Profit',grossProfit.toFixed(2)],
-    ['Orders',orders.length],
-  ];
-  const itemSheet=[['Item','Qty Sold','Revenue'],...Object.entries(itemMap).sort((a,b)=>b[1].qty-a[1].qty).map(([n,d])=>[n,d.qty,d.revenue.toFixed(2)])];
-
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summarySheet),'Summary');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(itemSheet),'By Item');
-  XLSX.writeFile(wb,`CafeYoto-SalesSummary-${todayStr()}.xlsx`);
-}
-
-function renderShifts(){
-  const shifts=[...state.shifts].sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn));
-  const receipts=[...state.orders].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,50);
-  return `
-  <div class="view-head"><div><h1>Shifts &amp; Receipts</h1><p>Recent time logs and past orders</p></div></div>
-  <div class="grid" style="grid-template-columns:1fr 1fr;">
-    <div>
-      <div style="font-weight:800;margin-bottom:10px;">Shift Log</div>
-      <div class="card"><table><thead><tr><th>Employee</th><th>In</th><th>Out</th><th>Hours</th></tr></thead><tbody>
-      ${shifts.map(s=>{
-        const emp=state.employees.find(e=>e.id===s.employeeId);
-        return `<tr><td>${emp?emp.name:'—'}</td><td>${fmtTime(s.timeIn)}</td><td>${s.timeOut?fmtTime(s.timeOut):'—'}</td><td>${s.timeOut?fmtDur(new Date(s.timeOut)-new Date(s.timeIn)):'ongoing'}</td></tr>`;
-      }).join('')||'<tr><td colspan="4" style="color:var(--ink-faint);">No shifts logged yet.</td></tr>'}
-      </tbody></table></div>
-    </div>
-    <div>
-      <div style="font-weight:800;margin-bottom:10px;">Receipts</div>
-      <div class="card"><table><thead><tr><th>#</th><th>Total</th><th>Pay</th><th></th></tr></thead><tbody>
-      ${receipts.map(o=>`<tr><td>${o.number}</td><td>${peso(o.total)}</td><td>${o.paymentMethod}</td><td><button class="btn btn-outline btn-sm" onclick="openReceipt('${o.id}')">View</button></td></tr>`).join('')||'<tr><td colspan="4" style="color:var(--ink-faint);">No receipts yet.</td></tr>'}
-      </tbody></table></div>
-    </div>
-  </div>
-  `;
-}
-
-function receiptHTML(o){
-  return `
-    <div class="rc-center" style="font-weight:800;">CAFE YOTO</div>
-    <div class="rc-center" style="font-size:0.72rem;color:var(--ink-soft);">Dasmariñas City, Cavite</div>
-    <div class="rc-line"></div>
-    <div class="rc-row"><span>Order #${o.number}</span><span>${fmtTime(o.timestamp)}</span></div>
-    <div class="rc-row"><span>Cashier</span><span>${o.employeeName}</span></div>
-    <div class="rc-line"></div>
-    ${o.items.map(i=>`<div class="rc-row"><span>${i.qty}x ${i.name}</span><span>${peso(i.qty*i.price)}</span></div>`).join('')}
-    <div class="rc-line"></div>
-    <div class="rc-row"><span>Subtotal</span><span>${peso(o.subtotal)}</span></div>
-    ${o.discount>0?`<div class="rc-row"><span>Discount (${o.discountType.toUpperCase()})</span><span>-${peso(o.discount)}</span></div>`:''}
-    <div class="rc-row"><span>VAT</span><span>${peso(o.vat)}</span></div>
-    <div class="rc-row" style="font-weight:800;"><span>TOTAL</span><span>${peso(o.total)}</span></div>
-    <div class="rc-line"></div>
-    <div class="rc-row"><span>Payment</span><span>${o.paymentMethod}</span></div>
-    ${o.paymentMethod==='Cash'&&o.tendered?`<div class="rc-row"><span>Tendered</span><span>${peso(o.tendered)}</span></div><div class="rc-row"><span>Change</span><span>${peso(Math.max(0,o.tendered-o.total))}</span></div>`:''}
-    ${o.payRef?`<div class="rc-row"><span>Ref No.</span><span>${o.payRef}</span></div>`:''}
-    ${o.discName?`<div class="rc-row"><span>ID Name</span><span>${o.discName}</span></div><div class="rc-row"><span>ID No.</span><span>${o.discId}</span></div>`:''}
-    <div class="rc-line"></div>
-    <div class="rc-center" style="margin-top:6px;">Thank you, come again!</div>
-  `;
+function mwrap(title,body,foot){
+  return`<div class="ov" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
+    <div class="mh"><h2>${title}</h2><button onclick="closeModal()">${IC.xx}</button></div>
+    <div class="mb">${body}</div>
+    ${foot?`<div class="mf">${foot}</div>`:''}
+  </div></div>`;
 }
 
-function openReceipt(orderId){
-  const o=state.orders.find(x=>x.id===orderId);
-  if(!o)return;
-  injectModal('receipt-modal',`
-    <div class="modal-head"><h2>Receipt #${o.number}</h2><button onclick="closeModal('receipt-modal')">${ICONS.x}</button></div>
-    <div class="modal-body"><div class="receipt-view">${receiptHTML(o)}</div></div>
-    <div class="modal-foot" style="justify-content:space-between;">
-      <button class="btn btn-outline btn-sm" onclick="connectBluetoothPrinter('${o.id}')">${ICONS.bluetooth} Bluetooth Print</button>
-      <button class="btn btn-accent btn-sm" onclick="printReceipt('${o.id}')">${ICONS.printer} Print via Browser</button>
-    </div>
-  `);
+// MODAL ACTIONS
+function saveEmp(){
+  const name=document.getElementById('m-en')?.value.trim();
+  const role=document.getElementById('m-er')?.value||'barista';
+  const hr=parseFloat(document.getElementById('m-ehr')?.value)||(role==='barista'?64:57);
+  if(!name)return;
+  S.employees.push({id:uid(),name,role,hourlyRate:hr,extraHalfRate:role==='barista'?35:30,tips:0});
+  saveCore();closeModal();
+}
+function pickSz(pid,sid){
+  const p=S.products.find(x=>x.id===pid);const s=p?.sizes.find(x=>x.id===sid);if(!p||!s)return;
+  U.cart.push({productId:p.id,sizeId:s.id,name:p.name+(p.sizes.length>1?` (${s.label})`:''),price:s.price,qty:1,addons:[],note:''});
+  closeModal();
+}
+function applyAO(cartIdx,prodId){
+  const a=S.products.find(x=>x.id===prodId);if(!a)return;
+  const idx=parseInt(cartIdx);
+  U.cart[idx].addons=U.cart[idx].addons||[];
+  U.cart[idx].addons.push({productId:a.id,name:a.name,price:a.sizes[0]?.price||0});
+  closeModal();
+}
+function rSzRows(){return(U.sdraft||[]).filter(s=>s&&s.id).map((s,i)=>`<div style="display:grid;grid-template-columns:1fr 90px 26px;gap:6px;margin-bottom:6px;"><input value="${s.label||''}" placeholder="e.g. Regular" oninput="U.sdraft[${i}].label=this.value;"><input type="number" value="${s.price||0}" oninput="U.sdraft[${i}].price=parseFloat(this.value)||0;"><button onclick="U.sdraft.splice(${i},1);document.getElementById('m-szrows').innerHTML=rSzRows();" style="color:var(--red);">${IC.xx}</button></div>`).join('');}
+function addSzRow(){U.sdraft.push({id:uid(),label:'',price:0});const el=document.getElementById('m-szrows');if(el)el.innerHTML=rSzRows();}
+function saveProd(){
+  const name=document.getElementById('m-pn')?.value.trim();
+  const cat=document.getElementById('m-pc')?.value;
+  const sizes=(U.sdraft||[]).filter(s=>s.label!==undefined&&s.price>0).map(s=>({id:s.id,label:s.label.trim(),price:s.price}));
+  if(!name||!sizes.length)return;
+  const p=U.mdata?S.products.find(x=>x.id===U.mdata):null;
+  if(p)Object.assign(p,{name,category:cat,sizes});
+  else S.products.push({id:uid(),name,category:cat,sizes,recipe:[]});
+  saveCore();closeModal();
+}
+function saveIng(existId){
+  const name=document.getElementById('m-in')?.value.trim();
+  const baseUnit=document.getElementById('m-iu')?.value;
+  const purchaseLabel=document.getElementById('m-il')?.value.trim()||'unit';
+  const purchaseQtyInBase=parseFloat(document.getElementById('m-ipq')?.value)||1;
+  const stockInBase=parseFloat(document.getElementById('m-ist')?.value)||0;
+  const purchasePrice=parseFloat(document.getElementById('m-ipp')?.value)||0;
+  const shippingCost=parseFloat(document.getElementById('m-ish')?.value)||0;
+  const lowThresh=parseFloat(document.getElementById('m-ilo')?.value)||100;
+  const soThresh=parseFloat(document.getElementById('m-iso')?.value)||20;
+  if(!name)return;
+  if(existId){const i=ingBy(existId);if(i)Object.assign(i,{name,baseUnit,purchaseLabel,purchaseQtyInBase,stockInBase,purchasePrice,shippingCost,lowThresh,soThresh});}
+  else S.ingredients.push({id:uid(),name,baseUnit,purchaseLabel,purchaseQtyInBase,stockInBase,purchasePrice,shippingCost,lowThresh,soThresh});
+  saveCore();closeModal();
+}
+function rRcpRows(){return(U.rdraft||[]).map((r,i)=>`<div style="display:grid;grid-template-columns:1fr 80px 26px;gap:6px;margin-bottom:6px;"><select onchange="U.rdraft[${i}].ingredientId=this.value;updRcpCost();">${S.ingredients.map(ing=>`<option value="${ing.id}" ${r.ingredientId===ing.id?'selected':''}>${ing.name} (${ing.baseUnit})</option>`).join('')}</select><input type="number" value="${r.qty}" oninput="U.rdraft[${i}].qty=parseFloat(this.value)||0;updRcpCost();" style="padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"><button onclick="U.rdraft.splice(${i},1);document.getElementById('m-rrows').innerHTML=rRcpRows();updRcpCost();" style="color:var(--red);">${IC.xx}</button></div>`).join('');}
+function addRcpRow(){if(!S.ingredients.length){toast('Add an ingredient first.');return;}U.rdraft.push({ingredientId:S.ingredients[0].id,qty:1});const el=document.getElementById('m-rrows');if(el)el.innerHTML=rRcpRows();updRcpCost();}
+function updRcpCost(){const el=document.getElementById('m-rcost');if(el)el.textContent=peso(U.rdraft.reduce((s,r)=>{const i=ingBy(r.ingredientId);return s+(i?ucost(i)*r.qty:0);},0));}
+function saveRcp(pid){const p=S.products.find(x=>x.id===pid);if(!p)return;p.recipe=U.rdraft.filter(r=>r.ingredientId&&r.qty>0);saveCore();toast('Recipe saved.');closeModal();}
+function saveShiftEd(sid){
+  const s=S.shifts.find(x=>x.id===sid);if(!s)return;
+  const inv=document.getElementById('m-si')?.value;const outv=document.getElementById('m-so2')?.value;const tips=parseFloat(document.getElementById('m-stips')?.value)||0;
+  if(inv)s.timeIn=new Date(inv).toISOString();if(outv)s.timeOut=new Date(outv).toISOString();s.tips=tips;
+  saveCore();closeModal();toast('Shift updated.');
 }
 
-function printReceipt(orderId){
-  const o=state.orders.find(x=>x.id===orderId);
-  if(!o)return;
-  document.getElementById('print-area').innerHTML=`<div class="receipt-view" style="border:none;">${receiptHTML(o)}</div>`;
-  window.print();
+// CATEGORIES
+function addCategory(){const n=prompt('New category name');if(n&&n.trim()&&!S.categories.includes(n.trim())){S.categories.push(n.trim());saveCore();ra();}}
+function renameCategory(old){const n=prompt('Rename',old);if(n&&n.trim()){S.categories=S.categories.map(c=>c===old?n.trim():c);S.products.forEach(p=>{if(p.category===old)p.category=n.trim();});if(U.posCategory===old)U.posCategory=n.trim();saveCore();ra();}}
+function deleteCategory(name){if(S.products.some(p=>p.category===name)){toast('Remove all items first.');return;}if(confirm(`Delete "${name}"?`)){S.categories=S.categories.filter(c=>c!==name);if(U.posCategory===name)U.posCategory=null;saveCore();ra();}}
+
+// DATE RANGE
+function dRange(preset,start,end){
+  const now=new Date();const s0=new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0);const e0=new Date(now.getFullYear(),now.getMonth(),now.getDate(),23,59,59);
+  if(preset==='today')return{s:s0,e:e0};
+  if(preset==='week'){const s=new Date(s0);s.setDate(s.getDate()-6);return{s,e:e0};}
+  if(preset==='month'){const s=new Date(s0);s.setDate(s.getDate()-29);return{s,e:e0};}
+  if(preset==='all')return{s:new Date(2000,0,1),e:e0};
+  if(preset==='custom'&&start&&end)return{s:new Date(start+'T00:00:00'),e:new Date(end+'T23:59:59')};
+  return{s:s0,e:e0};
 }
 
-async function connectBluetoothPrinter(orderId){
-  const o=state.orders.find(x=>x.id===orderId);
-  if(!navigator.bluetooth){toast('Web Bluetooth is not supported on this browser. Use Chrome on Android or Desktop, or try Print via Browser.');return;}
+// PRINT
+function buildChit(o){
+  return`${S.settings.chitHeader||'CAFE YOTO'}\n#${o.number}  ${o.orderType.toUpperCase()}\n${'—'.repeat(28)}\n`+o.items.map(i=>`${i.qty}x ${i.name}${(i.addons&&i.addons.length)?'\n  +'+i.addons.map(a=>a.name).join(', +'):''}${i.note?'\n  📝'+i.note:''}`).join('\n')+`\n${'—'.repeat(28)}\n${fdt(o.timestamp)} ${ftm(o.timestamp)}\nWiFi: ${S.settings.wifiPw||'—'}\n\n\n`;
+}
+function buildRcpt(o){
+  return`${S.settings.rcptHeader||'CAFE YOTO'}\n${'—'.repeat(28)}\n#${o.number}  ${o.orderType}  ${ftm(o.timestamp)}\n${o.employeeName}\n${'—'.repeat(28)}\n`+o.items.map(i=>`${i.qty}x ${i.name}  ${peso(i.qty*i.price)}${(i.addons||[]).map(a=>'\n  +'+a.name+' '+peso(a.price)).join('')}${i.note?'\n  📝'+i.note:''}`).join('\n')+`\n${'—'.repeat(28)}\nSubtotal: ${peso(o.sub)}\n${o.discount>0?'Discount: -'+peso(o.discount)+'\n':''}VAT: ${peso(o.vat)}\nTOTAL: ${peso(o.total)}\n${'—'.repeat(28)}\n${o.paymentMethod}${o.paymentMethod==='Cash'&&o.tendered?'  Change: '+peso(Math.max(0,o.tendered-o.total)):''}\n${o.payRef?'Ref: '+o.payRef+'\n':''}${o.discName?'ID: '+o.discName+' ('+o.discId+')\n':''}${'—'.repeat(28)}\n${S.settings.rcptFooter||'Thank you!'}\n\n\n`;
+}
+async function btPrint(type,oid){
+  const o=S.orders.find(x=>x.id===oid);if(!o)return;
+  const text=type==='chit'?buildChit(o):buildRcpt(o);
+  if(!navigator.bluetooth){document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();return;}
   try{
-    const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455','e7810a71-73ae-499d-8c15-faa9aef0c3f2']});
-    const server=await device.gatt.connect();
-    let sent=false;
-    for(const svc of ['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']){
-      try{
-        const service=await server.getPrimaryService(svc);
-        const chars=await service.getCharacteristics();
-        const writable=chars.find(c=>c.properties.write||c.properties.writeWithoutResponse);
-        if(writable){
-          const text=receiptToPlainText(o)+"\n\n\n";
-          await writable.writeValue(new TextEncoder().encode(text));
-          sent=true;break;
-        }
-      }catch(e){}
+    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
+    const srv=await dev.gatt.connect();
+    for(const svc of['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']){
+      try{const s=await srv.getPrimaryService(svc);const cs=await s.getCharacteristics();const w=cs.find(c=>c.properties.write||c.properties.writeWithoutResponse);if(w){await w.writeValue(new TextEncoder().encode(text));toast('Sent to printer!');return;}}catch(e){}
     }
-    toast(sent?'Sent to printer via Bluetooth.':'Connected, but no compatible print service found. Try Print via Browser instead.');
-  }catch(e){toast('Bluetooth printing did not connect. Use Print via Browser for a reliable receipt.');}
+    toast('No print service found. Printing via browser.');document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();
+  }catch(e){document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();}
 }
-function receiptToPlainText(o){
-  let lines=['CAFE YOTO','Dasmarinas City, Cavite','--------------------------------',`Order #${o.number}  ${fmtTime(o.timestamp)}`,`Cashier: ${o.employeeName}`,'--------------------------------'];
-  o.items.forEach(i=>lines.push(`${i.qty}x ${i.name}  ${peso(i.qty*i.price)}`));
-  lines.push('--------------------------------');
-  lines.push(`Subtotal: ${peso(o.subtotal)}`);
-  if(o.discount>0)lines.push(`Discount: -${peso(o.discount)}`);
-  lines.push(`VAT: ${peso(o.vat)}`);
-  lines.push(`TOTAL: ${peso(o.total)}`);
-  lines.push(`Payment: ${o.paymentMethod}`);
-  lines.push('Thank you, come again!');
-  return lines.join('\n');
-}
+function printBoth(oid){btPrint('chit',oid);setTimeout(()=>btPrint('receipt',oid),2000);}
 
-(async function init(){
-  await loadData();
-  render();
-})();
+// INIT
+(async()=>{await loadData();ra();})();
 </script>
 </body>
 </html>
-
