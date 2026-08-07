@@ -106,8 +106,8 @@ tr:last-child td{border-bottom:none;}
 .cat-icon{width:38px;height:38px;border-radius:11px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0;}
 .cat-name{font-weight:700;font-size:.9rem;}
 .cat-count{font-size:.72rem;color:var(--ink2);}
-.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:9px;padding:12px;overflow-y:auto;flex:1;}
-.pc{background:var(--surf);border:1.5px solid var(--border);border-radius:13px;padding:11px;cursor:pointer;transition:all .15s;position:relative;aspect-ratio:1;display:flex;flex-direction:column;justify-content:flex-end;}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:12px;overflow-y:auto;align-content:start;flex:1;}
+.pc{background:var(--surf);border:1.5px solid var(--border);border-radius:13px;padding:11px;cursor:pointer;transition:all .15s;position:relative;height:120px;display:flex;flex-direction:column;justify-content:flex-end;}
 .pc:hover{border-color:var(--blue);}
 .pc:active{transform:scale(.97);}
 .pc.em{border-style:dashed;}
@@ -554,10 +554,13 @@ async function timeIn(){
 }
 async function timeOut(){
   const s=actShift(U.activeEmpId);if(!s)return;
+  if(s._saving)return; s._saving=true;
   s.timeOut=new Date().toISOString();
-  await saveCore();ra();toast(`Shift ended — ${fdur(new Date(s.timeOut)-new Date(s.timeIn))} worked.`);
+  await saveCore();
+  s._saving=false;
+  ra();toast(`Shift ended — ${fdur(new Date(s.timeOut)-new Date(s.timeIn))} worked.`);
 }
-function signOut(){timeOut();U.activeEmpId=null;setView('clock');}
+async function signOut(){await timeOut();U.activeEmpId=null;setView('clock');}
 
 // POS
 function rPOS(){
@@ -886,7 +889,7 @@ function rShifts(){
   const isAdmin=U.isAdmin;
   const curEmpObj=S.employees.find(e=>e.id===U.activeEmpId);
   const isOwner=curEmpObj&&(curEmpObj.role||'').toLowerCase()==='owner';
-  const empId=isAdmin?(U.shiftEmpId||S.employees.find(e=>(e.role||'').toLowerCase()!=='owner')?.id||S.employees[0]?.id):U.activeEmpId;
+  const empId=isAdmin?(U.shiftEmpId||S.employees[0]?.id):U.activeEmpId;
   const viewEmp=S.employees.find(e=>e.id===empId);
   const allShifts=empId?S.shifts.filter(s=>s.employeeId===empId):[];
   const calYear=U.shiftCalYear||new Date().getFullYear();
@@ -904,33 +907,17 @@ function rShifts(){
   const showPay=isAdmin&&!isOwner;
   const selLabel=selDate?fdt(selDate+'T00:00:00'):new Date(calYear,calMo).toLocaleString('en-PH',{month:'long',year:'numeric'});
   return`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-    <div>
-      <div style="font-size:1.6rem;font-weight:800;">${selLabel}</div>
-    </div>
+    <div style="font-size:1.5rem;font-weight:800;">${selLabel}</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <button onclick="prevShiftMo()" style="width:28px;height:28px;border-radius:8px;background:var(--surf2);font-weight:700;">&lsaquo;</button>
-      <button onclick="nextShiftMo()" style="width:28px;height:28px;border-radius:8px;background:var(--surf2);font-weight:700;">&rsaquo;</button>
       <input type="date" value="${selDate||''}" onchange="U.shiftSelDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;cursor:pointer;">
-      ${selDate?`<button class="btn btn-out btn-sm" onclick="U.shiftSelDate=null;ra();">Clear</button>`:''}
-      ${isAdmin?`<select onchange="U.shiftEmpId=this.value;U.shiftSelDate=null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">${S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner').map(e=>`<option value="${e.id}" ${empId===e.id?'selected':''}>${e.name}</option>`).join('')}</select>`:''}
+      ${selDate?`<button class="btn btn-out btn-sm" onclick="U.shiftSelDate=null;ra();">Show All</button>`:''}
     </div>
   </div>
   ${isOwner&&ownerSales!==null?`<div style="padding:10px 13px;background:var(--bluesoft);border-radius:10px;font-size:.84rem;font-weight:700;margin-bottom:12px;">Your sales on this day: ${peso(ownerSales)}</div>`:''}
-  ${!selDate?`<div class="card" style="padding:12px;margin-bottom:12px;">
-    <div class="cal-grid">
-      ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div style="text-align:center;font-size:.62rem;font-weight:700;color:var(--ink3);padding-bottom:3px;">${d}</div>`).join('')}
-      ${Array(fd).fill('<div></div>').join('')}
-      ${Array.from({length:dim},(_,i)=>i+1).map(d=>{
-        const dStr=calYear+'-'+String(calMo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-        const isWorked=allShifts.some(s=>s.timeIn.slice(0,10)===dStr);
-        const isToday=d===now.getDate()&&calMo===now.getMonth()&&calYear===now.getFullYear();
-        return`<div class="cal-day ${isWorked?'worked':''} ${isToday?'today-d':''}" style="${isWorked?'cursor:pointer;':''}" onclick="${isWorked?`U.shiftSelDate='${dStr}';ra();`:''}">${d}</div>`;
-      }).join('')}
-    </div>
-  </div>`:''}
+
   <div class="card" style="overflow-x:auto;">
     <table>
-      <thead><tr><th>Work Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th>${showPay?'<th>Pay</th>':''}${isAdmin?`<th>Location</th><th>Device</th><th></th>`:''}</tr></thead>
+      <thead><tr><th>Name</th><th>Work Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th>${showPay?'<th>Pay</th>':''}${isAdmin?`<th>Location</th><th>Device</th><th></th>`:''}</tr></thead>
       <tbody>${myShifts.length?myShifts.map(s=>{
         const st=shiftStatus(s);
         const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
@@ -939,7 +926,9 @@ function rShifts(){
         const hrsLabel=s.timeOut?(dur===Math.floor(dur)?dur+'hr':(Math.floor(dur)+'.'+(Math.round((dur%1)*10))+'hr')):'—';
         const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
         const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
+        const rowEmp=S.employees.find(e=>e.id===s.employeeId);
         return`<tr>
+          <td style="font-weight:600;">${rowEmp?rowEmp.name:'—'}</td>
           <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}">${s.workType||'—'}</span></td>
           <td>${ftm(s.timeIn)}</td>
           <td>${s.timeOut?ftm(s.timeOut):'—'}</td>
@@ -959,10 +948,9 @@ function rShifts(){
     </table>
   </div>`;
 }
-function prevShiftMo(){if(U.shiftCalMo===undefined)U.shiftCalMo=new Date().getMonth();if(!U.shiftCalYear)U.shiftCalYear=new Date().getFullYear();U.shiftCalMo--;if(U.shiftCalMo<0){U.shiftCalMo=11;U.shiftCalYear--;}U.shiftSelDate=null;ra();}
-function nextShiftMo(){if(U.shiftCalMo===undefined)U.shiftCalMo=new Date().getMonth();if(!U.shiftCalYear)U.shiftCalYear=new Date().getFullYear();U.shiftCalMo++;if(U.shiftCalMo>11){U.shiftCalMo=0;U.shiftCalYear++;}U.shiftSelDate=null;ra();}
+function prevShiftMo(){} function nextShiftMo(){}
 function rAdmin(){
-  if(!U.isAdmin){return`<div class="lockgate"><div style="font-size:2rem;">🔐</div><h2>Admin Access</h2><p>Owner only. Enter password to unlock.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;}
+  if(!U.isAdmin){return`<div class="lockgate"><div style="font-size:2rem;">🔐</div><h2>Admin Access</h2><p>Owner only. Enter the admin password.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><div id="adm-err" style="color:var(--red);font-size:.78rem;display:none;">Incorrect password. Default is Aekei14! — if changed, check your saved settings.</div><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;}
   const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
   return`<div style="max-width:700px;">
     <h1 style="font-weight:800;font-size:1.25rem;margin-bottom:16px;">Admin Settings</h1>
@@ -1072,6 +1060,23 @@ function rAdmin(){
     </div>
   </div>`;
 }
+async function checkAdmPw(){
+  const el=document.getElementById('adm-pw');
+  const errEl=document.getElementById('adm-err');
+  if(!el)return;
+  const val=el.value;
+  if(!val){if(errEl)errEl.style.display='block';return;}
+  const h=await hashStr(val);
+  if(h===S.settings.adminHash){
+    U.isAdmin=true;
+    if(errEl)errEl.style.display='none';
+    ra();
+  }else{
+    if(errEl)errEl.style.display='block';
+    el.value='';
+    el.focus();
+  }
+}
 function updRcptPrev(){
   const el=document.getElementById('rcpt-prev');if(!el)return;
   el.style.fontSize=(S.settings.rcptFontSize||12)+'px';
@@ -1166,12 +1171,14 @@ function modalRender(){
     const o=S.orders.find(x=>x.id===d);if(!o)return'';
     return mwrap(`Order #${o.number}`,`
       <div style="display:flex;gap:11px;flex-wrap:wrap;">
-        <div class="chit">
-          <div class="chit-num">#${o.number}</div>
-          <div class="chit-type">${o.orderType}</div>
-          ${o.items.map(i=>`<div style="margin-bottom:4px;"><strong>${i.qty}x ${i.name}</strong>${(i.addons&&i.addons.length)?`<br><span style="font-size:.72rem;color:var(--ink2);">+${i.addons.map(a=>a.name).join(', +')}</span>`:''}${i.note?`<br><span style="font-size:.7rem;color:var(--ink2);font-style:italic;">📝${i.note}</span>`:''}</div>`).join('')}
-          <div style="border-top:1px dashed var(--ink3);margin:7px 0;font-size:.7rem;color:var(--ink2);">${fdt(o.timestamp)} · ${ftm(o.timestamp)}</div>
-          <div style="font-size:.7rem;color:var(--ink2);">WiFi: ${S.settings.wifiPw||'—'}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${o.items.map(item=>`<div class="chit">
+            <div class="chit-num">#${o.number}</div>
+            <div class="chit-type">${o.orderType}</div>
+            <div style="margin-bottom:4px;"><strong>${item.name}</strong>${(item.addons&&item.addons.length)?`<br><span style="font-size:.72rem;color:var(--ink2);">+${item.addons.map(a=>a.name).join(', +')}</span>`:''}${item.note?`<br><span style="font-size:.7rem;color:var(--ink2);font-style:italic;">📝${item.note}</span>`:''}</div>
+            <div style="border-top:1px dashed var(--ink3);margin:7px 0;font-size:.7rem;color:var(--ink2);">${fdt(o.timestamp)} · ${ftm(o.timestamp)}</div>
+            <div style="font-size:.7rem;color:var(--ink2);">WiFi: ${S.settings.wifiPw||'—'}</div>
+          </div>`).join('')}
         </div>
         <div class="rcv" style="flex:1;min-width:180px;">
           <div class="rcc" style="font-weight:800;">${S.settings.rcptHeader||'CAFE YOTO'}</div>
@@ -1305,7 +1312,7 @@ function buildRcpt(o){
 async function btPrint(type,oid){
   const o=S.orders.find(x=>x.id===oid);if(!o)return;
   const texts=type==='chit'?buildChit(o):[buildRcpt(o)];
-  const text=texts.join('\n\n');
+  const text=texts.join('\f'); // form feed between chits
   if(!navigator.bluetooth){document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();return;}
   try{
     const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
