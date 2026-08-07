@@ -269,9 +269,10 @@ let U={
   modal:null,mdata:null,
   sdraft:[],rdraft:[],
   shiftEmpId:null,
-  shiftSelDate:null,
+  shiftSelDate:undefined,
   shiftCalYear:null,
   shiftCalMo:undefined,
+  admTab:'receipt',
   clockWorkType:'',
   backendDown:false
 };
@@ -716,8 +717,9 @@ function rOrders(){
         <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">${o.employeeName} · <span class="pill ${o.orderType==='Grab'?'pill-late':o.orderType==='Take Out'?'pill-low':'pill-ot'}">${o.orderType}</span></div><div style="font-size:.68rem;color:var(--ink3);">${ftm(o.timestamp)}</div></div>
         <span class="pill ${o.status==='preparing'?'pill-so':'pill-low'}">${o.status}</span>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
-          ${o.status==='preparing'?`<button class="btn btn-out btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','ready')">Ready</button>`:''}
-          ${o.status==='ready'&&allDone?`<button class="btn btn-grn btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','completed')">Complete</button>`:''}
+          ${o.status==='preparing'&&allDone?`<button class="btn btn-out btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','ready')">Ready</button>`:''}
+          ${o.status==='preparing'&&!allDone?`<span style="font-size:.72rem;color:var(--ink3);padding:4px 6px;">Check all drinks first</span>`:''}
+          ${o.status==='ready'?`<button class="btn btn-grn btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','completed')">Complete</button>`:''}
           <button class="btn btn-out btn-sm" onclick="openModal('receipt','${o.id}')">${IC.pr}</button>
           ${canM()?`<button class="btn btn-red btn-sm" onclick="refundOrder('${o.id}')">Refund</button>`:''}
         </div>
@@ -825,11 +827,18 @@ function rExpenses(){
     </div>
   </div>`:''}
   <div class="dfbar">${presets.map(([k,l])=>`<button class="dp ${U.expPreset===k?'act':''}" onclick="setExpPreset('${k}')">${l}</button>`).join('')}${U.expPreset==='custom'?`<div style="display:flex;align-items:center;gap:5px;"><input type="date" value="${U.expStart}" onchange="U.expStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.expEnd}" onchange="U.expEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:''}</div>
-  <div class="stat-grid">
-    <div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(netSales)}</div></div>
-    <div class="card sc"><div class="lbl">Cafe Expenses</div><div class="val">${peso(cafeExp)}</div></div>
-    <div class="card sc"><div class="lbl">Personal</div><div class="val">${peso(persExp)}</div></div>
-    <div class="card sc"><div class="lbl">Money Left</div><div class="val">${peso(netSales-cafeExp)}</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div class="stat-grid" style="margin-bottom:0;">
+      <div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(netSales)}</div></div>
+      <div class="card sc"><div class="lbl">Cafe Expenses</div><div class="val">${peso(cafeExp)}</div></div>
+      <div class="card sc"><div class="lbl">Personal</div><div class="val">${peso(persExp)}</div></div>
+    </div>
+    <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px;font-size:.84rem;">
+      <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Money Remaining</div>
+      <div style="display:flex;justify-content:space-between;"><span>Net Sales</span><span>${peso(netSales)}</span></div>
+      <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cafe Expenses</span><span>${peso(cafeExp)}</span></div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${(netSales-cafeExp)>=0?'var(--green)':'var(--red)'};">${peso(netSales-cafeExp)}</span></div>
+    </div>
   </div>
   <div class="card"><table>
     <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Amount</th>${manage?'<th></th>':''}</tr></thead>
@@ -863,7 +872,33 @@ function rReports(){
   const presets=[['today','Today'],['week','7 days'],['month','30 days'],['all','All'],['custom','Custom']];
   const tabs=[['summary','Summary'],['item','By Item'],['category','By Category'],['employee','By Employee']];
   let body='';
-  if(U.repTab==='summary')body=`<div class="stat-grid"><div class="card sc"><div class="lbl">Gross Sales</div><div class="val">${peso(gross)}</div></div><div class="card sc"><div class="lbl">Discounts</div><div class="val">${peso(discs)}</div></div><div class="card sc"><div class="lbl">Refunds</div><div class="val">${peso(refunds)}</div></div><div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(net)}</div></div><div class="card sc"><div class="lbl">Gross Profit</div><div class="val">${peso(net-cogs)}</div></div><div class="card sc"><div class="lbl">Orders</div><div class="val">${ords.length}</div></div></div>`;
+  if(U.repTab==='summary'){
+    const totalExp=S.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=rng.s&&d<=rng.e&&e.type==='Cafe';}).reduce((s,e)=>s+e.amount,0);
+    const moneyLeft=net-cogs-discs-totalExp;
+    body=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px;">
+      <div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Sales Breakdown</div>
+        <div class="stat-grid" style="margin-bottom:0;">
+          <div class="card sc"><div class="lbl">Gross Sales</div><div class="val">${peso(gross)}</div></div>
+          <div class="card sc"><div class="lbl">Discounts</div><div class="val">${peso(discs)}</div></div>
+          <div class="card sc"><div class="lbl">Refunds</div><div class="val">${peso(refunds)}</div></div>
+          <div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(net)}</div></div>
+          <div class="card sc"><div class="lbl">Gross Profit</div><div class="val">${peso(net-cogs)}</div></div>
+          <div class="card sc"><div class="lbl">Orders</div><div class="val">${ords.length}</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Money Remaining</div>
+        <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px;font-size:.84rem;">
+          <div style="display:flex;justify-content:space-between;"><span>Net Sales</span><span>${peso(net)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cost of Goods</span><span>${peso(cogs)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Discounts Given</span><span>${peso(discs)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cafe Expenses</span><span>${peso(totalExp)}</span></div>
+          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${moneyLeft>=0?'var(--green)':'var(--red)'};">${peso(moneyLeft)}</span></div>
+        </div>
+      </div>
+    </div>`;
+  }
   else if(U.repTab==='item')body=`<div class="card"><table><thead><tr><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${itemRows.map(([n,d],i)=>`<tr><td>${n}${i===0?'<span class="tflag">TOP</span>':''}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
   else if(U.repTab==='category')body=`<div class="card"><table><thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${Object.entries(catMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
   else if(U.repTab==='employee')body=`<div class="card"><table><thead><tr><th>Employee</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>${Object.entries(empMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.count}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
@@ -887,63 +922,55 @@ function exportXls(){
 // SHIFTS
 function rShifts(){
   const isAdmin=U.isAdmin;
-  const curEmpObj=S.employees.find(e=>e.id===U.activeEmpId);
-  const isOwner=curEmpObj&&(curEmpObj.role||'').toLowerCase()==='owner';
-  const empId=isAdmin?(U.shiftEmpId||S.employees[0]?.id):U.activeEmpId;
-  const viewEmp=S.employees.find(e=>e.id===empId);
-  const allShifts=empId?S.shifts.filter(s=>s.employeeId===empId):[];
-  const calYear=U.shiftCalYear||new Date().getFullYear();
-  const calMo=U.shiftCalMo!==undefined?U.shiftCalMo:new Date().getMonth();
   const now=new Date();
-  const selDate=U.shiftSelDate;
-  let myShifts=selDate?allShifts.filter(s=>s.timeIn.slice(0,10)===selDate):[...allShifts];
-  myShifts.sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn));
-  const ownerSales=isOwner&&selDate?S.orders.filter(o=>{
-    if(o.isRefunded||o.status==='cancelled')return false;
-    return o.timestamp.slice(0,10)===selDate&&o.employeeId===U.activeEmpId;
-  }).reduce((s,o)=>s+o.total,0):null;
-  const dim=new Date(calYear,calMo+1,0).getDate();
-  const fd=new Date(calYear,calMo,1).getDay();
-  const showPay=isAdmin&&!isOwner;
-  const selLabel=selDate?fdt(selDate+'T00:00:00'):new Date(calYear,calMo).toLocaleString('en-PH',{month:'long',year:'numeric'});
-  return`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-    <div style="font-size:1.5rem;font-weight:800;">${selLabel}</div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+  const todayStr2=today();
+  // default to today if no date selected
+  const selDate=U.shiftSelDate!==undefined?U.shiftSelDate:todayStr2;
+  if(U.shiftSelDate===undefined)U.shiftSelDate=todayStr2;
+  // get all shifts for the selected date across ALL employees
+  const allShifts=selDate?S.shifts.filter(s=>s.timeIn.slice(0,10)===selDate):S.shifts;
+  const myShifts=[...allShifts].sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn));
+  const selLabel=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'})+' '+new Date(selDate+'T00:00:00').getFullYear():'All Shifts';
+  const isToday=selDate===todayStr2;
+  return`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size:1.6rem;font-weight:800;">${isToday?'Today':''+selLabel}</div>
+      ${!isToday?'':''}
+      <button class="btn btn-out btn-sm" onclick="U.shiftSelDate=todayStr2||today();ra();" style="${isToday?'background:var(--bluesoft);border-color:var(--blue);color:var(--blue2);':''}">Today</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:.8rem;color:var(--ink2);">${selLabel}</span>
       <input type="date" value="${selDate||''}" onchange="U.shiftSelDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;cursor:pointer;">
-      ${selDate?`<button class="btn btn-out btn-sm" onclick="U.shiftSelDate=null;ra();">Show All</button>`:''}
     </div>
   </div>
-  ${isOwner&&ownerSales!==null?`<div style="padding:10px 13px;background:var(--bluesoft);border-radius:10px;font-size:.84rem;font-weight:700;margin-bottom:12px;">Your sales on this day: ${peso(ownerSales)}</div>`:''}
-
   <div class="card" style="overflow-x:auto;">
     <table>
-      <thead><tr><th>Name</th><th>Work Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th>${showPay?'<th>Pay</th>':''}${isAdmin?`<th>Location</th><th>Device</th><th></th>`:''}</tr></thead>
+      <thead><tr><th>Name</th><th>Work Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th>${isAdmin?`<th>Pay</th><th>Location</th><th>Device</th><th></th>`:''}</tr></thead>
       <tbody>${myShifts.length?myShifts.map(s=>{
         const st=shiftStatus(s);
         const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
-        const emp2=S.employees.find(e=>e.id===s.employeeId)||{};
-        const pay=calcPay(emp2,s);
+        const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
+        const pay=calcPay(rowEmp,s);
         const hrsLabel=s.timeOut?(dur===Math.floor(dur)?dur+'hr':(Math.floor(dur)+'.'+(Math.round((dur%1)*10))+'hr')):'—';
         const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
         const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
-        const rowEmp=S.employees.find(e=>e.id===s.employeeId);
         return`<tr>
-          <td style="font-weight:600;">${rowEmp?rowEmp.name:'—'}</td>
+          <td style="font-weight:600;">${rowEmp.name||'—'}</td>
           <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}">${s.workType||'—'}</span></td>
           <td>${ftm(s.timeIn)}</td>
           <td>${s.timeOut?ftm(s.timeOut):'—'}</td>
           <td>${hrsLabel}</td>
           <td><span class="pill ${stPill}">${stLabel}</span></td>
-          ${showPay?`<td>${s.timeOut?peso(pay):'—'}</td>`:''}
-          ${isAdmin?`<td style="font-size:.7rem;color:var(--ink2);max-width:120px;word-break:break-all;">${s.location||'—'}</td>
+          ${isAdmin?`<td>${s.timeOut?peso(pay):'—'}</td>
+          <td style="font-size:.7rem;color:var(--ink2);max-width:110px;word-break:break-all;">${s.location||'—'}</td>
           <td style="font-size:.7rem;color:var(--ink2);white-space:nowrap;">${s.device||'—'}</td>
           <td><div style="display:flex;gap:3px;flex-wrap:wrap;">
-            ${st==='late'?`<button class="btn btn-out btn-xs" onclick="acceptLate('${s.id}')">Accept Late</button>`:''}
-            ${st==='late'||st==='valid'?`<button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">Valid Excuse</button>`:``}
+            ${st==='late'?`<button class="btn btn-red btn-xs" onclick="void(0)" style="pointer-events:none;">Late</button><button class="btn btn-grn btn-xs" onclick="acceptLate('${s.id}')">Accept &amp; Valid</button>`:''}
+            ${st==='valid'?`<button class="btn btn-xs" style="background:var(--yellowsoft);color:var(--yellow);pointer-events:none;">Valid</button>`:''}
             <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
           </div></td>`:''}
         </tr>`;
-      }).join(''):`<tr><td colspan="10" style="color:var(--ink3);">${selDate?'No shifts on this date.':'No shifts yet.'}</td></tr>`}
+      }).join(''):`<tr><td colspan="10" style="color:var(--ink3);">No shifts${selDate?' on '+selLabel:''}.</td></tr>`}
       </tbody>
     </table>
   </div>`;
@@ -952,8 +979,13 @@ function prevShiftMo(){} function nextShiftMo(){}
 function rAdmin(){
   if(!U.isAdmin){return`<div class="lockgate"><div style="font-size:2rem;">🔐</div><h2>Admin Access</h2><p>Owner only. Enter the admin password.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><div id="adm-err" style="color:var(--red);font-size:.78rem;display:none;">Incorrect password. Default is Aekei14! — if changed, check your saved settings.</div><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;}
   const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
-  return`<div style="max-width:700px;">
-    <h1 style="font-weight:800;font-size:1.25rem;margin-bottom:16px;">Admin Settings</h1>
+  const admTab=U.admTab||'receipt';
+  return`<div style="max-width:720px;">
+    <h1 style="font-weight:800;font-size:1.25rem;margin-bottom:14px;">Admin Settings</h1>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2px solid var(--border);padding-bottom:10px;">
+      ${[['receipt','🧾 Receipt & Chit'],['shifts','📅 Shift Schedule'],['rates','💰 Rates & Salary']].map(([k,l])=>`<button class="btn ${admTab===k?'btn-blue':'btn-out'}" onclick="U.admTab='${k}';ra();">${l}</button>`).join('')}
+    </div>
+    ${admTab==='receipt'?`
 
     <div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:12px;">Receipt &amp; Chit Designer</div>
@@ -999,7 +1031,8 @@ function rAdmin(){
       </div>
     </div>
 
-    <div class="card" style="padding:16px;margin-bottom:14px;">
+    `:''}
+    ${admTab==='shifts'?`<div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:10px;">Shift Schedules</div>
       <div style="font-size:.76rem;color:var(--ink2);margin-bottom:10px;">Set expected time-in per shift so the system can detect late arrivals.</div>
       ${(S.settings.shiftDefs||[]).map((sh,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 28px;gap:8px;align-items:end;margin-bottom:8px;">
@@ -1021,7 +1054,8 @@ function rAdmin(){
       </div>
     </div>
 
-    <div class="card" style="padding:16px;margin-bottom:14px;">
+    `:''}
+    ${admTab==='rates'?`<div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:4px;">Rates by Role</div>
       <div style="font-size:.74rem;color:var(--ink2);margin-bottom:12px;">Set the default rates per role. These apply to all staff based on their work type at time-in.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
@@ -1054,7 +1088,8 @@ function rAdmin(){
       }).join(''):'<div style="color:var(--ink3);font-size:.82rem;">No staff employees yet.</div>'}
     </div>
 
-    <div style="display:flex;gap:9px;">
+    `:''}
+    <div style="display:flex;gap:9px;margin-top:14px;">
       <button class="btn btn-blue" onclick="saveAdm()">Save All Settings</button>
       <button class="btn btn-out" onclick="U.isAdmin=false;ra();">Lock Admin</button>
     </div>
