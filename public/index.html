@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cafe Yoto">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#3B6FF0">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>Cafe Yoto</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -273,6 +280,10 @@ let U={
   shiftCalYear:null,
   shiftCalMo:undefined,
   admTab:'receipt',
+  adminShiftDate:undefined,
+  salaryPreset:'all',
+  salaryStart:'',
+  salaryEnd:'',
   clockWorkType:'',
   backendDown:false
 };
@@ -859,12 +870,23 @@ function delExp(id){if(!canM())return;S.expenses=S.expenses.filter(e=>e.id!==id)
 // REPORTS
 function rReports(){
   const rng=dRange(U.repPreset,U.repStart,U.repEnd);
+  // completed (non-refunded) orders in range
   const ords=S.orders.filter(o=>{if(o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
+  // refunded orders in range (to show refund amounts)
+  const refundedOrds=S.orders.filter(o=>{if(!o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
   const gross=ords.reduce((s,o)=>s+(o.sub||o.subtotal||o.total||0),0);
-  const discs=ords.reduce((s,o)=>s+o.discount,0);
+  const discs=ords.reduce((s,o)=>s+(o.discount||0),0);
   const net=ords.reduce((s,o)=>s+o.total,0);
   const cogs=ords.reduce((s,o)=>s+o.items.reduce((ss,i)=>ss+(i.costEach||0)*i.qty,0),0);
-  const refunds=S.orders.filter(o=>o.isRefunded).reduce((s,o)=>s+o.total,0);
+  const grossProfit=net-cogs;
+  const refundAmt=refundedOrds.reduce((s,o)=>s+o.total,0);
+  const cafeExp=S.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=rng.s&&d<=rng.e&&e.type==='Cafe';}).reduce((s,e)=>s+e.amount,0);
+  const persExp=S.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=rng.s&&d<=rng.e&&e.type==='Personal';}).reduce((s,e)=>s+e.amount,0);
+  const staffSalary=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner').reduce((total,e)=>{
+    const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
+    return total+empShifts.reduce((sum,s)=>sum+calcPay(e,s),0)+(e.tips||0);
+  },0);
+  const moneyLeft=net-cogs-discs-refundAmt-cafeExp-staffSalary;
   const itemMap={};ords.forEach(o=>o.items.forEach(i=>{itemMap[i.name]=itemMap[i.name]||{qty:0,rev:0};itemMap[i.name].qty+=i.qty;itemMap[i.name].rev+=i.qty*i.price;}));
   const itemRows=Object.entries(itemMap).sort((a,b)=>b[1].qty-a[1].qty);
   const catMap={};ords.forEach(o=>o.items.forEach(i=>{catMap[i.category]=catMap[i.category]||{qty:0,rev:0};catMap[i.category].qty+=i.qty;catMap[i.category].rev+=i.qty*i.price;}));
@@ -873,28 +895,34 @@ function rReports(){
   const tabs=[['summary','Summary'],['item','By Item'],['category','By Category'],['employee','By Employee']];
   let body='';
   if(U.repTab==='summary'){
-    const totalExp=S.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=rng.s&&d<=rng.e&&e.type==='Cafe';}).reduce((s,e)=>s+e.amount,0);
-    const moneyLeft=net-cogs-discs-totalExp;
-    body=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px;">
+    body=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:6px;">
       <div>
         <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Sales Breakdown</div>
-        <div class="stat-grid" style="margin-bottom:0;">
+        <div class="stat-grid" style="margin-bottom:0;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
           <div class="card sc"><div class="lbl">Gross Sales</div><div class="val">${peso(gross)}</div></div>
           <div class="card sc"><div class="lbl">Discounts</div><div class="val">${peso(discs)}</div></div>
-          <div class="card sc"><div class="lbl">Refunds</div><div class="val">${peso(refunds)}</div></div>
+          <div class="card sc"><div class="lbl">Refunds</div><div class="val" style="color:var(--red);">${peso(refundAmt)}</div></div>
           <div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(net)}</div></div>
-          <div class="card sc"><div class="lbl">Gross Profit</div><div class="val">${peso(net-cogs)}</div></div>
+          <div class="card sc"><div class="lbl">Cost of Goods</div><div class="val">${peso(cogs)}</div></div>
+          <div class="card sc"><div class="lbl">Gross Profit</div><div class="val" style="color:var(--green);">${peso(grossProfit)}</div></div>
           <div class="card sc"><div class="lbl">Orders</div><div class="val">${ords.length}</div></div>
+          <div class="card sc"><div class="lbl">Refunded</div><div class="val">${refundedOrds.length}</div></div>
         </div>
       </div>
       <div>
         <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Money Remaining</div>
-        <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px;font-size:.84rem;">
-          <div style="display:flex;justify-content:space-between;"><span>Net Sales</span><span>${peso(net)}</span></div>
+        <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:7px;font-size:.84rem;">
+          <div style="display:flex;justify-content:space-between;font-weight:600;"><span>Gross Sales</span><span>${peso(gross)}</span></div>
           <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cost of Goods</span><span>${peso(cogs)}</span></div>
           <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Discounts Given</span><span>${peso(discs)}</span></div>
-          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cafe Expenses</span><span>${peso(totalExp)}</span></div>
-          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${moneyLeft>=0?'var(--green)':'var(--red)'};">${peso(moneyLeft)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Refunds Paid Out</span><span>${peso(refundAmt)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cafe Expenses</span><span>${peso(cafeExp)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Staff Salary</span><span>${peso(staffSalary)}</span></div>
+          <div style="border-top:2px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${moneyLeft>=0?'var(--green)':'var(--red)'};">${peso(moneyLeft)}</span></div>
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border);font-size:.72rem;color:var(--ink2);">
+            <div style="display:flex;justify-content:space-between;"><span>Cafe Expenses</span><span>${peso(cafeExp)}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>Personal Expenses</span><span>${peso(persExp)}</span></div>
+          </div>
         </div>
       </div>
     </div>`;
@@ -911,17 +939,29 @@ function setRepPreset(k){U.repPreset=k;if(k==='custom'&&!U.repStart){const t=tod
 function exportXls(){
   const rng=dRange(U.repPreset,U.repStart,U.repEnd);
   const ords=S.orders.filter(o=>{if(o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
-  const net=ords.reduce((s,o)=>s+o.total,0);const gross=ords.reduce((s,o)=>s+(o.sub||o.subtotal||o.total||0),0);const discs=ords.reduce((s,o)=>s+o.discount,0);
+  const refundedOrds=S.orders.filter(o=>{if(!o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
+  const net=ords.reduce((s,o)=>s+o.total,0);
+  const gross=ords.reduce((s,o)=>s+(o.sub||o.subtotal||o.total||0),0);
+  const discs=ords.reduce((s,o)=>s+(o.discount||0),0);
+  const cogs=ords.reduce((s,o)=>s+o.items.reduce((ss,i)=>ss+(i.costEach||0)*i.qty,0),0);
+  const refundAmt=refundedOrds.reduce((s,o)=>s+o.total,0);
+  const cafeExp=S.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=rng.s&&d<=rng.e&&e.type==='Cafe';}).reduce((s,e)=>s+e.amount,0);
   const itemMap={};ords.forEach(o=>o.items.forEach(i=>{itemMap[i.name]=itemMap[i.name]||{qty:0,rev:0};itemMap[i.name].qty+=i.qty;itemMap[i.name].rev+=i.qty*i.price;}));
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Cafe Yoto Sales'],[],['Gross Sales',gross],['Discounts',discs],['Net Sales',net],['Orders',ords.length]]),'Summary');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Cafe Yoto Sales Summary'],[],
+    ['Gross Sales',gross],['Discounts',discs],['Refunds',refundAmt],
+    ['Net Sales',net],['Cost of Goods',cogs],['Gross Profit',net-cogs],
+    ['Cafe Expenses',cafeExp],['Money Left',net-cogs-discs-refundAmt-cafeExp],
+    ['Orders',ords.length],['Refunded Orders',refundedOrds.length]
+  ]),'Summary');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Item','Qty','Revenue'],...Object.entries(itemMap).map(([n,d])=>[n,d.qty,d.rev])]),'By Item');
   XLSX.writeFile(wb,`CafeYoto-${today()}.xlsx`);
 }
 
 // SHIFTS
 function rShifts(){
-  const isAdmin=U.isAdmin;
+  const isAdmin=U.isAdmin&&U.view==='admin_shifts'; // only show admin cols from admin page
   const now=new Date();
   const todayStr2=today();
   // default to today if no date selected
@@ -935,11 +975,10 @@ function rShifts(){
   return`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:12px;">
       <div style="font-size:1.6rem;font-weight:800;">${isToday?'Today':''+selLabel}</div>
-      ${!isToday?'':''}
-      <button class="btn btn-out btn-sm" onclick="U.shiftSelDate=todayStr2||today();ra();" style="${isToday?'background:var(--bluesoft);border-color:var(--blue);color:var(--blue2);':''}">Today</button>
+      <div style="font-size:1rem;font-weight:600;color:var(--ink2);">${selLabel}</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
-      <span style="font-size:.8rem;color:var(--ink2);">${selLabel}</span>
+      ${!isToday?`<button class="btn btn-out btn-sm" onclick="U.shiftSelDate=today();ra();">Today</button>`:''}
       <input type="date" value="${selDate||''}" onchange="U.shiftSelDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;cursor:pointer;">
     </div>
   </div>
@@ -965,8 +1004,6 @@ function rShifts(){
           <td style="font-size:.7rem;color:var(--ink2);max-width:110px;word-break:break-all;">${s.location||'—'}</td>
           <td style="font-size:.7rem;color:var(--ink2);white-space:nowrap;">${s.device||'—'}</td>
           <td><div style="display:flex;gap:3px;flex-wrap:wrap;">
-            ${st==='late'?`<button class="btn btn-red btn-xs" onclick="void(0)" style="pointer-events:none;">Late</button><button class="btn btn-grn btn-xs" onclick="acceptLate('${s.id}')">Accept &amp; Valid</button>`:''}
-            ${st==='valid'?`<button class="btn btn-xs" style="background:var(--yellowsoft);color:var(--yellow);pointer-events:none;">Valid</button>`:''}
             <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
           </div></td>`:''}
         </tr>`;
@@ -976,20 +1013,69 @@ function rShifts(){
   </div>`;
 }
 function prevShiftMo(){} function nextShiftMo(){}
+function rAdminShifts(){
+  const now=new Date();
+  const todayStr2=today();
+  const selDate=U.adminShiftDate!==undefined?U.adminShiftDate:todayStr2;
+  if(U.adminShiftDate===undefined)U.adminShiftDate=todayStr2;
+  const allShifts=selDate?S.shifts.filter(s=>s.timeIn.slice(0,10)===selDate):S.shifts;
+  const myShifts=[...allShifts].sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn));
+  const selLabel=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'All';
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+    <div style="font-size:1.1rem;font-weight:800;">${selDate===todayStr2?'Today':''+selLabel}</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      ${selDate!==todayStr2?`<button class="btn btn-out btn-sm" onclick="U.adminShiftDate=today();ra();">Today</button>`:''}
+      <input type="date" value="${selDate||''}" onchange="U.adminShiftDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="min-width:600px;">
+      <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th><th>Pay</th><th style="max-width:120px;">Location</th><th>Actions</th></tr></thead>
+      <tbody>${myShifts.length?myShifts.map(s=>{
+        const st=shiftStatus(s);
+        const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
+        const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
+        const pay=calcPay(rowEmp,s);
+        const hrsLabel=s.timeOut?(dur===Math.floor(dur)?dur+'hr':(Math.floor(dur)+'.'+(Math.round((dur%1)*10))+'hr')):'—';
+        const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
+        const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
+        const shortLoc=(s.location||'—').split(',').slice(0,2).join(',');
+        const devShort=(s.device||'—').split('·')[0].trim();
+        return`<tr>
+          <td style="font-weight:600;white-space:nowrap;">${rowEmp.name||'—'}</td>
+          <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}" style="white-space:nowrap;font-size:.64rem;">${s.workType||'—'}</span></td>
+          <td style="white-space:nowrap;">${ftm(s.timeIn)}</td>
+          <td style="white-space:nowrap;">${s.timeOut?ftm(s.timeOut):'—'}</td>
+          <td style="white-space:nowrap;">${hrsLabel}</td>
+          <td><span class="pill ${stPill}" style="white-space:nowrap;">${stLabel}</span></td>
+          <td style="white-space:nowrap;">${s.timeOut?peso(pay):'—'}</td>
+          <td style="font-size:.68rem;color:var(--ink2);max-width:120px;" title="${s.location||'—'}">${shortLoc}<br><span style="color:var(--ink3);">${devShort}</span></td>
+          <td><div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center;">
+            ${st==='late'?`<button class="btn btn-red btn-xs" style="pointer-events:none;cursor:default;">Late</button><button class="btn btn-grn btn-xs" onclick="acceptLate('${s.id}')">✓ Valid</button>`:''}
+            ${st==='valid'?`<button class="btn btn-grn btn-xs" style="pointer-events:none;cursor:default;">✓ Valid</button><button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">✗ Invalid</button>`:''}
+            ${st!=='late'&&st!=='valid'?`<button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">Mark Late</button>`:''}
+            <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
+          </div></td>
+        </tr>`;
+      }).join(''):`<tr><td colspan="9" style="color:var(--ink3);">No shifts${selDate?' on '+selLabel:''}.</td></tr>`}
+      </tbody>
+    </table>
+  </div>`;
+}
 function rAdmin(){
   if(!U.isAdmin){return`<div class="lockgate"><div style="font-size:2rem;">🔐</div><h2>Admin Access</h2><p>Owner only. Enter the admin password.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><div id="adm-err" style="color:var(--red);font-size:.78rem;display:none;">Incorrect password. Default is Aekei14! — if changed, check your saved settings.</div><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;}
   const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
   const admTab=U.admTab||'receipt';
-  return`<div style="max-width:720px;">
+  return`<div style="width:100%;">
     <h1 style="font-weight:800;font-size:1.25rem;margin-bottom:14px;">Admin Settings</h1>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2px solid var(--border);padding-bottom:10px;">
-      ${[['receipt','🧾 Receipt & Chit'],['shifts','📅 Shift Schedule'],['rates','💰 Rates & Salary']].map(([k,l])=>`<button class="btn ${admTab===k?'btn-blue':'btn-out'}" onclick="U.admTab='${k}';ra();">${l}</button>`).join('')}
+      ${[['receipt','🧾 Receipt & Chit'],['shifts_tab','📅 Shift Schedule'],['rates','💰 Rates & Salary'],['shifts_log','👥 Shifts Log']].map(([k,l])=>`<button class="btn ${admTab===k?'btn-blue':'btn-out'}" onclick="U.admTab='${k}';ra();">${l}</button>`).join('')}
     </div>
     ${admTab==='receipt'?`
 
     <div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:12px;">Receipt &amp; Chit Designer</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
         <div style="display:flex;flex-direction:column;gap:10px;">
           <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" oninput="S.settings.rcptHeader=this.value;updRcptPrev();"></div>
           <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" oninput="S.settings.rcptFooter=this.value;updRcptPrev();"></div>
@@ -1032,7 +1118,7 @@ function rAdmin(){
     </div>
 
     `:''}
-    ${admTab==='shifts'?`<div class="card" style="padding:16px;margin-bottom:14px;">
+    ${admTab==='shifts_tab'?`<div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:10px;">Shift Schedules</div>
       <div style="font-size:.76rem;color:var(--ink2);margin-bottom:10px;">Set expected time-in per shift so the system can detect late arrivals.</div>
       ${(S.settings.shiftDefs||[]).map((sh,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 28px;gap:8px;align-items:end;margin-bottom:8px;">
@@ -1055,10 +1141,11 @@ function rAdmin(){
     </div>
 
     `:''}
+    ${admTab==='shifts_log'?`<div>${rAdminShifts()}</div>`:''}
     ${admTab==='rates'?`<div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:4px;">Rates by Role</div>
       <div style="font-size:.74rem;color:var(--ink2);margin-bottom:12px;">Set the default rates per role. These apply to all staff based on their work type at time-in.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px;">
         <div style="background:var(--bg);border-radius:10px;padding:12px;">
           <div style="font-weight:700;margin-bottom:8px;">☕ Barista</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1074,26 +1161,62 @@ function rAdmin(){
           </div>
         </div>
       </div>
-      <div style="font-weight:700;margin-bottom:10px;padding-top:10px;border-top:1px solid var(--border);">Staff Salary Summary</div>
-      ${staffEmps.length?staffEmps.map(e=>{
-        const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut);
-        const totalPay=empShifts.reduce((sum,s)=>sum+calcPay(e,s),0);
-        const totalHrs=empShifts.reduce((sum,s)=>sum+(new Date(s.timeOut)-new Date(s.timeIn))/3600000,0);
-        return`<div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:10px;background:var(--bg);padding:10px 12px;border-radius:10px;">
-          <div><div style="font-weight:700;font-size:.88rem;">${e.name}</div><div style="font-size:.72rem;color:var(--ink2);margin-top:2px;">${totalHrs.toFixed(1)}h worked · ${empShifts.length} shift(s)</div></div>
-          <div class="field"><label>Total Earned</label><div style="font-weight:700;font-size:.95rem;padding-top:4px;">${peso(totalPay)}</div></div>
-          <div class="field"><label>Tips (₱)</label><input type="number" value="${e.tips||0}" oninput="S.employees[S.employees.findIndex(x=>x.id==='${e.id}')].tips=parseFloat(this.value)||0;"></div>
-          <div></div><div></div>
-        </div>`;
-      }).join(''):'<div style="color:var(--ink3);font-size:.82rem;">No staff employees yet.</div>'}
+      <div style="font-weight:700;margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border);">Staff Salary Summary</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <div style="font-size:.76rem;color:var(--ink2);">Period:</div>
+        ${[['all','All time'],['month','This month'],['week','This week'],['today','Today'],['custom','Custom']].map(([k,l])=>`<button class="btn btn-sm ${(U.salaryPreset||'all')===k?'btn-blue':'btn-out'}" onclick="U.salaryPreset='${k}';ra();">${l}</button>`).join('')}
+        ${(U.salaryPreset||'all')==='custom'?`<div style="display:flex;align-items:center;gap:5px;margin-top:4px;">
+          <input type="date" value="${U.salaryStart||''}" onchange="U.salaryStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;">
+          <span style="font-size:.8rem;">to</span>
+          <input type="date" value="${U.salaryEnd||''}" onchange="U.salaryEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;">
+        </div>`:''}
+      </div>
+      ${staffEmps.length?`<div style="overflow-x:auto;"><table>
+        <thead><tr><th>Name</th><th>Hrs</th><th>Earned</th><th>Tips (₱)</th><th>Penalty</th><th style="color:var(--blue2);">Total Earned</th></tr></thead>
+        <tbody>${staffEmps.map((e,ei)=>{
+          const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
+          const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
+          const baseEarned=empShifts.reduce((sum,s)=>{
+            const st=shiftStatus(s);const dur=(new Date(s.timeOut)-new Date(s.timeIn))/3600000;
+            const fullH=Math.floor(dur);const rem=dur-fullH;
+            const wt=(s.workType||'barista').toLowerCase();const isB=wt==='barista';
+            const hr=isB?(S.settings.baristaRate||64):(S.settings.catRate||57);
+            const ex=isB?(S.settings.baristaHalf||35):(S.settings.catHalf||30);
+            return sum+fullH*hr+(rem>=0.4?ex:0);
+          },0);
+          const totalPenalty=empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
+          const tips=e.tips||0;
+          const total=baseEarned-totalPenalty+tips;
+          const totalHrs=empShifts.reduce((sum,s)=>sum+(new Date(s.timeOut)-new Date(s.timeIn))/3600000,0);
+          const empIdx=S.employees.findIndex(x=>x.id===e.id);
+          return`<tr>
+            <td style="font-weight:700;">${e.name}</td>
+            <td>${totalHrs.toFixed(1)}h</td>
+            <td>${peso(baseEarned)}</td>
+            <td><input type="number" value="${tips}" oninput="S.employees[${empIdx}].tips=parseFloat(this.value)||0;ra();" style="width:80px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"></td>
+            <td style="color:var(--red);">-${peso(totalPenalty)}</td>
+            <td style="font-weight:800;color:var(--blue2);">${peso(total)}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table></div>`:'<div style="color:var(--ink3);font-size:.82rem;">No staff employees yet.</div>'}
     </div>
 
     `:''}
     <div style="display:flex;gap:9px;margin-top:14px;">
       <button class="btn btn-blue" onclick="saveAdm()">Save All Settings</button>
       <button class="btn btn-out" onclick="U.isAdmin=false;ra();">Lock Admin</button>
+      <button class="btn btn-red" onclick="confirmReset()">🗑 Reset Data</button>
     </div>
   </div>`;
+}
+function acceptLate(shiftId){
+  const s=S.shifts.find(x=>x.id===shiftId);if(!s)return;
+  s.lateExcused=true;saveCore();ra();toast('Marked as Valid — penalty removed.');
+}
+function markLate(shiftId){
+  const s=S.shifts.find(x=>x.id===shiftId);if(!s)return;
+  s.lateExcused=false;saveCore();ra();toast('Marked as Late — penalty applied.');
 }
 async function checkAdmPw(){
   const el=document.getElementById('adm-pw');
@@ -1122,6 +1245,32 @@ function updChitPrev(){
   const el=document.getElementById('chit-prev');if(!el)return;
   el.style.width=(S.settings.chitWidth||200)+'px';
   const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
+}
+function confirmReset(){
+  if(!U.isAdmin)return;
+  const confirmed=confirm(
+    'This will permanently delete:\n\n' +
+    '• All shift/time-in logs\n' +
+    '• All orders and receipts\n' +
+    '• All expenses\n\n' +
+    'Your employees, menu items, ingredients, and settings will be kept.\n\n' +
+    'Type RESET in the next prompt to confirm.'
+  );
+  if(!confirmed)return;
+  const code=prompt('Type RESET to confirm (case sensitive):');
+  if(code!=='RESET'){toast('Reset cancelled — text did not match.');return;}
+  resetData();
+}
+async function resetData(){
+  S.shifts=[];
+  S.orders=[];
+  S.expenses=[];
+  S.settings.orderCounter=0;
+  S.settings.lastOrderDate='';
+  await saveCore();
+  await saveOrders();
+  toast('Data reset. Shifts, orders and expenses cleared.');
+  ra();
 }
 function saveAdm(){saveCore();toast('Settings saved.');}
 
@@ -1362,6 +1511,14 @@ function printBoth(oid){btPrint('chit',oid);setTimeout(()=>btPrint('receipt',oid
 
 // INIT
 (async()=>{await loadData();ra();})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js').then(r=>{
+      console.log('SW registered');
+    }).catch(e=>console.log('SW failed:',e));
+  });
+}
 </script>
 </body>
 </html>
