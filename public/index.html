@@ -541,28 +541,30 @@ async function timeIn(){
   const deviceType=/iPhone|iPad/.test(ua)?'iPhone/iPad':/Android/.test(ua)?'Android':'Desktop';
   const browser=ua.match(/(Chrome|Firefox|Safari|Edge)\/[\d.]+/)?.[0]||'Browser';
   const device=`${deviceType} · ${browser}`;
-  let loc='';
-  try{
-    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000,enableHighAccuracy:true}));
-    const{latitude:lat,longitude:lng}=pos.coords;
-    try{
-      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
-      const d=await r.json();
-      loc=d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    }catch{loc=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;}
-  }catch(err){
-    if(err.code===1){
-      toast('⚠ Location is required to time in. Tap Allow when your browser asks for location, then try again.');
-      return;
-    }
-    loc='Location unavailable';
-  }
-  if(!loc)return;
-  const newShift={id:uid(),employeeId:U.activeEmpId,workType:U.clockWorkType,timeIn:new Date().toISOString(),timeOut:null,lateExcused:false,tips:0,location:loc,device};
+  // Save immediately with pending location — don't wait for GPS
+  const newShift={id:uid(),employeeId:U.activeEmpId,workType:U.clockWorkType,timeIn:new Date().toISOString(),timeOut:null,lateExcused:false,tips:0,location:'Getting location…',device};
   S.shifts.push(newShift);
   U.viewOnly=false;U.clockWorkType='';
   await saveCore();
   ra();toast('Timed in!');
+  // Get location in background and update
+  try{
+    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000,enableHighAccuracy:true}));
+    const{latitude:lat,longitude:lng}=pos.coords;
+    let loc=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+      const d=await r.json();
+      loc=d.display_name||loc;
+    }catch{}
+    newShift.location=loc;
+    await saveCore();
+    ra();
+  }catch(err){
+    newShift.location=err.code===1?'Location denied':'Location unavailable';
+    await saveCore();
+    ra();
+  }
 }
 async function timeOut(){
   const s=actShift(U.activeEmpId);if(!s)return;
