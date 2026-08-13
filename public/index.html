@@ -1256,10 +1256,11 @@ function rAdmin(){
     </div>
 
     `:''}
-    <div style="display:flex;gap:9px;margin-top:14px;">
+    <div style="display:flex;gap:9px;margin-top:14px;flex-wrap:wrap;">
       <button class="btn btn-blue" onclick="saveAdm()">Save All Settings</button>
       <button class="btn btn-out" onclick="U.isAdmin=false;ra();">Lock Admin</button>
-      <button class="btn btn-red" onclick="confirmReset()">🗑 Reset Data</button>
+      <button class="btn btn-red" onclick="confirmReset()">🗑 Reset Orders & Shifts</button>
+      <button class="btn btn-red" onclick="confirmMenuReset()">🍵 Reset Menu to New</button>
     </div>
   </div>`;
 }
@@ -1298,6 +1299,14 @@ function updChitPrev(){
   const el=document.getElementById('chit-prev');if(!el)return;
   el.style.width=(S.settings.chitWidth||200)+'px';
   const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
+}
+function confirmMenuReset(){
+  if(!U.isAdmin)return;
+  if(!confirm('This will replace your current menu and categories with the new Cafe Yoto menu.\n\nRecipes you added will be lost. Employees and settings are kept.\n\nContinue?'))return;
+  S.products=defProds();
+  S.categories=['Iced Coffee','Iced Drinks','Hot Drinks','Coffee Frappe','Shakes','Yogurt Series','Cookies','Add-ons'];
+  U.posCategory=null;
+  saveCore();ra();toast('Menu updated to new Cafe Yoto menu!');
 }
 function confirmReset(){
   if(!U.isAdmin)return;
