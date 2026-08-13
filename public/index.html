@@ -261,9 +261,10 @@ let S={
     chitHeader:'CAFE YOTO',
     adminHash:'',
     latePenalty:30,
+    stockDetect:true,
     discountRate:0.20
   },
-  categories:['Coffee','Non-Coffee','Pastries','Add-ons']
+  categories:['Iced Coffee','Iced Drinks','Hot Drinks','Coffee Frappe','Shakes','Yogurt Series','Cookies','Add-ons']
 };
 let U={
   view:'clock',activeEmpId:null,viewOnly:false,isAdmin:false,
@@ -310,7 +311,7 @@ function pStatus(p){
   for(const r of p.recipe){const i=ingBy(r.ingredientId);if(!i)continue;if(isLow(i))return'low';}
   return'ok';
 }
-const pAvail=p=>pStatus(p)!=='so';
+const pAvail=p=>!S.settings.stockDetect||pStatus(p)!=='so';
 
 async function hashStr(s){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
@@ -373,18 +374,61 @@ function defIngs(){return[
 ];}
 const sz=(l,p)=>({id:uid(),label:l,price:p});
 function defProds(){return[
-  {id:'p-am',name:'Americano',category:'Coffee',sizes:[sz('Regular',89)],recipe:[{ingredientId:'ing-beans',qty:18},{ingredientId:'ing-cups',qty:1}]},
-  {id:'p-la',name:'Latte',category:'Coffee',sizes:[sz('Regular',103)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-foam',qty:10},{ingredientId:'ing-cups',qty:1}]},
-  {id:'p-bi',name:'Biscoff',category:'Non-Coffee',sizes:[sz('Regular',131)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cd',qty:10},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-bc',name:'Biscoff Coffee',category:'Coffee',sizes:[sz('Regular',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cd',qty:10},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-sp',name:'Spanish',category:'Coffee',sizes:[sz('Regular',117),sz('Large',152)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cd',qty:5},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-mo',name:'Mocha',category:'Coffee',sizes:[sz('Regular',120)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-cond',qty:10},{ingredientId:'ing-foam',qty:30},{ingredientId:'ing-cd',qty:10},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-ma',name:'Matcha',category:'Non-Coffee',sizes:[sz('Regular',115)],recipe:[{ingredientId:'ing-milk',qty:80},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-matcha',qty:45},{ingredientId:'ing-oat',qty:115},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-dm',name:'Dirty Matcha',category:'Coffee',sizes:[sz('Regular',134)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:80},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-matcha',qty:45},{ingredientId:'ing-oat',qty:115},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-sa',name:'Samidori',category:'Non-Coffee',sizes:[sz('Regular',254)],recipe:[{ingredientId:'ing-sami',qty:4},{ingredientId:'ing-ice',qty:6},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-oat',qty:120},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-es',name:'Extra Shot',category:'Add-ons',sizes:[sz('',25)],recipe:[{ingredientId:'ing-beans',qty:9}]},
-  {id:'p-om',name:'Oat Milk',category:'Add-ons',sizes:[sz('',30)],recipe:[]},
-  {id:'p-wc',name:'Whipped Cream',category:'Add-ons',sizes:[sz('',20)],recipe:[]}
+  // ICED COFFEE
+  {id:'p-am',name:'Americano',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:80},{id:uid(),label:'22oz',price:100}],recipe:[]},
+  {id:'p-yl',name:'Yoto Latte',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:99},{id:uid(),label:'22oz',price:119}],recipe:[]},
+  {id:'p-ld',name:'Lavender Deluxe',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-ss',name:'Sweet Spanish',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-sss',name:'Salty Sweet Spanish',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:140}],recipe:[]},
+  {id:'p-cm',name:'Caramel Macchiato',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-wm',name:'White Mocha',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:125},{id:uid(),label:'22oz',price:145}],recipe:[]},
+  {id:'p-dm',name:'Dark Mocha',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:150},{id:uid(),label:'22oz',price:170}],recipe:[]},
+  {id:'p-oc',name:'Oreo Coffee',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:145}],recipe:[]},
+  {id:'p-nc',name:'Nutella Coffee',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:150},{id:uid(),label:'22oz',price:170}],recipe:[]},
+  {id:'p-bc',name:'Biscoff Coffee',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:160},{id:uid(),label:'22oz',price:180}],recipe:[]},
+  // ICED DRINKS
+  {id:'p-hjl',name:'Hojicha Latte',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:150}],recipe:[]},
+  {id:'p-mld',name:'Meloaty Dew',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:90},{id:uid(),label:'16oz',price:110},{id:uid(),label:'22oz',price:120}],recipe:[]},
+  {id:'p-ro',name:'Roasted Oat',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:99},{id:uid(),label:'16oz',price:120},{id:uid(),label:'22oz',price:130}],recipe:[]},
+  {id:'p-bu',name:'Blueberry Ube',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:100},{id:uid(),label:'16oz',price:120},{id:uid(),label:'22oz',price:135}],recipe:[]},
+  {id:'p-mo',name:'Milky Oreo',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:110},{id:uid(),label:'16oz',price:120},{id:uid(),label:'22oz',price:130}],recipe:[]},
+  {id:'p-sn',name:'Sweet Nutella',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:110},{id:uid(),label:'16oz',price:140},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-mb',name:'Milky Biscoff',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:115},{id:uid(),label:'16oz',price:150},{id:uid(),label:'22oz',price:160}],recipe:[]},
+  // HOT DRINKS
+  {id:'p-ha',name:'Hot Americano',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:80}],recipe:[]},
+  {id:'p-hcl',name:'Hot Cafe Latte',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:99}],recipe:[]},
+  {id:'p-hml',name:'Hot Matcha Latte',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:120}],recipe:[]},
+  {id:'p-sd',name:'Spanish Deluxe',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:120}],recipe:[]},
+  {id:'p-sc',name:'Swiss Choco',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:100}],recipe:[]},
+  // COFFEE FRAPPE
+  {id:'p-djf',name:'Dark Java Frappe',category:'Coffee Frappe',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-scf',name:'Salted Caramel Frappe',category:'Coffee Frappe',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-baf',name:'Buttery Almond Frappe',category:'Coffee Frappe',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-wmf',name:'White Mocha Frappe',category:'Coffee Frappe',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  // SHAKES
+  {id:'p-cs',name:'Creamy Strawberry',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-cc',name:'Cookies & Cream',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-sch',name:'Salted Cheesecake',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-crb',name:'Creme Biscoff',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-dhc',name:'Dark Hershey Chocolate',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  // YOGURT SERIES
+  {id:'p-sty',name:'Strawberry Yogurt',category:'Yogurt Series',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-hdy',name:'Honeydew Yogurt',category:'Yogurt Series',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-bly',name:'Blueberry Yogurt',category:'Yogurt Series',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  // COOKIES
+  {id:'p-smr',name:'Smores Cookie',category:'Cookies',sizes:[{id:uid(),label:'Regular',price:0}],recipe:[]},
+  {id:'p-chc',name:'Choco Chip Cookie',category:'Cookies',sizes:[{id:uid(),label:'Regular',price:0}],recipe:[]},
+  {id:'p-bck',name:'Biscoff Cookie',category:'Cookies',sizes:[{id:uid(),label:'Regular',price:0}],recipe:[]},
+  // ADD-ONS
+  {id:'p-esp',name:'Espresso',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]},
+  {id:'p-oat',name:'Oatside',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]},
+  {id:'p-fcm',name:'Full Cream Milk',category:'Add-ons',sizes:[{id:uid(),label:'',price:15}],recipe:[]},
+  {id:'p-cfm',name:'Creamy Foam',category:'Add-ons',sizes:[{id:uid(),label:'',price:15}],recipe:[]},
+  {id:'p-xsy',name:'Extra Syrup',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]},
+  {id:'p-musc',name:'Muscovado',category:'Add-ons',sizes:[{id:uid(),label:'',price:10}],recipe:[]},
+  {id:'p-hon',name:'Honey',category:'Add-ons',sizes:[{id:uid(),label:'',price:15}],recipe:[]},
+  {id:'p-bag',name:'Blue Agave',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]},
+  {id:'p-van',name:'Vanilla',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]}
 ];}
 
 function migrateP(p){
@@ -591,7 +635,7 @@ function rPOS(){
     <div class="cat-list">
       ${S.categories.map(c=>{
         const items=S.products.filter(p=>p.category===c);
-        const icons={'Coffee':'☕','Non-Coffee':'🧋','Pastries':'🥐','Add-ons':'✨'};
+        const icons={'Iced Coffee':'☕','Iced Drinks':'🧋','Hot Drinks':'🔥','Coffee Frappe':'🧊','Shakes':'🥤','Yogurt Series':'🍓','Cookies':'🍪','Add-ons':'✨','Pastries':'🥐'};
         return`<button class="cat-card" onclick="U.posCategory='${c}';ra();">
           <div class="cat-icon">${icons[c]||'🍵'}</div>
           <div style="flex:1;text-align:left;"><div class="cat-name">${c}</div><div class="cat-count">${items.length} items</div></div>
@@ -772,9 +816,16 @@ function rInventory(){
     ${manage?`<button class="btn btn-blue" onclick="openModal('${U.invTab==='ingredients'?'addIng':'addProd'}')">${IC.pls} ${U.invTab==='ingredients'?'Add Ingredient':'Add Item'}</button>`:''}
   </div>
   ${low.length||so.length?`<div style="background:var(--redsoft);color:var(--red);padding:9px 13px;border-radius:10px;font-size:.8rem;font-weight:700;margin-bottom:12px;">⚠ ${so.map(i=>i.name+' (Sold Out)').concat(low.map(i=>i.name+' (Low)')).join(' · ')}</div>`:''}
-  <div style="display:flex;gap:7px;margin-bottom:11px;">
+  <div style="display:flex;gap:7px;margin-bottom:11px;flex-wrap:wrap;align-items:center;">
     <button class="dp ${U.invTab==='menu'?'act':''}" onclick="U.invTab='menu';ra();">Menu Items</button>
     <button class="dp ${U.invTab==='ingredients'?'act':''}" onclick="U.invTab='ingredients';ra();">Ingredients</button>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:7px;">
+      <span style="font-size:.74rem;font-weight:700;color:var(--ink2);">Stock Detection</span>
+      <button onclick="S.settings.stockDetect=!S.settings.stockDetect;saveCore();ra();" style="width:42px;height:24px;border-radius:999px;border:none;background:${S.settings.stockDetect!==false?'var(--green)':'var(--border)'};position:relative;transition:background .2s;cursor:pointer;">
+        <span style="position:absolute;top:3px;left:${S.settings.stockDetect!==false?'21':'3'}px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+      </button>
+      <span style="font-size:.72rem;color:${S.settings.stockDetect!==false?'var(--green)':'var(--ink3)'};">${S.settings.stockDetect!==false?'On':'Off'}</span>
+    </div>
     ${U.invTab==='ingredients'?`<button class="dp ${U.invFilter==='warn'?'act':''}" onclick="U.invFilter=U.invFilter==='warn'?'all':'warn';ra();">⚠ Warning ${low.length+so.length?`<span style="background:var(--red);color:#fff;border-radius:999px;padding:1px 6px;font-size:.62rem;margin-left:3px;">${low.length+so.length}</span>`:''}</button>`:''}
   </div>
   ${U.invTab==='menu'?rMenuTab(manage):rIngTab(manage)}`;
