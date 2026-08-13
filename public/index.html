@@ -573,7 +573,7 @@ function rClock(){
         <span style="font-size:.7rem;font-weight:700;color:var(--ink2);">TEAM</span>
         <button class="btn btn-out btn-sm" onclick="openModal('addEmp')">${IC.pls} Add</button>
       </div>
-      ${S.employees.map(e=>{const s=actShift(e.id);return`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.81rem;"><span>${e.name}</span><div style="display:flex;align-items:center;gap:6px;">${s?`<span style="font-size:.7rem;color:var(--ink2);">${s.workType||''}</span>`:''}<span class="pill ${s?'pill-ot':''}" style="${s?'':'background:var(--surf2);color:var(--ink3);'}">${s?'On shift':'Off'}</span></div></div>`;}).join('')||'<div style="color:var(--ink3);font-size:.8rem;">No employees yet.</div>'}
+      ${S.employees.map(e=>{const s=actShift(e.id);const isOwner=(e.role||'').toLowerCase()==='owner';return`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.81rem;align-items:center;"><span style="display:flex;align-items:center;gap:6px;">${e.name}${isOwner?`<span style="background:var(--blue);color:#fff;font-size:.6rem;font-weight:800;padding:1px 6px;border-radius:999px;">OWNER</span>`:''}</span><div style="display:flex;align-items:center;gap:6px;">${s?`<span style="font-size:.7rem;color:var(--ink2);">${s.workType||''}</span>`:''}<span class="pill ${s?'pill-ot':''}" style="${s?'':'background:var(--surf2);color:var(--ink3);'}">${s?'On shift':'Off'}</span></div></div>`;}).join('')||'<div style="color:var(--ink3);font-size:.8rem;">No employees yet.</div>'}
     </div>
   </div></div>`;
 }
@@ -1261,6 +1261,7 @@ function rAdmin(){
       <button class="btn btn-out" onclick="U.isAdmin=false;ra();">Lock Admin</button>
       <button class="btn btn-red" onclick="confirmReset()">🗑 Reset Orders & Shifts</button>
       <button class="btn btn-red" onclick="confirmMenuReset()">🍵 Reset Menu to New</button>
+      <button class="btn btn-out" onclick="fixEmployees()">👥 Fix Employees</button>
     </div>
   </div>`;
 }
@@ -1299,6 +1300,23 @@ function updChitPrev(){
   const el=document.getElementById('chit-prev');if(!el)return;
   el.style.width=(S.settings.chitWidth||200)+'px';
   const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
+}
+function fixEmployees(){
+  if(!U.isAdmin)return;
+  const defaults=defEmployees();
+  let added=0;
+  // Update existing Owner employee role and rename if needed
+  S.employees.forEach(e=>{
+    if(e.name.toLowerCase()==='owner'||e.name.toLowerCase()==='keisha'){
+      e.role='owner';e.name='Keisha';added++;
+    }
+  });
+  // Add missing default employees
+  defaults.forEach(def=>{
+    const exists=S.employees.find(e=>e.name.toLowerCase()===def.name.toLowerCase());
+    if(!exists){S.employees.push({...def,id:uid()});added++;}
+  });
+  saveCore();ra();toast('Employees updated — Owner set to Keisha, staff added.');
 }
 function confirmMenuReset(){
   if(!U.isAdmin)return;
@@ -1469,7 +1487,7 @@ function mwrap(title,body,foot){
 
 // MODAL ACTIONS
 function defEmployees(){return[
-  {id:'emp-owner',name:'Owner',role:'owner',hourlyRate:0,catRate:0,extraHalfRate:0,catExtraRate:0,tips:0},
+  {id:'emp-owner',name:'Keisha',role:'owner',hourlyRate:0,catRate:0,extraHalfRate:0,catExtraRate:0,tips:0},
   {id:'emp-anicia',name:'Anicia',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0},
   {id:'emp-nass',name:'Nass',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0},
   {id:'emp-inno',name:'Inno',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0}
