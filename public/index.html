@@ -442,7 +442,7 @@ async function loadData(){
     const c=await window.storage.get('yoto-core');
     if(c&&c.value){
       const d=JSON.parse(c.value);
-      S.employees=d.employees||[];
+      S.employees=d.employees&&d.employees.length?d.employees:defEmployees();
       S.shifts=d.shifts||[];
       S.products=(d.products&&d.products.length?d.products:defProds()).map(migrateP);
       S.ingredients=d.ingredients&&d.ingredients.length?d.ingredients:defIngs();
@@ -450,7 +450,7 @@ async function loadData(){
       S.settings={...S.settings,...d.settings};
       S.categories=d.categories||S.categories;
       if(!S.settings.shiftDefs)S.settings.shiftDefs=[{id:'s1',name:'Morning',start:'10:00',end:'14:00'},{id:'s2',name:'Afternoon',start:'14:00',end:'18:00'}];
-    }else{S.products=defProds();S.ingredients=defIngs();await saveCore();}
+    }else{S.products=defProds();S.ingredients=defIngs();S.employees=defEmployees();await saveCore();}
   }catch(e){S.products=defProds();S.ingredients=defIngs();U.backendDown=true;}
   try{const o=await window.storage.get('yoto-orders');if(o&&o.value)S.orders=JSON.parse(o.value).orders||[];}catch(e){U.backendDown=true;}
   if(!U.posCategory&&S.categories.length)U.posCategory=S.categories[0];
@@ -1468,6 +1468,12 @@ function mwrap(title,body,foot){
 }
 
 // MODAL ACTIONS
+function defEmployees(){return[
+  {id:'emp-owner',name:'Owner',role:'owner',hourlyRate:0,catRate:0,extraHalfRate:0,catExtraRate:0,tips:0},
+  {id:'emp-anicia',name:'Anicia',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0},
+  {id:'emp-nass',name:'Nass',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0},
+  {id:'emp-inno',name:'Inno',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0}
+];}
 function saveEmp(){
   const name=document.getElementById('m-en')?.value.trim();
   if(!name)return;
