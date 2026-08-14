@@ -281,6 +281,7 @@ let U={
   shiftCalYear:null,
   shiftCalMo:undefined,
   admTab:'receipt',
+  editGoal:false,
   adminShiftDate:undefined,
   salaryPreset:'all',
   salaryStart:'',
@@ -324,13 +325,15 @@ function calcPay(emp,shift){
   const ms=new Date(shift.timeOut)-new Date(shift.timeIn);
   const hrs=ms/3600000;
   const fullHrs=Math.floor(hrs);
-  const rem=hrs-fullHrs;
+  const remMs=(ms%(3600000));
+  const remMins=Math.floor(remMs/60000);
   const wt=(shift.workType||'barista').toLowerCase();
   const isBarista=wt==='barista';
   const hrRate=isBarista?(S.settings.baristaRate||64):(S.settings.catRate||57);
-  const extraRate=isBarista?(S.settings.baristaHalf||35):(S.settings.catHalf||30);
-  let pay=fullHrs*hrRate;
-  if(rem>=0.4)pay+=extraRate;
+  // ₱5 per every 5 minutes of overtime (up to 30 mins)
+  const fiveMins=Math.floor(remMins/5);
+  const extraPay=fiveMins*5;
+  let pay=fullHrs*hrRate+extraPay;
   const st=shiftStatus(shift);
   if(st==='late')pay-=(S.settings.latePenalty||30);
   pay+=shift.tips||0;
@@ -340,9 +343,23 @@ function calcPay(emp,shift){
 function shiftStatus(shift){
   if(shift.lateExcused)return'valid';
   const tin=new Date(shift.timeIn);
+  const dow=tin.getDay(); // 0=Sun,1=Mon,...,6=Sat
+  if(dow===0)return'ontime'; // Sunday off, no penalty
+  if(dow===6)return'ontime'; // Saturday optional, no penalty
+  const dayMap={1:'mon',2:'tue',3:'wed',4:'thu',5:'fri'};
+  const dayKey=dayMap[dow];
+  const emp=S.employees.find(e=>e.id===shift.employeeId);
+  // Owner never gets late penalty
+  if(emp&&(emp.role||'').toLowerCase()==='owner')return'ontime';
+  // Get expected start from employee's schedule
+  let expectedStart='10:00';
+  if(emp&&emp.schedule&&emp.schedule[dayKey]&&emp.schedule[dayKey].start){
+    expectedStart=emp.schedule[dayKey].start;
+  } else if(S.settings.shiftDefs&&S.settings.shiftDefs[0]){
+    expectedStart=S.settings.shiftDefs[0].start;
+  }
+  const[eh,em]=expectedStart.split(':').map(Number);
   const hm=tin.getHours()*60+tin.getMinutes();
-  const expected=S.settings.shiftDefs[0]?.start||'10:00';
-  const[eh,em]=expected.split(':').map(Number);
   return hm>(eh*60+em)?'late':'ontime';
 }
 
@@ -469,7 +486,8 @@ function nextNum(){
 const curEmp=()=>S.employees.find(e=>e.id===U.activeEmpId);
 const actShift=id=>S.shifts.find(s=>s.employeeId===id&&!s.timeOut);
 const mode=()=>{if(U.activeEmpId&&actShift(U.activeEmpId))return'active';if(U.viewOnly)return'viewonly';return'locked';};
-const canM=()=>mode()==='active';
+const canM=()=>mode()==='active'||mode()==='viewonly';
+const canSave=()=>mode()==='active';
 
 // NUMPAD
 function openNP(target,cur){U.npShow=true;U.npTarget=target;U.npVal=cur?String(cur):'';ra();}
@@ -691,9 +709,10 @@ function rPOS(){
         <div class="disc-row">
           ${['none','senior','pwd'].map(d=>`<button class="db ${U.discType===d?'act':''}" onclick="U.discType='${d}';ra();">${d==='none'?'None':d.charAt(0).toUpperCase()+d.slice(1)}</button>`).join('')}
         </div>
-        ${U.discType!=='none'?`<div style="display:flex;gap:5px;margin-top:5px;">
-          <input placeholder="ID holder name" value="${U.discName}" oninput="U.discName=this.value;" style="flex:1;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
+        ${U.discType!=='none'?`<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;">
+          <input placeholder="ID holder name" value="${U.discName}" oninput="U.discName=this.value;" style="flex:1;min-width:100px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
           <input placeholder="ID #" value="${U.discId}" oninput="U.discId=this.value;" style="width:80px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
+          <button class="btn btn-out btn-sm" onclick="openCamera('id')" title="Take photo of ID">📷 ID</button>
         </div>`:''}
       </div>
       <div class="sect">
@@ -705,7 +724,10 @@ function rPOS(){
           <button class="tb2 amt" onclick="openNP('tendered',U.tendered)">Enter Amount</button>
         </div>
         ${U.tendered&&U.tendered!==totals.total?`<div style="font-size:.78rem;color:var(--ink2);padding:2px;">Change: <strong>${peso(Math.max(0,U.tendered-totals.total))}</strong></div>`:''}`
-        :`<input placeholder="Reference no." value="${U.payRef}" oninput="U.payRef=this.value;" style="width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);margin-bottom:5px;">`}
+        :`<div style="display:flex;gap:6px;margin-bottom:5px;">
+          <input placeholder="Reference no. or type note" value="${U.payRef}" oninput="U.payRef=this.value;" style="flex:1;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
+          <button class="btn btn-out btn-sm" onclick="openCamera('ref')" title="Take photo of proof">📷</button>
+        </div>`}
       </div>
       <div class="sumbox">
         <div class="sr"><span>Subtotal</span><span>${peso(totals.sub)}</span></div>
@@ -753,10 +775,20 @@ function completeSale(){
     sub:t.sub,discount:t.disc,vat:t.vat,total:t.total,
     status:'preparing',timestamp:new Date().toISOString(),isRefunded:false
   };
+  if(!canSave()){
+    clearCart();ra();
+    toast('View Only — order not recorded.');
+    return;
+  }
   S.orders.push(order);saveCore();saveOrders();
   const oid=order.id;clearCart();ra();
   toast(`#${order.number} sent to queue`);
-  openModal('receipt',oid);
+  if(order.paymentMethod==='Cash'&&order.tendered){
+    const change=Math.max(0,order.tendered-order.total);
+    openModal('changeScreen',{change,total:order.total,tendered:order.tendered,oid:order.id});
+  } else {
+    openModal('receipt',oid);
+  }
 }
 
 // ORDERS
@@ -955,9 +987,7 @@ function rReports(){
           <div class="card sc"><div class="lbl">Gross Sales</div><div class="val">${peso(gross)}</div></div>
           <div class="card sc"><div class="lbl">Discounts</div><div class="val">${peso(discs)}</div></div>
           <div class="card sc"><div class="lbl">Refunds</div><div class="val" style="color:var(--red);">${peso(refundAmt)}</div></div>
-          <div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(net)}</div></div>
           <div class="card sc"><div class="lbl">Cost of Goods</div><div class="val">${peso(cogs)}</div></div>
-          <div class="card sc"><div class="lbl">Gross Profit</div><div class="val" style="color:var(--green);">${peso(grossProfit)}</div></div>
           <div class="card sc"><div class="lbl">Orders</div><div class="val">${ords.length}</div></div>
           <div class="card sc"><div class="lbl">Refunded</div><div class="val">${refundedOrds.length}</div></div>
         </div>
@@ -966,9 +996,9 @@ function rReports(){
         <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Money Remaining</div>
         <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:7px;font-size:.84rem;">
           <div style="display:flex;justify-content:space-between;font-weight:600;"><span>Gross Sales</span><span>${peso(gross)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Refunds</span><span>${peso(refundAmt)}</span></div>
           <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cost of Goods</span><span>${peso(cogs)}</span></div>
           <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Discounts Given</span><span>${peso(discs)}</span></div>
-          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Refunds Paid Out</span><span>${peso(refundAmt)}</span></div>
           <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cafe Expenses</span><span>${peso(cafeExp)}</span></div>
           <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Staff Salary</span><span>${peso(staffSalary)}</span></div>
           <div style="border-top:2px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${moneyLeft>=0?'var(--green)':'var(--red)'};">${peso(moneyLeft)}</span></div>
@@ -983,7 +1013,21 @@ function rReports(){
   else if(U.repTab==='item')body=`<div class="card"><table><thead><tr><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${itemRows.map(([n,d],i)=>`<tr><td>${n}${i===0?'<span class="tflag">TOP</span>':''}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
   else if(U.repTab==='category')body=`<div class="card"><table><thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${Object.entries(catMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
   else if(U.repTab==='employee')body=`<div class="card"><table><thead><tr><th>Employee</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>${Object.entries(empMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.count}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
-  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><h1 style="font-weight:800;font-size:1.25rem;">Reports</h1><button class="btn btn-out" onclick="exportXls()">${IC.dl} Export Excel</button></div>
+  const dailyGoal=S.settings.dailyGoal||0;
+  const avgPrice=S.products.length?S.products.reduce((s,p)=>s+(p.sizes[0]?.price||0),0)/S.products.length:150;
+  const cupsNeeded=dailyGoal>0?Math.ceil(dailyGoal/avgPrice):0;
+  const todayOrdCount=S.orders.filter(o=>!o.isRefunded&&o.timestamp.slice(0,10)===today()).length;
+  const todayGross=S.orders.filter(o=>!o.isRefunded&&o.timestamp.slice(0,10)===today()).reduce((s,o)=>s+(o.sub||o.total),0);
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><h1 style="font-weight:800;font-size:1.25rem;">Reports</h1><button class="btn btn-out" onclick="exportXls()">${IC.dl} Export Excel</button></div>
+  ${dailyGoal>0?`<div style="background:var(--bluesoft);border-radius:12px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div><div style="font-size:.7rem;font-weight:700;color:var(--blue2);text-transform:uppercase;letter-spacing:.04em;">Daily Goal</div>
+    <div style="font-size:1.2rem;font-weight:800;color:var(--blue2);">${peso(dailyGoal)} <span style="font-size:.8rem;font-weight:600;">/ ~${cupsNeeded} cups</span></div></div>
+    <div style="text-align:right;"><div style="font-size:.7rem;font-weight:700;color:var(--blue2);">Today so far</div>
+    <div style="font-size:1.1rem;font-weight:800;color:${todayGross>=dailyGoal?'var(--green)':'var(--blue2)'};">${peso(todayGross)}</div>
+    <div style="font-size:.72rem;color:var(--blue2);">${todayOrdCount} orders · ${todayGross>=dailyGoal?'🎉 Goal reached!':peso(dailyGoal-todayGross)+' to go'}</div></div>
+    <button class="btn btn-out btn-sm" onclick="U.editGoal=true;ra();">Edit Goal</button>
+  </div>`:''}
+  ${U.editGoal?`<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;"><input type="number" id="goal-inp" value="${dailyGoal}" placeholder="Daily sales goal (₱)" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.86rem;background:var(--bg);width:200px;"><button class="btn btn-blue" onclick="S.settings.dailyGoal=parseFloat(document.getElementById('goal-inp').value)||0;U.editGoal=false;saveCore();ra();">Set Goal</button><button class="btn btn-out" onclick="U.editGoal=false;ra();">Cancel</button></div>`:dailyGoal===0?`<button class="btn btn-out btn-sm" style="margin-bottom:10px;" onclick="U.editGoal=true;ra();">+ Set Daily Goal</button>`:''}
   <div class="dfbar">${presets.map(([k,l])=>`<button class="dp ${U.repPreset===k?'act':''}" onclick="setRepPreset('${k}')">${l}</button>`).join('')}${U.repPreset==='custom'?`<div style="display:flex;align-items:center;gap:5px;"><input type="date" value="${U.repStart}" onchange="U.repStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.repEnd}" onchange="U.repEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:''}</div>
   <div class="rtabs">${tabs.map(([k,l])=>`<button class="dp ${U.repTab===k?'act':''}" onclick="U.repTab='${k}';ra();">${l}</button>`).join('')}</div>
   ${body}`;
@@ -1125,7 +1169,17 @@ function rAdmin(){
       ${[['receipt','🧾 Receipt & Chit'],['shifts_tab','📅 Shift Schedule'],['rates','💰 Rates & Salary'],['shifts_log','👥 Shifts Log']].map(([k,l])=>`<button class="btn ${admTab===k?'btn-blue':'btn-out'}" onclick="U.admTab='${k}';ra();">${l}</button>`).join('')}
     </div>
     ${admTab==='receipt'?`
-
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:10px;">Bluetooth Printer</div>
+      <div style="font-size:.76rem;color:var(--ink2);margin-bottom:10px;">Connect once — stays saved for all future prints.</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;padding:10px 13px;background:var(--bg);border-radius:10px;font-size:.82rem;">
+          ${S.settings.savedPrinterName?`<span style="font-weight:700;">🖨 ${S.settings.savedPrinterName}</span><span class="pill pill-ok" style="margin-left:8px;font-size:.65rem;">Connected</span>`:'<span style="color:var(--ink3);">No printer saved</span>'}
+        </div>
+        <button class="btn btn-blue" onclick="connectPrinter()">🔵 Connect Printer</button>
+        ${S.settings.savedPrinterName?`<button class="btn btn-red btn-sm" onclick="S.settings.savedPrinterName='';saveCore();ra();">Remove</button>`:''}
+      </div>
+    </div>
     <div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:12px;">Receipt &amp; Chit Designer</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
@@ -1171,30 +1225,43 @@ function rAdmin(){
     </div>
 
     `:''}
-    ${admTab==='shifts_tab'?`<div class="card" style="padding:16px;margin-bottom:14px;">
-      <div style="font-weight:700;margin-bottom:10px;">Shift Schedules</div>
-      <div style="font-size:.76rem;color:var(--ink2);margin-bottom:10px;">Set expected time-in per shift so the system can detect late arrivals.</div>
-      ${(S.settings.shiftDefs||[]).map((sh,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 28px;gap:8px;align-items:end;margin-bottom:8px;">
-        <div class="field"><label>Shift Name</label><input value="${sh.name}" oninput="S.settings.shiftDefs[${i}].name=this.value;"></div>
-        <div class="field"><label>Start (expected in)</label><input type="time" value="${sh.start}" oninput="S.settings.shiftDefs[${i}].start=this.value;"></div>
-        <div class="field"><label>End</label><input type="time" value="${sh.end}" oninput="S.settings.shiftDefs[${i}].end=this.value;"></div>
-        <button class="btn btn-red btn-xs" style="margin-bottom:2px;" onclick="S.settings.shiftDefs.splice(${i},1);ra();">${IC.xx}</button>
-      </div>`).join('')}
-      <button class="btn btn-out btn-sm" onclick="S.settings.shiftDefs.push({id:uid(),name:'Shift',start:'10:00',end:'14:00'});ra();">${IC.pls} Add Shift</button>
-    </div>
-
+    ${admTab==='shifts_tab'?`
     <div class="card" style="padding:16px;margin-bottom:14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <div style="font-weight:700;">Late Penalty</div>
-      </div>
+      <div style="font-weight:700;margin-bottom:4px;">Late Penalty</div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
         <input type="number" value="${S.settings.latePenalty||30}" oninput="S.settings.latePenalty=parseFloat(this.value)||0;" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.86rem;width:110px;background:var(--bg);">
-        <span style="font-size:.82rem;color:var(--ink2);">₱ deducted per late time-in</span>
+        <span style="font-size:.82rem;color:var(--ink2);">₱ deducted per late time-in (Mon–Fri only)</span>
       </div>
     </div>
-
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:4px;">Employee Schedules <span style="font-size:.72rem;font-weight:500;color:var(--ink2);">Mon–Fri · Sat optional no penalty · Sun off</span></div>
+      <div style="font-size:.76rem;color:var(--ink2);margin-bottom:12px;">Set expected start and end per day per employee.</div>
+      ${S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner').map((e,ei)=>{
+        const empIdx=S.employees.findIndex(x=>x.id===e.id);
+        if(!S.employees[empIdx].schedule)S.employees[empIdx].schedule={};
+        const sched=S.employees[empIdx].schedule;
+        const days=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri']];
+        return`<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+          <div style="font-weight:700;font-size:.88rem;margin-bottom:8px;">${e.name}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;">
+            ${days.map(([d,dl])=>`<div style="background:var(--bg);padding:8px 10px;border-radius:9px;">
+              <div style="font-size:.7rem;font-weight:700;color:var(--ink2);margin-bottom:4px;">${dl}</div>
+              <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+                <input type="time" value="${sched[d]?.start||'10:00'}" onchange="S.employees[${empIdx}].schedule=S.employees[${empIdx}].schedule||{};S.employees[${empIdx}].schedule['${d}']=S.employees[${empIdx}].schedule['${d}']||{};S.employees[${empIdx}].schedule['${d}'].start=this.value;" style="width:85px;padding:4px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:.76rem;">
+                <span style="font-size:.68rem;color:var(--ink3);">–</span>
+                <input type="time" value="${sched[d]?.end||'18:00'}" onchange="S.employees[${empIdx}].schedule=S.employees[${empIdx}].schedule||{};S.employees[${empIdx}].schedule['${d}']=S.employees[${empIdx}].schedule['${d}']||{};S.employees[${empIdx}].schedule['${d}'].end=this.value;" style="width:85px;padding:4px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:.76rem;">
+              </div>
+            </div>`).join('')}
+            <div style="background:var(--surf2);padding:8px 10px;border-radius:9px;display:flex;flex-direction:column;justify-content:center;">
+              <div style="font-size:.7rem;font-weight:700;color:var(--ink3);">Sat — Optional</div>
+              <div style="font-size:.68rem;color:var(--ink3);margin-top:2px;">No penalty if late or absent</div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
     `:''}
-    ${admTab==='shifts_log'?`<div>${rAdminShifts()}</div>`:''}
+        ${admTab==='shifts_log'?`<div>${rAdminShifts()}</div>`:''}
     ${admTab==='rates'?`<div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:4px;">Rates by Role</div>
       <div style="font-size:.74rem;color:var(--ink2);margin-bottom:12px;">Set the default rates per role. These apply to all staff based on their work type at time-in.</div>
@@ -1376,6 +1443,38 @@ function modalRender(){
   if(!U.modal)return'';
   const t=U.modal;const d=U.mdata;
 
+  if(t==='changeScreen'){
+    const {change,total,tendered,oid}=d;
+    return`<div class="ov" style="background:rgba(22,27,38,.85);" onclick="closeModal();openModal('receipt','${oid}')">
+      <div style="text-align:center;padding:40px 30px;max-width:360px;width:100%;">
+        <div style="font-size:1rem;font-weight:700;color:#fff;opacity:.7;margin-bottom:8px;">CHANGE</div>
+        <div style="font-size:5rem;font-weight:900;color:#fff;line-height:1;">${peso(change)}</div>
+        <div style="margin-top:20px;display:flex;gap:20px;justify-content:center;font-size:.9rem;color:rgba(255,255,255,.7);">
+          <div><div>Paid</div><div style="font-size:1.3rem;font-weight:800;color:#fff;">${peso(tendered)}</div></div>
+          <div><div>Total</div><div style="font-size:1.3rem;font-weight:800;color:#fff;">${peso(total)}</div></div>
+        </div>
+        <div style="margin-top:30px;color:rgba(255,255,255,.5);font-size:.82rem;">Tap anywhere to view receipt</div>
+      </div>
+    </div>`;
+  }
+  if(t==='camera'){
+    const purpose=d?.purpose||'ref'; // 'ref' for payment, 'id' for senior/pwd
+    const label=purpose==='id'?'ID Photo':'Payment Reference';
+    return`<div class="ov" onclick="void(0)"><div class="modal" style="max-width:400px;">
+      <div class="mh"><h2>📷 ${label}</h2><button onclick="stopCamera();closeModal();">${IC.xx}</button></div>
+      <div class="mb" style="padding:0;">
+        <video id="cam-preview" autoplay playsinline style="width:100%;border-radius:0;max-height:300px;object-fit:cover;background:#000;"></video>
+        <canvas id="cam-canvas" style="display:none;"></canvas>
+        <div id="cam-captured" style="display:none;"><img id="cam-img" style="width:100%;max-height:300px;object-fit:contain;border-radius:0;"></div>
+      </div>
+      <div class="mf">
+        <button class="btn btn-out" id="cam-retake" style="display:none;" onclick="retakePhoto()">Retake</button>
+        <button class="btn btn-red" onclick="stopCamera();closeModal();">Cancel</button>
+        <button class="btn btn-out" id="cam-capture-btn" onclick="capturePhoto('${purpose}')">📸 Capture</button>
+        <button class="btn btn-blue" id="cam-save-btn" style="display:none;" onclick="savePhoto('${purpose}')">💾 Save Photo</button>
+      </div>
+    </div></div>`;
+  }
   if(t==='addEmp')return mwrap('Add Employee',`<div class="field"><label>Name</label><input id="m-en" placeholder="e.g. Maria Santos" autofocus></div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveEmp()">Add</button>`);
 
   if(t==='pickSize'){
@@ -1579,30 +1678,121 @@ function buildChit(o){
 function buildRcpt(o){
   return`${S.settings.rcptHeader||'CAFE YOTO'}\n${'—'.repeat(28)}\n#${o.number}  ${o.orderType}  ${ftm(o.timestamp)}\n${o.employeeName}\n${'—'.repeat(28)}\n`+o.items.map(i=>`${i.qty}x ${i.name}  ${peso(i.qty*i.price)}${(i.addons||[]).map(a=>'\n  +'+a.name+' '+peso(a.price)).join('')}${i.note?'\n  📝'+i.note:''}`).join('\n')+`\n${'—'.repeat(28)}\nSubtotal: ${peso(o.sub)}\n${o.discount>0?'Discount: -'+peso(o.discount)+'\n':''}VAT: ${peso(o.vat)}\nTOTAL: ${peso(o.total)}\n${'—'.repeat(28)}\n${o.paymentMethod}${o.paymentMethod==='Cash'&&o.tendered?'  Change: '+peso(Math.max(0,o.tendered-o.total)):''}\n${o.payRef?'Ref: '+o.payRef+'\n':''}${o.discName?'ID: '+o.discName+' ('+o.discId+')\n':''}${'—'.repeat(28)}\n${S.settings.rcptFooter||'Thank you!'}\n\n\n`;
 }
+// btPrint moved to bottom
+
+// INIT
+// CAMERA
+let _camStream=null;
+async function openCamera(purpose){
+  openModal('camera',{purpose});
+  await new Promise(r=>setTimeout(r,300));
+  try{
+    _camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    const vid=document.getElementById('cam-preview');
+    if(vid){vid.srcObject=_camStream;}
+  }catch(e){toast('Camera not available: '+e.message);}
+}
+function stopCamera(){if(_camStream){_camStream.getTracks().forEach(t=>t.stop());_camStream=null;}}
+function capturePhoto(purpose){
+  const vid=document.getElementById('cam-preview');
+  const canvas=document.getElementById('cam-canvas');
+  const img=document.getElementById('cam-img');
+  if(!vid||!canvas)return;
+  canvas.width=vid.videoWidth;canvas.height=vid.videoHeight;
+  canvas.getContext('2d').drawImage(vid,0,0);
+  const dataUrl=canvas.toDataURL('image/jpeg',0.9);
+  if(img)img.src=dataUrl;
+  document.getElementById('cam-preview').style.display='none';
+  document.getElementById('cam-captured').style.display='block';
+  document.getElementById('cam-capture-btn').style.display='none';
+  document.getElementById('cam-retake').style.display='inline-flex';
+  document.getElementById('cam-save-btn').style.display='inline-flex';
+  canvas.dataset.dataUrl=dataUrl;
+  canvas.dataset.purpose=purpose;
+}
+function retakePhoto(){
+  document.getElementById('cam-preview').style.display='block';
+  document.getElementById('cam-captured').style.display='none';
+  document.getElementById('cam-capture-btn').style.display='inline-flex';
+  document.getElementById('cam-retake').style.display='none';
+  document.getElementById('cam-save-btn').style.display='none';
+}
+function savePhoto(purpose){
+  const canvas=document.getElementById('cam-canvas');
+  if(!canvas)return;
+  const dataUrl=canvas.dataset.dataUrl;
+  if(!dataUrl)return;
+  // Save to device gallery via download link
+  const link=document.createElement('a');
+  const ts=new Date().toISOString().slice(0,19).replace(/:/g,'-');
+  link.download=`cafeyoto-${purpose}-${ts}.jpg`;
+  link.href=dataUrl;
+  link.click();
+  // Also store as payRef or discPhoto
+  if(purpose==='ref')U.payRef='[Photo saved: '+ts+']';
+  if(purpose==='id')U.discPhoto=dataUrl;
+  stopCamera();closeModal();
+  toast('Photo saved to your device!');ra();
+}
+
+// BLUETOOTH PRINTER
+let _savedPrinterDevice=null;
+async function connectPrinter(){
+  if(!navigator.bluetooth){toast('Bluetooth not supported on this browser.');return;}
+  try{
+    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
+    _savedPrinterDevice=dev;
+    S.settings.savedPrinterName=dev.name||'Bluetooth Printer';
+    saveCore();ra();
+    toast('Printer saved: '+S.settings.savedPrinterName);
+  }catch(e){toast('Printer connection cancelled.');}
+}
 async function btPrint(type,oid){
   const o=S.orders.find(x=>x.id===oid);if(!o)return;
   const texts=type==='chit'?buildChit(o):[buildRcpt(o)];
-  const text=texts.join('\f'); // form feed between chits
+  const text=texts.join('\f');
+  const printViaBluetoothDevice=async(dev)=>{
+    const srv=await dev.gatt.connect();
+    for(const svc of['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']){
+      try{const s=await srv.getPrimaryService(svc);const cs=await s.getCharacteristics();const w=cs.find(c=>c.properties.write||c.properties.writeWithoutResponse);if(w){const enc=new TextEncoder().encode(text);const chunk=512;for(let i=0;i<enc.length;i+=chunk){await w.writeValue(enc.slice(i,i+chunk));}toast('Sent to printer!');return true;}}catch(e){}
+    }
+    return false;
+  };
+  // Try saved printer first
+  if(_savedPrinterDevice){
+    try{const ok=await printViaBluetoothDevice(_savedPrinterDevice);if(ok)return;}catch(e){_savedPrinterDevice=null;}
+  }
   if(!navigator.bluetooth){document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();return;}
   try{
     const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
-    const srv=await dev.gatt.connect();
-    for(const svc of['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']){
-      try{const s=await srv.getPrimaryService(svc);const cs=await s.getCharacteristics();const w=cs.find(c=>c.properties.write||c.properties.writeWithoutResponse);if(w){await w.writeValue(new TextEncoder().encode(text));toast('Sent to printer!');return;}}catch(e){}
-    }
-    toast('No print service found. Printing via browser.');document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();
+    await printViaBluetoothDevice(dev);
   }catch(e){document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();}
 }
 function printBoth(oid){btPrint('chit',oid);setTimeout(()=>btPrint('receipt',oid),2000);}
 
-// INIT
 (async()=>{await loadData();ra();})();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/sw.js').then(r=>{
-      console.log('SW registered');
+    navigator.serviceWorker.register('/sw.js').then(reg=>{
+      // Check for updates every 2 minutes
+      setInterval(()=>reg.update(),120000);
+      // Listen for new SW taking over — reload the page
+      reg.addEventListener('updatefound',()=>{
+        const newSW=reg.installing;
+        newSW.addEventListener('statechange',()=>{
+          if(newSW.state==='activated'){
+            window.location.reload();
+          }
+        });
+      });
     }).catch(e=>console.log('SW failed:',e));
+    // Listen for message from SW telling us to reload
+    navigator.serviceWorker.addEventListener('message',e=>{
+      if(e.data&&e.data.type==='SW_UPDATED'){
+        window.location.reload();
+      }
+    });
   });
 }
 </script>
