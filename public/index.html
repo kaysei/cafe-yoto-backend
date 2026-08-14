@@ -1371,19 +1371,23 @@ function updChitPrev(){
 function fixEmployees(){
   if(!U.isAdmin)return;
   const defaults=defEmployees();
-  let added=0;
-  // Update existing Owner employee role and rename if needed
+  // Update existing employees with correct schedules and roles
   S.employees.forEach(e=>{
+    const match=defaults.find(d=>d.name.toLowerCase()===e.name.toLowerCase());
+    if(match){
+      e.role=match.role;
+      if(!e.schedule||Object.keys(e.schedule).length===0)e.schedule=match.schedule;
+    }
     if(e.name.toLowerCase()==='owner'||e.name.toLowerCase()==='keisha'){
-      e.role='owner';e.name='Keisha';added++;
+      e.role='owner';e.name='Keisha';e.schedule={};
     }
   });
   // Add missing default employees
   defaults.forEach(def=>{
     const exists=S.employees.find(e=>e.name.toLowerCase()===def.name.toLowerCase());
-    if(!exists){S.employees.push({...def,id:uid()});added++;}
+    if(!exists)S.employees.push({...def,id:uid()});
   });
-  saveCore();ra();toast('Employees updated — Owner set to Keisha, staff added.');
+  saveCore();ra();toast('Employees updated with latest schedules!');
 }
 function confirmMenuReset(){
   if(!U.isAdmin)return;
@@ -1586,10 +1590,28 @@ function mwrap(title,body,foot){
 
 // MODAL ACTIONS
 function defEmployees(){return[
-  {id:'emp-owner',name:'Keisha',role:'owner',hourlyRate:0,catRate:0,extraHalfRate:0,catExtraRate:0,tips:0},
-  {id:'emp-anicia',name:'Anicia',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0},
-  {id:'emp-nass',name:'Nass',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0},
-  {id:'emp-inno',name:'Inno',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0}
+  {id:'emp-owner',name:'Keisha',role:'owner',hourlyRate:0,catRate:0,extraHalfRate:0,catExtraRate:0,tips:0,schedule:{}},
+  {id:'emp-anicia',name:'Anicia',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0,schedule:{
+    mon:{start:'15:00',end:'18:00'},
+    tue:{start:'10:00',end:'18:00'}, // not scheduled but no penalty if absent
+    wed:{start:'10:00',end:'18:00'},
+    thu:{start:'15:00',end:'18:00'},
+    fri:{start:'10:00',end:'14:30'}  // not scheduled fri pm
+  }},
+  {id:'emp-nass',name:'Nass',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0,schedule:{
+    mon:{start:'15:30',end:'18:00'},
+    tue:{start:'14:30',end:'18:00'},
+    wed:{start:'10:00',end:'14:30'},
+    thu:{start:'10:00',end:'18:00'}, // not scheduled thu
+    fri:{start:'14:30',end:'18:00'}
+  }},
+  {id:'emp-inno',name:'Inno',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0,schedule:{
+    mon:{start:'10:00',end:'15:00'},
+    tue:{start:'10:00',end:'14:00'},
+    wed:{start:'10:00',end:'18:00'}, // not scheduled wed
+    thu:{start:'10:00',end:'15:00'},
+    fri:{start:'10:00',end:'14:30'}
+  }}
 ];}
 function saveEmp(){
   const name=document.getElementById('m-en')?.value.trim();
