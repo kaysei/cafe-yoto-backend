@@ -208,7 +208,15 @@ tr:last-child td{border-bottom:none;}
 .chit-type{font-size:.7rem;font-weight:700;background:var(--bluesoft);color:var(--blue2);padding:2px 9px;border-radius:999px;display:inline-block;margin-bottom:5px;}
 
 #print-area{display:none;}
-@media print{body *{visibility:hidden;}#print-area,#print-area *{visibility:visible;}#print-area{display:block;position:absolute;top:0;left:0;width:280px;}}
+@media print{
+  @page{margin:0;}
+  body *{visibility:hidden;}
+  #print-area,#print-area *{visibility:visible;}
+  #print-area{display:block;position:absolute;top:0;left:0;}
+  #print-area.chit-size{width:40mm;font-size:8pt;line-height:1.4;}
+  #print-area.receipt-size{width:80mm;font-size:9pt;line-height:1.6;}
+  #print-area pre{white-space:pre-wrap;word-break:break-word;margin:0;padding:0;font-family:monospace;}
+}
 .toast{position:fixed;bottom:18px;right:18px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:.8rem;font-weight:600;box-shadow:var(--shlg);z-index:400;animation:ti .2s ease-out;max-width:280px;}
 @keyframes ti{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px 18px;color:var(--ink3);text-align:center;gap:7px;}
@@ -324,16 +332,14 @@ async function hashStr(s){
 function calcPay(emp,shift){
   if(!shift.timeOut)return 0;
   const ms=new Date(shift.timeOut)-new Date(shift.timeIn);
-  const hrs=ms/3600000;
-  const fullHrs=Math.floor(hrs);
-  const remMs=(ms%(3600000));
-  const remMins=Math.floor(remMs/60000);
+  const totalMins=Math.floor(ms/60000);
+  const fullHrs=Math.floor(totalMins/60);
+  const remMins=totalMins%60;
   const wt=(shift.workType||'barista').toLowerCase();
   const isBarista=wt==='barista';
   const hrRate=isBarista?(S.settings.baristaRate||64):(S.settings.catRate||57);
-  // ₱5 per every 5 minutes of overtime (up to 30 mins)
-  const fiveMins=Math.floor(remMins/5);
-  const extraPay=fiveMins*5;
+  const fiveMinBlocks=Math.floor(remMins/5);
+  const extraPay=fiveMinBlocks*5;
   let pay=fullHrs*hrRate+extraPay;
   const st=shiftStatus(shift);
   if(st==='late')pay-=(S.settings.latePenalty||30);
@@ -1124,9 +1130,9 @@ function rShifts(){
         const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
         const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
         const pay=calcPay(rowEmp,s);
-        const remMins=s.timeOut?Math.floor(((new Date(s.timeOut)-new Date(s.timeIn))%3600000)/60000):0;
-        const fiveMinsRem=Math.floor(remMins/5)*5;
-        const hrsLabel=s.timeOut?(fiveMinsRem>0?Math.floor(dur)+'hr '+fiveMinsRem+'min':Math.floor(dur)+'hr'):'—';
+        const totalMinsMain=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
+        const hrsLabelH=Math.floor(totalMinsMain/60);const hrsLabelM=totalMinsMain%60;
+        const hrsLabel=s.timeOut?(hrsLabelM>0?hrsLabelH+'hr '+hrsLabelM+'min':hrsLabelH+'hr'):'—';
         const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
         const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
         return`<tr>
@@ -1172,9 +1178,10 @@ function rAdminShifts(){
         const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
         const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
         const pay=calcPay(rowEmp,s);
-        const remMins2=s.timeOut?Math.floor(((new Date(s.timeOut)-new Date(s.timeIn))%3600000)/60000):0;
-        const fiveMinsRem2=Math.floor(remMins2/5)*5;
-        const hrsLabel=s.timeOut?(fiveMinsRem2>0?Math.floor(dur)+'hr '+fiveMinsRem2+'min':Math.floor(dur)+'hr'):'—';
+        const totalMinsAdm=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
+        const hrsAdmH=Math.floor(totalMinsAdm/60);const remMinsAdm=totalMinsAdm%60;
+        const fiveRnd=Math.floor(remMinsAdm/5)*5;
+        const hrsLabel=s.timeOut?(fiveRnd>0?hrsAdmH+'hr '+fiveRnd+'min':hrsAdmH+'hr'):'—';
         const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
         const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
         const shortLoc=(s.location||'—').split(',').slice(0,2).join(',');
@@ -1232,8 +1239,21 @@ function rAdmin(){
           <div class="field"><label>Receipt Font Size: <span id="rcpt-fs-val">${S.settings.rcptFontSize||12}px</span></label>
             <input type="range" min="10" max="16" value="${S.settings.rcptFontSize||12}" oninput="S.settings.rcptFontSize=parseInt(this.value);updRcptPrev();document.getElementById('rcpt-fs-val').textContent=this.value+'px';">
           </div>
-          <div class="field"><label>Chit Width: <span id="chit-w-val">${S.settings.chitWidth||200}px</span></label>
-            <input type="range" min="100" max="320" value="${S.settings.chitWidth||200}" oninput="S.settings.chitWidth=parseInt(this.value);updChitPrev();document.getElementById('chit-w-val').textContent=this.value+'px';">
+          <div class="field"><label>Chit Paper Size</label>
+            <select oninput="S.settings.chitPaperSize=this.value;updChitPrev();" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.84rem;background:var(--bg);">
+              <option value="40x30" ${(S.settings.chitPaperSize||'40x30')==='40x30'?'selected':''}>40×30mm (Sticker — current)</option>
+              <option value="57x30" ${(S.settings.chitPaperSize||'')==='57x30'?'selected':''}>57×30mm</option>
+              <option value="58x40" ${(S.settings.chitPaperSize||'')==='58x40'?'selected':''}>58×40mm</option>
+              <option value="custom" ${(S.settings.chitPaperSize||'')==='custom'?'selected':''}>Custom</option>
+            </select>
+            ${(S.settings.chitPaperSize||'40x30')==='custom'?`<div style="display:flex;gap:7px;margin-top:5px;align-items:center;"><input type="number" placeholder="W (mm)" value="${S.settings.chitW||40}" oninput="S.settings.chitW=parseInt(this.value);updChitPrev();" style="width:80px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);">×<input type="number" placeholder="H (mm)" value="${S.settings.chitH||30}" oninput="S.settings.chitH=parseInt(this.value);updChitPrev();" style="width:80px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"><span style="font-size:.74rem;color:var(--ink2);">mm</span></div>`:''}
+          </div>
+          <div class="field"><label>Receipt Paper Width</label>
+            <select oninput="S.settings.rcptPaperSize=this.value;" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.84rem;background:var(--bg);">
+              <option value="80mm" ${(S.settings.rcptPaperSize||'80mm')==='80mm'?'selected':''}>80mm (standard thermal)</option>
+              <option value="58mm" ${(S.settings.rcptPaperSize||'')==='58mm'?'selected':''}>58mm (narrow thermal)</option>
+              <option value="57mm" ${(S.settings.rcptPaperSize||'')==='57mm'?'selected':''}>57mm</option>
+            </select>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;">
@@ -1335,24 +1355,27 @@ function rAdmin(){
         <tbody>${staffEmps.map((e,ei)=>{
           const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
           const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
-          const baseEarned=empShifts.reduce((sum,s)=>{
-            const st=shiftStatus(s);const dur=(new Date(s.timeOut)-new Date(s.timeIn))/3600000;
-            const fullH=Math.floor(dur);const rem=dur-fullH;
-            const wt=(s.workType||'barista').toLowerCase();const isB=wt==='barista';
-            const hr=isB?(S.settings.baristaRate||64):(S.settings.catRate||57);
-            const ex=isB?(S.settings.baristaHalf||35):(S.settings.catHalf||30);
-            return sum+fullH*hr+(rem>=0.4?ex:0);
+          const earnedBase=empShifts.reduce((sum,s)=>{
+            const ms=new Date(s.timeOut)-new Date(s.timeIn);
+            const totalM=Math.floor(ms/60000);
+            const fullH=Math.floor(totalM/60);
+            const remM=totalM%60;
+            const wt=(s.workType||'barista').toLowerCase();
+            const hr=wt==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);
+            return sum+fullH*hr+Math.floor(remM/5)*5;
           },0);
           const totalPenalty=empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
           const tips=e.tips||0;
-          const total=baseEarned-totalPenalty+tips;
-          const totalHrs=empShifts.reduce((sum,s)=>sum+(new Date(s.timeOut)-new Date(s.timeIn))/3600000,0);
+          const total=earnedBase-totalPenalty+tips;
+          const totalMinsAll=empShifts.reduce((sum,s)=>sum+Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000),0);
+          const dispH=Math.floor(totalMinsAll/60);const dispM=totalMinsAll%60;
+          const hrsDisp=dispM>0?dispH+'hr '+dispM+'min':dispH+'hr';
           const empIdx=S.employees.findIndex(x=>x.id===e.id);
           return`<tr>
             <td style="font-weight:700;">${e.name}</td>
-            <td>${totalHrs.toFixed(1)}h</td>
-            <td>${peso(baseEarned)}</td>
-            <td><input type="number" value="${tips}" oninput="S.employees[${empIdx}].tips=parseFloat(this.value)||0;ra();" style="width:80px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"></td>
+            <td style="white-space:nowrap;font-size:.82rem;">${hrsDisp}</td>
+            <td>${peso(earnedBase)}</td>
+            <td><input type="number" value="${tips}" oninput="S.employees[${empIdx}].tips=parseFloat(this.value)||0;saveCore();" style="width:80px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"></td>
             <td style="color:var(--red);">-${peso(totalPenalty)}</td>
             <td style="font-weight:800;color:var(--blue2);">${peso(total)}</td>
           </tr>`;
@@ -1826,11 +1849,25 @@ async function btPrint(type,oid){
   if(_savedPrinterDevice){
     try{const ok=await printViaBluetoothDevice(_savedPrinterDevice);if(ok)return;}catch(e){_savedPrinterDevice=null;}
   }
-  if(!navigator.bluetooth){document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();return;}
+  const pa=document.getElementById('print-area');
+  if(type==='chit'){
+    const chitSize=S.settings.chitPaperSize||'40x30';
+    const wMm=chitSize==='custom'?(S.settings.chitW||40):parseInt(chitSize.split('x')[0]);
+    pa.style.width=wMm+'mm';
+    pa.style.fontSize='7pt';
+    pa.className='chit-size';
+  } else {
+    const rcptW=S.settings.rcptPaperSize||'80mm';
+    pa.style.width=rcptW;
+    pa.style.fontSize='9pt';
+    pa.className='receipt-size';
+  }
+  pa.innerHTML=`<pre>${text}</pre>`;
+  if(!navigator.bluetooth){window.print();return;}
   try{
     const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
     await printViaBluetoothDevice(dev);
-  }catch(e){document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();}
+  }catch(e){window.print();}
 }
 function printBoth(oid){btPrint('chit',oid);setTimeout(()=>btPrint('receipt',oid),2000);}
 
