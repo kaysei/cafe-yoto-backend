@@ -281,6 +281,7 @@ let U={
   shiftCalYear:null,
   shiftCalMo:undefined,
   admTab:'receipt',
+  editSchedEmp:null,
   editGoal:false,
   adminShiftDate:undefined,
   salaryPreset:'all',
@@ -723,7 +724,7 @@ function rPOS(){
           <button class="tb2 exact" onclick="U.tendered=${totals.total.toFixed(2)};ra();">Exact ${peso(totals.total)}</button>
           <button class="tb2 amt" onclick="openNP('tendered',U.tendered)">Enter Amount</button>
         </div>
-        ${U.tendered&&U.tendered!==totals.total?`<div style="font-size:.78rem;color:var(--ink2);padding:2px;">Change: <strong>${peso(Math.max(0,U.tendered-totals.total))}</strong></div>`:''}`
+        ${U.tendered&&U.tendered!==totals.total?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--greensoft);border-radius:9px;padding:6px 11px;margin-top:3px;"><span style="font-size:.78rem;font-weight:700;color:var(--green);">Change</span><span style="font-size:1.3rem;font-weight:900;color:var(--green);">${peso(Math.max(0,U.tendered-totals.total))}</span></div>`:''}`
         :`<div style="display:flex;gap:6px;margin-bottom:5px;">
           <input placeholder="Reference no. or type note" value="${U.payRef}" oninput="U.payRef=this.value;" style="flex:1;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
           <button class="btn btn-out btn-sm" onclick="openCamera('ref')" title="Take photo of proof">📷</button>
@@ -733,7 +734,7 @@ function rPOS(){
         <div class="sr"><span>Subtotal</span><span>${peso(totals.sub)}</span></div>
         ${totals.disc>0?`<div class="sr" style="color:var(--green);"><span>Discount (20%)</span><span>-${peso(totals.disc)}</span></div>`:''}
         <div class="sr" style="font-size:.75rem;"><span>VAT ${U.discType!=='none'?'(exempt)':'(12% incl.)'}</span><span>${peso(totals.vat)}</span></div>
-        <div class="sr tot"><span>Total</span><span>${peso(totals.total)}</span></div>
+        <div class="sr tot" style="font-size:1.15rem;"><span>Total</span><span style="font-size:1.25rem;font-weight:900;">${peso(totals.total)}</span></div>
       </div>
       <div style="padding:8px 13px 12px;"><button class="btn btn-blue" style="width:100%;justify-content:center;padding:11px;" ${U.cart.length&&canM()?'':'disabled'} onclick="completeSale()">Send to Queue &amp; Pay</button></div>
     </div>
@@ -776,8 +777,15 @@ function completeSale(){
     status:'preparing',timestamp:new Date().toISOString(),isRefunded:false
   };
   if(!canSave()){
-    clearCart();ra();
-    toast('View Only — order not recorded.');
+    // View Only: show change screen but don't save
+    if(t.total>0&&U.payMethod==='Cash'&&U.tendered){
+      const ch=Math.max(0,U.tendered-t.total);
+      U.cart=[];U.tendered=0;ra();
+      openModal('changeScreen',{change:ch,total:t.total,tendered:U.tendered,oid:null});
+    } else {
+      clearCart();ra();
+    }
+    toast('View Only — not recorded.');
     return;
   }
   S.orders.push(order);saveCore();saveOrders();
@@ -985,8 +993,9 @@ function rReports(){
         <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Sales Breakdown</div>
         <div class="stat-grid" style="margin-bottom:0;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
           <div class="card sc"><div class="lbl">Gross Sales</div><div class="val">${peso(gross)}</div></div>
-          <div class="card sc"><div class="lbl">Discounts</div><div class="val">${peso(discs)}</div></div>
-          <div class="card sc"><div class="lbl">Refunds</div><div class="val" style="color:var(--red);">${peso(refundAmt)}</div></div>
+          <div class="card sc"><div class="lbl">− Refunds</div><div class="val" style="color:var(--red);">${peso(refundAmt)}</div></div>
+          <div class="card sc"><div class="lbl">− Discounts</div><div class="val" style="color:var(--red);">${peso(discs)}</div></div>
+          <div class="card sc"><div class="lbl">= Net Sales</div><div class="val" style="color:var(--blue2);font-size:1.1rem;">${peso(gross-refundAmt-discs)}</div></div>
           <div class="card sc"><div class="lbl">Cost of Goods</div><div class="val">${peso(cogs)}</div></div>
           <div class="card sc"><div class="lbl">Orders</div><div class="val">${ords.length}</div></div>
           <div class="card sc"><div class="lbl">Refunded</div><div class="val">${refundedOrds.length}</div></div>
@@ -997,8 +1006,9 @@ function rReports(){
         <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:7px;font-size:.84rem;">
           <div style="display:flex;justify-content:space-between;font-weight:600;"><span>Gross Sales</span><span>${peso(gross)}</span></div>
           <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Refunds</span><span>${peso(refundAmt)}</span></div>
-          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cost of Goods</span><span>${peso(cogs)}</span></div>
-          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Discounts Given</span><span>${peso(discs)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Discounts</span><span>${peso(discs)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--border);padding-top:5px;margin-top:3px;"><span>= Net Sales</span><span style="color:var(--blue2);">${peso(gross-refundAmt-discs)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);margin-top:5px;"><span>− Cost of Goods</span><span>${peso(cogs)}</span></div>
           <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cafe Expenses</span><span>${peso(cafeExp)}</span></div>
           <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Staff Salary</span><span>${peso(staffSalary)}</span></div>
           <div style="border-top:2px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${moneyLeft>=0?'var(--green)':'var(--red)'};">${peso(moneyLeft)}</span></div>
@@ -1010,7 +1020,34 @@ function rReports(){
       </div>
     </div>`;
   }
-  else if(U.repTab==='item')body=`<div class="card"><table><thead><tr><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${itemRows.map(([n,d],i)=>`<tr><td>${n}${i===0?'<span class="tflag">TOP</span>':''}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
+  else if(U.repTab==='item'){
+    // Full order log with per-item details
+    const allItemOrds=[];
+    ords.forEach(o=>{
+      o.items.forEach(item=>{
+        allItemOrds.push({name:item.name,price:item.price,addons:(item.addons||[]).map(a=>a.name).join(', '),note:item.note||'',orderNum:o.number,orderType:o.orderType,payMethod:o.paymentMethod,empName:o.employeeName,time:o.timestamp,disc:o.discountType!=='none'?o.discountType:''});
+      });
+    });
+    body=`<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:.8rem;font-weight:700;color:var(--ink2);">${allItemOrds.length} items sold</span>
+    </div>
+    <div class="card" style="overflow-x:auto;"><table>
+      <thead><tr><th>Time</th><th>#</th><th>Item</th><th>Add-ons</th><th>Note</th><th>Type</th><th>Payment</th><th>Cashier</th><th>Discount</th><th>Price</th></tr></thead>
+      <tbody>${allItemOrds.map(r=>`<tr>
+        <td style="white-space:nowrap;font-size:.74rem;">${ftm(r.time)}</td>
+        <td>${r.orderNum}</td>
+        <td style="font-weight:600;">${r.name}</td>
+        <td style="font-size:.74rem;color:var(--ink2);">${r.addons||'—'}</td>
+        <td style="font-size:.74rem;color:var(--ink2);font-style:italic;">${r.note||'—'}</td>
+        <td><span class="pill ${r.orderType==='Grab'?'pill-late':r.orderType==='Take Out'?'pill-low':'pill-ot'}" style="font-size:.64rem;">${r.orderType}</span></td>
+        <td style="font-size:.74rem;">${r.payMethod}</td>
+        <td style="font-size:.74rem;">${r.empName}</td>
+        <td style="font-size:.74rem;color:var(--yellow);">${r.disc||'—'}</td>
+        <td style="font-weight:700;">${peso(r.price)}</td>
+      </tr>`).join('')||'<tr><td colspan="10" style="color:var(--ink3);">No data.</td></tr>'}
+      </tbody>
+    </table></div>`;
+  }
   else if(U.repTab==='category')body=`<div class="card"><table><thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${Object.entries(catMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
   else if(U.repTab==='employee')body=`<div class="card"><table><thead><tr><th>Employee</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>${Object.entries(empMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.count}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
   const dailyGoal=S.settings.dailyGoal||0;
@@ -1087,7 +1124,9 @@ function rShifts(){
         const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
         const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
         const pay=calcPay(rowEmp,s);
-        const hrsLabel=s.timeOut?(dur===Math.floor(dur)?dur+'hr':(Math.floor(dur)+'.'+(Math.round((dur%1)*10))+'hr')):'—';
+        const remMins=s.timeOut?Math.floor(((new Date(s.timeOut)-new Date(s.timeIn))%3600000)/60000):0;
+        const fiveMinsRem=Math.floor(remMins/5)*5;
+        const hrsLabel=s.timeOut?(fiveMinsRem>0?Math.floor(dur)+'hr '+fiveMinsRem+'min':Math.floor(dur)+'hr'):'—';
         const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
         const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
         return`<tr>
@@ -1133,7 +1172,9 @@ function rAdminShifts(){
         const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
         const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
         const pay=calcPay(rowEmp,s);
-        const hrsLabel=s.timeOut?(dur===Math.floor(dur)?dur+'hr':(Math.floor(dur)+'.'+(Math.round((dur%1)*10))+'hr')):'—';
+        const remMins2=s.timeOut?Math.floor(((new Date(s.timeOut)-new Date(s.timeIn))%3600000)/60000):0;
+        const fiveMinsRem2=Math.floor(remMins2/5)*5;
+        const hrsLabel=s.timeOut?(fiveMinsRem2>0?Math.floor(dur)+'hr '+fiveMinsRem2+'min':Math.floor(dur)+'hr'):'—';
         const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
         const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
         const shortLoc=(s.location||'—').split(',').slice(0,2).join(',');
@@ -1242,7 +1283,10 @@ function rAdmin(){
         const sched=S.employees[empIdx].schedule;
         const days=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri']];
         return`<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
-          <div style="font-weight:700;font-size:.88rem;margin-bottom:8px;">${e.name}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-weight:700;font-size:.88rem;">${e.name}</div>
+            <button class="btn btn-out btn-xs" onclick="U.editSchedEmp=U.editSchedEmp==='${e.id}'?null:'${e.id}';ra();">${U.editSchedEmp===e.id?'✓ Done':'✏ Edit'}</button>
+          </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;">
             ${days.map(([d,dl])=>`<div style="background:var(--bg);padding:8px 10px;border-radius:9px;">
               <div style="font-size:.7rem;font-weight:700;color:var(--ink2);margin-bottom:4px;">${dl}</div>
@@ -1265,20 +1309,15 @@ function rAdmin(){
     ${admTab==='rates'?`<div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:4px;">Rates by Role</div>
       <div style="font-size:.74rem;color:var(--ink2);margin-bottom:12px;">Set the default rates per role. These apply to all staff based on their work type at time-in.</div>
+      <div style="font-size:.76rem;color:var(--ink2);margin-bottom:10px;">Overtime: ₱5 per every 5 minutes worked past a full hour. (e.g. 3hrs 15min = 3×rate + ₱15 extra)</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px;">
         <div style="background:var(--bg);border-radius:10px;padding:12px;">
           <div style="font-weight:700;margin-bottom:8px;">☕ Barista</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.baristaRate||64}" oninput="S.settings.baristaRate=parseFloat(this.value)||0;"></div>
-            <div class="field"><label>Extra ½hr</label><input type="number" value="${S.settings.baristaHalf||35}" oninput="S.settings.baristaHalf=parseFloat(this.value)||0;"></div>
-          </div>
+          <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.baristaRate||64}" oninput="S.settings.baristaRate=parseFloat(this.value)||0;"></div>
         </div>
         <div style="background:var(--bg);border-radius:10px;padding:12px;">
           <div style="font-weight:700;margin-bottom:8px;">🐱 Cat Care</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.catRate||57}" oninput="S.settings.catRate=parseFloat(this.value)||0;"></div>
-            <div class="field"><label>Extra ½hr</label><input type="number" value="${S.settings.catHalf||30}" oninput="S.settings.catHalf=parseFloat(this.value)||0;"></div>
-          </div>
+          <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.catRate||57}" oninput="S.settings.catRate=parseFloat(this.value)||0;"></div>
         </div>
       </div>
       <div style="font-weight:700;margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border);">Staff Salary Summary</div>
@@ -1449,7 +1488,7 @@ function modalRender(){
 
   if(t==='changeScreen'){
     const {change,total,tendered,oid}=d;
-    return`<div class="ov" style="background:rgba(22,27,38,.85);" onclick="closeModal();openModal('receipt','${oid}')">
+    return`<div class="ov" style="background:rgba(22,27,38,.85);" onclick="${oid?`closeModal();openModal('receipt','${oid}')`:'closeModal()'}">
       <div style="text-align:center;padding:40px 30px;max-width:360px;width:100%;">
         <div style="font-size:1rem;font-weight:700;color:#fff;opacity:.7;margin-bottom:8px;">CHANGE</div>
         <div style="font-size:5rem;font-weight:900;color:#fff;line-height:1;">${peso(change)}</div>
@@ -1744,17 +1783,20 @@ function savePhoto(purpose){
   if(!canvas)return;
   const dataUrl=canvas.dataset.dataUrl;
   if(!dataUrl)return;
-  // Save to device gallery via download link
   const link=document.createElement('a');
-  const ts=new Date().toISOString().slice(0,19).replace(/:/g,'-');
-  link.download=`cafeyoto-${purpose}-${ts}.jpg`;
+  const now=new Date();
+  const timeStr=now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true}).replace(/:/g,'-').replace(/ /g,'');
+  const dateStr=(now.getMonth()+1)+'-'+now.getDate()+'-'+(now.getFullYear()+'').slice(2);
+  // Build drink name from current cart
+  const drinkName=U.cart.length?U.cart.map(c=>c.name.replace(/[^a-zA-Z0-9]/g,'')).join('_'):'order';
+  const filename=`${drinkName}-${timeStr}-${dateStr}.jpg`;
+  link.download=filename;
   link.href=dataUrl;
   link.click();
-  // Also store as payRef or discPhoto
-  if(purpose==='ref')U.payRef='[Photo saved: '+ts+']';
+  if(purpose==='ref')U.payRef='[Ref photo: '+filename+']';
   if(purpose==='id')U.discPhoto=dataUrl;
   stopCamera();closeModal();
-  toast('Photo saved to your device!');ra();
+  toast('Photo saved: '+filename);ra();
 }
 
 // BLUETOOTH PRINTER
