@@ -779,6 +779,18 @@ function completeSale(){
   const t=calcTotals();
   if(U.discType!=='none'&&(!U.discName.trim()||!U.discId.trim())){toast('Enter ID holder name and number.');return;}
   if(U.payMethod==='Cash'&&U.tendered>0&&U.tendered<t.total){toast('Amount tendered less than total.');return;}
+  const empName=curEmp()?curEmp().name:'Staff';
+  if(!canSave()){
+    // View Only mode — show change screen but don't record anything
+    const savedTendered=U.tendered;
+    clearCart();
+    if(U.payMethod==='Cash'&&savedTendered>0){
+      const ch=Math.max(0,savedTendered-t.total);
+      openModal('changeScreen',{change:ch,total:t.total,tendered:savedTendered,oid:null});
+    }
+    toast('View Only — not recorded.');
+    return;
+  }
   U.cart.forEach(ci=>{
     const p=S.products.find(x=>x.id===ci.productId);
     if(p&&p.recipe)p.recipe.forEach(r=>{const i=ingBy(r.ingredientId);if(i)i.stockInBase=Math.max(0,i.stockInBase-r.qty*ci.qty);});
@@ -787,31 +799,21 @@ function completeSale(){
   const order={
     id:uid(),number:nextNum(),orderType:U.orderType,
     items:U.cart.map(c=>({...c,category:S.products.find(x=>x.id===c.productId)?.category||'',costEach:pcost(S.products.find(x=>x.id===c.productId)||{}),checked:false})),
-    employeeId:U.activeEmpId,employeeName:curEmp().name,
+    employeeId:U.activeEmpId,employeeName:empName,
     discountType:U.discType,discName:U.discName,discId:U.discId,
     paymentMethod:U.payMethod,payRef:U.payRef,
     tendered:U.payMethod==='Cash'?U.tendered:null,
     sub:t.sub,discount:t.disc,vat:t.vat,total:t.total,
     status:'preparing',timestamp:new Date().toISOString(),isRefunded:false
   };
-  if(!canSave()){
-    // View Only: show change screen but don't save
-    if(t.total>0&&U.payMethod==='Cash'&&U.tendered){
-      const ch=Math.max(0,U.tendered-t.total);
-      U.cart=[];U.tendered=0;ra();
-      openModal('changeScreen',{change:ch,total:t.total,tendered:U.tendered,oid:null});
-    } else {
-      clearCart();ra();
-    }
-    toast('View Only — not recorded.');
-    return;
-  }
   S.orders.push(order);saveCore();saveOrders();
-  const oid=order.id;clearCart();ra();
+  const oid=order.id;
+  const savedTendered=order.tendered;
+  clearCart();ra();
   toast(`#${order.number} sent to queue`);
-  if(order.paymentMethod==='Cash'&&order.tendered){
-    const change=Math.max(0,order.tendered-order.total);
-    openModal('changeScreen',{change,total:order.total,tendered:order.tendered,oid:order.id});
+  if(order.paymentMethod==='Cash'&&savedTendered){
+    const change=Math.max(0,savedTendered-order.total);
+    openModal('changeScreen',{change,total:order.total,tendered:savedTendered,oid:order.id});
   } else {
     openModal('receipt',oid);
   }
