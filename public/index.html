@@ -1526,7 +1526,7 @@ function confirmMenuReset(){
   if(!U.isAdmin)return;
   if(!confirm('This will replace your current menu and categories with the new Cafe Yoto menu.\n\nRecipes you added will be lost. Employees and settings are kept.\n\nContinue?'))return;
   S.products=defProds();
-  S.categories=['Iced Coffee','Iced Drinks','Hot Drinks','Coffee Frappe','Shakes','Yogurt Series','Cookies','Add-ons'];
+  S.categories=['Iced Coffee','Iced Drinks','Hot Drinks','Coffee Frappe','Shakes','Yogurt Series','Matcha Series','Cookies','Add-ons'];
   U.posCategory=null;
   saveCore();ra();toast('Menu updated to new Cafe Yoto menu!');
 }
