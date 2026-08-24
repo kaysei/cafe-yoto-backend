@@ -272,7 +272,7 @@ let S={
     stockDetect:true,
     discountRate:0.20
   },
-  categories:['Iced Coffee','Iced Drinks','Hot Drinks','Coffee Frappe','Shakes','Yogurt Series','Cookies','Add-ons']
+  categories:['Iced Coffee','Iced Drinks','Hot Drinks','Coffee Frappe','Shakes','Yogurt Series','Matcha Series','Cookies','Add-ons']
 };
 let U={
   view:'clock',activeEmpId:null,viewOnly:false,isAdmin:false,
@@ -439,6 +439,18 @@ function defProds(){return[
   {id:'p-sty',name:'Strawberry Yogurt',category:'Yogurt Series',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
   {id:'p-hdy',name:'Honeydew Yogurt',category:'Yogurt Series',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
   {id:'p-bly',name:'Blueberry Yogurt',category:'Yogurt Series',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  // MATCHA SERIES
+  // Hot
+  {id:'p-hcm',name:'Hot Ceremonial Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'Regular',price:180}],recipe:[]},
+  {id:'p-hml2',name:'Hot Matcha Latte',category:'Matcha Series',sizes:[{id:uid(),label:'Regular',price:110}],recipe:[]},
+  {id:'p-hdm',name:'Hot Dirty Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'Regular',price:120}],recipe:[]},
+  // Iced
+  {id:'p-icm',name:'Ceremonial Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:180},{id:uid(),label:'22oz',price:200}],recipe:[]},
+  {id:'p-sml',name:'Sweet Matcha Latte',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:145}],recipe:[]},
+  {id:'p-dmi',name:'Dirty Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:140},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-smu',name:'Sweet Matcha Ube',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:140},{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-stm',name:'Strawberry Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:140},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-crm',name:'Creme Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:160}],recipe:[]},
   // COOKIES
   {id:'p-smr',name:'Smores Cookie',category:'Cookies',sizes:[{id:uid(),label:'Regular',price:0}],recipe:[]},
   {id:'p-chc',name:'Choco Chip Cookie',category:'Cookies',sizes:[{id:uid(),label:'Regular',price:0}],recipe:[]},
@@ -660,7 +672,7 @@ function rPOS(){
     <div class="cat-list">
       ${S.categories.map(c=>{
         const items=S.products.filter(p=>p.category===c);
-        const icons={'Iced Coffee':'☕','Iced Drinks':'🧋','Hot Drinks':'🔥','Coffee Frappe':'🧊','Shakes':'🥤','Yogurt Series':'🍓','Cookies':'🍪','Add-ons':'✨','Pastries':'🥐'};
+        const icons={'Iced Coffee':'☕','Iced Drinks':'🧋','Hot Drinks':'🔥','Coffee Frappe':'🧊','Shakes':'🥤','Yogurt Series':'🍓','Matcha Series':'🍵','Cookies':'🍪','Add-ons':'✨','Pastries':'🥐'};
         return`<button class="cat-card" onclick="U.posCategory='${c}';ra();">
           <div class="cat-icon">${icons[c]||'🍵'}</div>
           <div style="flex:1;text-align:left;"><div class="cat-name">${c}</div><div class="cat-count">${items.length} items</div></div>
@@ -824,6 +836,7 @@ function rOrders(){
           ${o.status==='preparing'&&!allDone?`<span style="font-size:.72rem;color:var(--ink3);padding:4px 6px;">Check all drinks first</span>`:''}
           ${o.status==='ready'?`<button class="btn btn-grn btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','completed')">Complete</button>`:''}
           <button class="btn btn-out btn-sm" onclick="openModal('receipt','${o.id}')">${IC.pr}</button>
+          ${canM()?`<button class="btn btn-out btn-sm" onclick="openModal('addOrderAddon','${o.id}')">+ Add-on</button>`:''}
           ${canM()?`<button class="btn btn-red btn-sm" onclick="refundOrder('${o.id}')">Refund</button>`:''}
         </div>
       </div>
@@ -842,6 +855,28 @@ function rOrders(){
     </div>`;
   }).join(''):`<div class="empty"><h3>Queue is empty</h3><p>New orders appear here.</p></div>`}
   </div>`;
+}
+function addAddonToOrder(orderId,prodId){
+  const o=S.orders.find(x=>x.id===orderId);
+  const p=S.products.find(x=>x.id===prodId);
+  if(!o||!p)return;
+  if(!o.extraCharges)o.extraCharges=[];
+  const price=p.sizes[0]?.price||0;
+  o.extraCharges.push({name:p.name,price});
+  o.total=(o.total||0)+price;
+  o.sub=(o.sub||0)+price;
+  saveOrders();ra();toast('Added '+p.name+' to order #'+o.number);
+}
+function addCustomAddonToOrder(orderId){
+  const name=document.getElementById('ord-ao-name')?.value.trim();
+  const amt=parseFloat(document.getElementById('ord-ao-amt')?.value)||0;
+  if(!name||amt<=0){toast('Enter description and amount.');return;}
+  const o=S.orders.find(x=>x.id===orderId);if(!o)return;
+  if(!o.extraCharges)o.extraCharges=[];
+  o.extraCharges.push({name,price:amt});
+  o.total=(o.total||0)+amt;
+  o.sub=(o.sub||0)+amt;
+  saveOrders();ra();toast('Added '+name+' '+peso(amt));
 }
 function toggleCheck(oid,idx){const o=S.orders.find(x=>x.id===oid);if(!o)return;o.items[idx].checked=!o.items[idx].checked;saveOrders();ra();}
 function advOrder(id,status){if(!canM())return;const o=S.orders.find(x=>x.id===id);if(!o)return;o.status=status;saveOrders();ra();}
@@ -1036,6 +1071,7 @@ function rReports(){
     });
     body=`<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <span style="font-size:.8rem;font-weight:700;color:var(--ink2);">${allItemOrds.length} items sold</span>
+      <button class="btn btn-out btn-sm" onclick="printItemReport()">${IC.pr} Print Report</button>
     </div>
     <div class="card" style="overflow-x:auto;"><table>
       <thead><tr><th>Time</th><th>#</th><th>Item</th><th>Add-ons</th><th>Note</th><th>Type</th><th>Payment</th><th>Cashier</th><th>Discount</th><th>Price</th></tr></thead>
@@ -1074,6 +1110,27 @@ function rReports(){
   <div class="dfbar">${presets.map(([k,l])=>`<button class="dp ${U.repPreset===k?'act':''}" onclick="setRepPreset('${k}')">${l}</button>`).join('')}${U.repPreset==='custom'?`<div style="display:flex;align-items:center;gap:5px;"><input type="date" value="${U.repStart}" onchange="U.repStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.repEnd}" onchange="U.repEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:''}</div>
   <div class="rtabs">${tabs.map(([k,l])=>`<button class="dp ${U.repTab===k?'act':''}" onclick="U.repTab='${k}';ra();">${l}</button>`).join('')}</div>
   ${body}`;
+}
+function printItemReport(){
+  const pa=document.getElementById('print-area');
+  pa.className='receipt-size';pa.style.width='80mm';pa.style.fontSize='8pt';
+  const rng=dRange(U.repPreset,U.repStart,U.repEnd);
+  const ords=S.orders.filter(o=>{if(o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
+  let text=sanitizePrint('CAFE YOTO - SALES REPORT')+'\n';
+  text+='-'.repeat(40)+'\n';
+  ords.forEach(o=>{
+    o.items.forEach(i=>{
+      text+=ftm(o.timestamp)+' #'+o.number+' '+sanitizePrint(i.name);
+      text+=' P'+(i.price).toFixed(2);
+      text+=' '+sanitizePrint(o.orderType)+' '+sanitizePrint(o.paymentMethod)+'\n';
+      if(i.addons&&i.addons.length)text+='  +'+i.addons.map(a=>sanitizePrint(a.name)).join(', ')+'\n';
+    });
+  });
+  text+='-'.repeat(40)+'\n';
+  text+='Total items: '+ords.reduce((s,o)=>s+o.items.length,0)+'\n';
+  text+='Total: P'+ords.reduce((s,o)=>s+o.total,0).toFixed(2)+'\n';
+  pa.innerHTML='<pre>'+text+'</pre>';
+  window.print();
 }
 function setRepPreset(k){U.repPreset=k;if(k==='custom'&&!U.repStart){const t=today();U.repStart=t;U.repEnd=t;}ra();}
 function exportXls(){
@@ -1355,7 +1412,13 @@ function rAdmin(){
         <tbody>${staffEmps.map((e,ei)=>{
           const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
           const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
-          const earnedBase=empShifts.reduce((sum,s)=>{
+          // Use manual override if set, else calculate from shifts
+          const useOverride=e.hrsOverrideH!==undefined||e.hrsOverrideM!==undefined;
+          const overrideH=e.hrsOverrideH!==undefined?e.hrsOverrideH:dispH;
+          const overrideM=e.hrsOverrideM!==undefined?e.hrsOverrideM:(Math.floor(dispM/5)*5);
+          const wt2=(empShifts[0]?.workType||'barista').toLowerCase();
+          const hrRate2=wt2==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);
+          const earnedBase=useOverride?(overrideH*hrRate2+Math.floor(overrideM/5)*5):empShifts.reduce((sum,s)=>{
             const ms=new Date(s.timeOut)-new Date(s.timeIn);
             const totalM=Math.floor(ms/60000);
             const fullH=Math.floor(totalM/60);
@@ -1373,7 +1436,15 @@ function rAdmin(){
           const empIdx=S.employees.findIndex(x=>x.id===e.id);
           return`<tr>
             <td style="font-weight:700;">${e.name}</td>
-            <td style="white-space:nowrap;font-size:.82rem;">${hrsDisp}</td>
+            <td style="white-space:nowrap;">
+              <div style="font-size:.82rem;font-weight:600;">${hrsDisp}</div>
+              <div style="display:flex;gap:3px;margin-top:3px;align-items:center;">
+                <input type="number" min="0" max="23" value="${e.hrsOverrideH!==undefined?e.hrsOverrideH:dispH}" onchange="const idx=${empIdx};S.employees[idx].hrsOverrideH=parseInt(this.value)||0;saveCore();" title="Override hours" style="width:38px;padding:3px 5px;border:1.5px solid var(--border);border-radius:6px;font-size:.72rem;background:var(--bg);">
+                <span style="font-size:.68rem;color:var(--ink2);">h</span>
+                <input type="number" min="0" max="55" step="5" value="${e.hrsOverrideM!==undefined?e.hrsOverrideM:(Math.floor(dispM/5)*5)}" onchange="const idx=${empIdx};S.employees[idx].hrsOverrideM=parseInt(this.value)||0;saveCore();" title="Override minutes (5-min steps)" style="width:38px;padding:3px 5px;border:1.5px solid var(--border);border-radius:6px;font-size:.72rem;background:var(--bg);">
+                <span style="font-size:.68rem;color:var(--ink2);">m</span>
+              </div>
+            </td>
             <td>${peso(earnedBase)}</td>
             <td><input type="number" value="${tips}" oninput="S.employees[${empIdx}].tips=parseFloat(this.value)||0;saveCore();" style="width:80px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"></td>
             <td style="color:var(--red);">-${peso(totalPenalty)}</td>
@@ -1632,6 +1703,22 @@ function modalRender(){
     `,`<button class="btn btn-out btn-sm" onclick="btPrint('chit','${o.id}')">${IC.bt} Print Chit</button><button class="btn btn-out btn-sm" onclick="btPrint('receipt','${o.id}')">${IC.bt} Print Receipt</button><button class="btn btn-blue btn-sm" onclick="printBoth('${o.id}')">${IC.pr} Print Both</button><button class="btn btn-out" onclick="closeModal()">Close</button>`);
   }
 
+  if(t==='addOrderAddon'){
+    const o=S.orders.find(x=>x.id===d);if(!o)return'';
+    const aos=addOnProds();
+    return mwrap('Add to Order #'+o.number,`
+      <div style="margin-bottom:10px;font-size:.8rem;color:var(--ink2);">Select add-on to charge customer:</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+        ${aos.map(a=>`<button onclick="addAddonToOrder('${o.id}','${a.id}')" style="display:flex;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-weight:700;width:100%;font-size:.86rem;"><span>${a.name}</span><span>+${peso(a.sizes[0]?.price||0)}</span></button>`).join('')}
+      </div>
+      <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:6px;">Or enter custom amount:</div>
+      <div style="display:flex;gap:7px;align-items:center;">
+        <input id="ord-ao-name" placeholder="Description" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.84rem;background:var(--bg);">
+        <input id="ord-ao-amt" type="number" placeholder="0.00" style="width:90px;padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.84rem;background:var(--bg);">
+        <button class="btn btn-blue" onclick="addCustomAddonToOrder('${o.id}')">Add</button>
+      </div>
+    `,`<button class="btn btn-out" onclick="closeModal()">Done</button>`);
+  }
   if(t==='editShift'){
     const s=S.shifts.find(x=>x.id===d);if(!s)return'';
     return mwrap('Edit Shift',`
@@ -1748,154 +1835,6 @@ function dRange(preset,start,end){
 }
 
 // PRINT
-function buildChit(o){
-  // returns array of chit strings, one per item line
-  return o.items.map(item=>{
-    const hdr=S.settings.chitHeader||'CAFE YOTO';
-    return `${hdr}\n#${o.number}  ${o.orderType.toUpperCase()}\n${'—'.repeat(28)}\n`+
-      `${item.name}\n`+
-      ((item.addons&&item.addons.length)?`  +${item.addons.map(a=>a.name).join(', +')}\n`:'')+
-      (item.note?`  📝${item.note}\n`:'')+
-      `${'—'.repeat(28)}\n${fdt(o.timestamp)} ${ftm(o.timestamp)}\nWiFi: ${S.settings.wifiPw||'—'}\n\n\n`;
-  });
-}
-function buildRcpt(o){
-  return`${S.settings.rcptHeader||'CAFE YOTO'}\n${'—'.repeat(28)}\n#${o.number}  ${o.orderType}  ${ftm(o.timestamp)}\n${o.employeeName}\n${'—'.repeat(28)}\n`+o.items.map(i=>`${i.qty}x ${i.name}  ${peso(i.qty*i.price)}${(i.addons||[]).map(a=>'\n  +'+a.name+' '+peso(a.price)).join('')}${i.note?'\n  📝'+i.note:''}`).join('\n')+`\n${'—'.repeat(28)}\nSubtotal: ${peso(o.sub)}\n${o.discount>0?'Discount: -'+peso(o.discount)+'\n':''}VAT: ${peso(o.vat)}\nTOTAL: ${peso(o.total)}\n${'—'.repeat(28)}\n${o.paymentMethod}${o.paymentMethod==='Cash'&&o.tendered?'  Change: '+peso(Math.max(0,o.tendered-o.total)):''}\n${o.payRef?'Ref: '+o.payRef+'\n':''}${o.discName?'ID: '+o.discName+' ('+o.discId+')\n':''}${'—'.repeat(28)}\n${S.settings.rcptFooter||'Thank you!'}\n\n\n`;
-}
-// btPrint moved to bottom
-
-// INIT
-// CAMERA
-let _camStream=null;
-async function openCamera(purpose){
-  openModal('camera',{purpose});
-  await new Promise(r=>setTimeout(r,300));
-  try{
-    _camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-    const vid=document.getElementById('cam-preview');
-    if(vid){vid.srcObject=_camStream;}
-  }catch(e){toast('Camera not available: '+e.message);}
-}
-function stopCamera(){if(_camStream){_camStream.getTracks().forEach(t=>t.stop());_camStream=null;}}
-function capturePhoto(purpose){
-  const vid=document.getElementById('cam-preview');
-  const canvas=document.getElementById('cam-canvas');
-  const img=document.getElementById('cam-img');
-  if(!vid||!canvas)return;
-  canvas.width=vid.videoWidth;canvas.height=vid.videoHeight;
-  canvas.getContext('2d').drawImage(vid,0,0);
-  const dataUrl=canvas.toDataURL('image/jpeg',0.9);
-  if(img)img.src=dataUrl;
-  document.getElementById('cam-preview').style.display='none';
-  document.getElementById('cam-captured').style.display='block';
-  document.getElementById('cam-capture-btn').style.display='none';
-  document.getElementById('cam-retake').style.display='inline-flex';
-  document.getElementById('cam-save-btn').style.display='inline-flex';
-  canvas.dataset.dataUrl=dataUrl;
-  canvas.dataset.purpose=purpose;
-}
-function retakePhoto(){
-  document.getElementById('cam-preview').style.display='block';
-  document.getElementById('cam-captured').style.display='none';
-  document.getElementById('cam-capture-btn').style.display='inline-flex';
-  document.getElementById('cam-retake').style.display='none';
-  document.getElementById('cam-save-btn').style.display='none';
-}
-function savePhoto(purpose){
-  const canvas=document.getElementById('cam-canvas');
-  if(!canvas)return;
-  const dataUrl=canvas.dataset.dataUrl;
-  if(!dataUrl)return;
-  const link=document.createElement('a');
-  const now=new Date();
-  const timeStr=now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true}).replace(/:/g,'-').replace(/ /g,'');
-  const dateStr=(now.getMonth()+1)+'-'+now.getDate()+'-'+(now.getFullYear()+'').slice(2);
-  // Build drink name from current cart
-  const drinkName=U.cart.length?U.cart.map(c=>c.name.replace(/[^a-zA-Z0-9]/g,'')).join('_'):'order';
-  const filename=`${drinkName}-${timeStr}-${dateStr}.jpg`;
-  link.download=filename;
-  link.href=dataUrl;
-  link.click();
-  if(purpose==='ref')U.payRef='[Ref photo: '+filename+']';
-  if(purpose==='id')U.discPhoto=dataUrl;
-  stopCamera();closeModal();
-  toast('Photo saved: '+filename);ra();
-}
-
-// BLUETOOTH PRINTER
-let _savedPrinterDevice=null;
-async function connectPrinter(){
-  if(!navigator.bluetooth){toast('Bluetooth not supported on this browser.');return;}
-  try{
-    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
-    _savedPrinterDevice=dev;
-    S.settings.savedPrinterName=dev.name||'Bluetooth Printer';
-    saveCore();ra();
-    toast('Printer saved: '+S.settings.savedPrinterName);
-  }catch(e){toast('Printer connection cancelled.');}
-}
-async function btPrint(type,oid){
-  const o=S.orders.find(x=>x.id===oid);if(!o)return;
-  const texts=type==='chit'?buildChit(o):[buildRcpt(o)];
-  const text=texts.join('\f');
-  const printViaBluetoothDevice=async(dev)=>{
-    const srv=await dev.gatt.connect();
-    for(const svc of['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']){
-      try{const s=await srv.getPrimaryService(svc);const cs=await s.getCharacteristics();const w=cs.find(c=>c.properties.write||c.properties.writeWithoutResponse);if(w){const enc=new TextEncoder().encode(text);const chunk=512;for(let i=0;i<enc.length;i+=chunk){await w.writeValue(enc.slice(i,i+chunk));}toast('Sent to printer!');return true;}}catch(e){}
-    }
-    return false;
-  };
-  // Try saved printer first
-  if(_savedPrinterDevice){
-    try{const ok=await printViaBluetoothDevice(_savedPrinterDevice);if(ok)return;}catch(e){_savedPrinterDevice=null;}
-  }
-  const pa=document.getElementById('print-area');
-  if(type==='chit'){
-    const chitSize=S.settings.chitPaperSize||'40x30';
-    const wMm=chitSize==='custom'?(S.settings.chitW||40):parseInt(chitSize.split('x')[0]);
-    pa.style.width=wMm+'mm';
-    pa.style.fontSize='7pt';
-    pa.className='chit-size';
-  } else {
-    const rcptW=S.settings.rcptPaperSize||'80mm';
-    pa.style.width=rcptW;
-    pa.style.fontSize='9pt';
-    pa.className='receipt-size';
-  }
-  pa.innerHTML=`<pre>${text}</pre>`;
-  if(!navigator.bluetooth){window.print();return;}
-  try{
-    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
-    await printViaBluetoothDevice(dev);
-  }catch(e){window.print();}
-}
-function printBoth(oid){btPrint('chit',oid);setTimeout(()=>btPrint('receipt',oid),2000);}
-
-(async()=>{await loadData();ra();})();
-
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/sw.js').then(reg=>{
-      // Check for updates every 2 minutes
-      setInterval(()=>reg.update(),120000);
-      // Listen for new SW taking over — reload the page
-      reg.addEventListener('updatefound',()=>{
-        const newSW=reg.installing;
-        newSW.addEventListener('statechange',()=>{
-          if(newSW.state==='activated'){
-            window.location.reload();
-          }
-        });
-      });
-    }).catch(e=>console.log('SW failed:',e));
-    // Listen for message from SW telling us to reload
-    navigator.serviceWorker.addEventListener('message',e=>{
-      if(e.data&&e.data.type==='SW_UPDATED'){
-        window.location.reload();
-      }
-    });
-  });
-}
-</script>
-</body>
-</html>
+// Sanitize text for thermal printer (remove emojis/special chars that cause Chinese garbage)
+function sanitizePrint(str){
+  return (str||'').replace(/[^
