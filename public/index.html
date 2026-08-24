@@ -1837,4 +1837,209 @@ function dRange(preset,start,end){
 // PRINT
 // Sanitize text for thermal printer (remove emojis/special chars that cause Chinese garbage)
 function sanitizePrint(str){
-  return (str||'').replace(/[^
+  if(!str)return'';
+  let out='';
+  for(let i=0;i<str.length;i++){
+    const c=str[i];const code=str.charCodeAt(i);
+    if(code<128){out+=c;}
+    else{
+      if(c==='\u20b1')out+='P';
+      else if(c==='\u2014'||c==='\u2013')out+='-';
+      else if(c==='\u00d7')out+='x';
+      else if(c==='\u00b7')out+='.';
+      else if(c==='\u2026')out+='...';
+    }
+  }
+  return out;
+}
+function pLine(label,val,width){
+  width=width||32;
+  const l=sanitizePrint(label);const v=sanitizePrint(val);
+  const space=Math.max(1,width-l.length-v.length);
+  return l+' '.repeat(space)+v;
+}
+function buildChit(o){
+  const div='-'.repeat(32);
+  return o.items.map(item=>{
+    const hdr=sanitizePrint(S.settings.chitHeader||'CAFE YOTO');
+    let t='';
+    t+=hdr+'\n';
+    t+='#'+o.number+'  '+sanitizePrint(o.orderType.toUpperCase())+'\n';
+    t+=div+'\n';
+    t+=sanitizePrint(item.name)+'\n';
+    if(item.addons&&item.addons.length)t+='  +'+item.addons.map(a=>sanitizePrint(a.name)).join(', +')+'\n';
+    if(item.note)t+='  Note: '+sanitizePrint(item.note)+'\n';
+    t+=div+'\n';
+    t+=fdt(o.timestamp)+' '+ftm(o.timestamp)+'\n';
+    t+='WiFi: '+sanitizePrint(S.settings.wifiPw||'-')+'\n';
+    t+='\n\n\n';
+    return t;
+  });
+}
+function buildRcpt(o){
+  const div='-'.repeat(32);
+  const pesoP=n=>'P'+(Math.round((n||0)*100)/100).toFixed(2);
+  let t='';
+  t+=sanitizePrint(S.settings.rcptHeader||'CAFE YOTO')+'\n';
+  t+=div+'\n';
+  t+='#'+o.number+'  '+sanitizePrint(o.orderType)+'  '+ftm(o.timestamp)+'\n';
+  t+=sanitizePrint(o.employeeName)+'\n';
+  t+=div+'\n';
+  o.items.forEach(i=>{
+    t+=pLine(sanitizePrint(i.name),pesoP(i.price));
+    (i.addons||[]).forEach(a=>{t+='\n  +'+sanitizePrint(a.name)+' '+pesoP(a.price);});
+    if(i.note)t+='\n  Note: '+sanitizePrint(i.note);
+    t+='\n';
+  });
+  t+=div+'\n';
+  t+=pLine('Subtotal:',pesoP(o.sub))+'\n';
+  if(o.discount>0)t+=pLine('Discount:','-'+pesoP(o.discount))+'\n';
+  t+=pLine('VAT:',pesoP(o.vat))+'\n';
+  t+=pLine('TOTAL:',pesoP(o.total))+'\n';
+  t+=div+'\n';
+  t+=sanitizePrint(o.paymentMethod);
+  if(o.paymentMethod==='Cash'&&o.tendered)t+='  Change: '+pesoP(Math.max(0,o.tendered-o.total));
+  t+='\n';
+  if(o.payRef)t+='Ref: '+sanitizePrint(o.payRef)+'\n';
+  if(o.discName)t+='ID: '+sanitizePrint(o.discName)+' ('+sanitizePrint(o.discId)+')\n';
+  t+=div+'\n';
+  t+=sanitizePrint(S.settings.rcptFooter||'Thank you!')+'\n\n\n';
+  return t;
+}
+// btPrint moved to bottom
+
+// INIT
+// CAMERA
+let _camStream=null;
+async function openCamera(purpose){
+  openModal('camera',{purpose});
+  await new Promise(r=>setTimeout(r,300));
+  try{
+    _camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    const vid=document.getElementById('cam-preview');
+    if(vid){vid.srcObject=_camStream;}
+  }catch(e){toast('Camera not available: '+e.message);}
+}
+function stopCamera(){if(_camStream){_camStream.getTracks().forEach(t=>t.stop());_camStream=null;}}
+function capturePhoto(purpose){
+  const vid=document.getElementById('cam-preview');
+  const canvas=document.getElementById('cam-canvas');
+  const img=document.getElementById('cam-img');
+  if(!vid||!canvas)return;
+  canvas.width=vid.videoWidth;canvas.height=vid.videoHeight;
+  canvas.getContext('2d').drawImage(vid,0,0);
+  const dataUrl=canvas.toDataURL('image/jpeg',0.9);
+  if(img)img.src=dataUrl;
+  document.getElementById('cam-preview').style.display='none';
+  document.getElementById('cam-captured').style.display='block';
+  document.getElementById('cam-capture-btn').style.display='none';
+  document.getElementById('cam-retake').style.display='inline-flex';
+  document.getElementById('cam-save-btn').style.display='inline-flex';
+  canvas.dataset.dataUrl=dataUrl;
+  canvas.dataset.purpose=purpose;
+}
+function retakePhoto(){
+  document.getElementById('cam-preview').style.display='block';
+  document.getElementById('cam-captured').style.display='none';
+  document.getElementById('cam-capture-btn').style.display='inline-flex';
+  document.getElementById('cam-retake').style.display='none';
+  document.getElementById('cam-save-btn').style.display='none';
+}
+function savePhoto(purpose){
+  const canvas=document.getElementById('cam-canvas');
+  if(!canvas)return;
+  const dataUrl=canvas.dataset.dataUrl;
+  if(!dataUrl)return;
+  const link=document.createElement('a');
+  const now=new Date();
+  const timeStr=now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true}).replace(/:/g,'-').replace(/ /g,'');
+  const dateStr=(now.getMonth()+1)+'-'+now.getDate()+'-'+(now.getFullYear()+'').slice(2);
+  // Build drink name from current cart
+  const drinkName=U.cart.length?U.cart.map(c=>c.name.replace(/[^a-zA-Z0-9]/g,'')).join('_'):'order';
+  const filename=`${drinkName}-${timeStr}-${dateStr}.jpg`;
+  link.download=filename;
+  link.href=dataUrl;
+  link.click();
+  if(purpose==='ref')U.payRef='[Ref photo: '+filename+']';
+  if(purpose==='id')U.discPhoto=dataUrl;
+  stopCamera();closeModal();
+  toast('Photo saved: '+filename);ra();
+}
+
+// BLUETOOTH PRINTER
+let _savedPrinterDevice=null;
+async function connectPrinter(){
+  if(!navigator.bluetooth){toast('Bluetooth not supported on this browser.');return;}
+  try{
+    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
+    _savedPrinterDevice=dev;
+    S.settings.savedPrinterName=dev.name||'Bluetooth Printer';
+    saveCore();ra();
+    toast('Printer saved: '+S.settings.savedPrinterName);
+  }catch(e){toast('Printer connection cancelled.');}
+}
+async function btPrint(type,oid){
+  const o=S.orders.find(x=>x.id===oid);if(!o)return;
+  const texts=type==='chit'?buildChit(o):[buildRcpt(o)];
+  const text=texts.join('\f');
+  const printViaBluetoothDevice=async(dev)=>{
+    const srv=await dev.gatt.connect();
+    for(const svc of['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']){
+      try{const s=await srv.getPrimaryService(svc);const cs=await s.getCharacteristics();const w=cs.find(c=>c.properties.write||c.properties.writeWithoutResponse);if(w){const enc=new TextEncoder().encode(text);const chunk=512;for(let i=0;i<enc.length;i+=chunk){await w.writeValue(enc.slice(i,i+chunk));}toast('Sent to printer!');return true;}}catch(e){}
+    }
+    return false;
+  };
+  // Try saved printer first
+  if(_savedPrinterDevice){
+    try{const ok=await printViaBluetoothDevice(_savedPrinterDevice);if(ok)return;}catch(e){_savedPrinterDevice=null;}
+  }
+  const pa=document.getElementById('print-area');
+  if(type==='chit'){
+    const chitSize=S.settings.chitPaperSize||'40x30';
+    const wMm=chitSize==='custom'?(S.settings.chitW||40):parseInt(chitSize.split('x')[0]);
+    pa.style.width=wMm+'mm';
+    pa.style.fontSize='7pt';
+    pa.className='chit-size';
+  } else {
+    const rcptW=S.settings.rcptPaperSize||'80mm';
+    pa.style.width=rcptW;
+    pa.style.fontSize='9pt';
+    pa.className='receipt-size';
+  }
+  pa.innerHTML=`<pre>${text}</pre>`;
+  if(!navigator.bluetooth){window.print();return;}
+  try{
+    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
+    await printViaBluetoothDevice(dev);
+  }catch(e){window.print();}
+}
+function printBoth(oid){btPrint('chit',oid);setTimeout(()=>btPrint('receipt',oid),2000);}
+
+(async()=>{await loadData();ra();})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js').then(reg=>{
+      // Check for updates every 2 minutes
+      setInterval(()=>reg.update(),120000);
+      // Listen for new SW taking over — reload the page
+      reg.addEventListener('updatefound',()=>{
+        const newSW=reg.installing;
+        newSW.addEventListener('statechange',()=>{
+          if(newSW.state==='activated'){
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(e=>console.log('SW failed:',e));
+    // Listen for message from SW telling us to reload
+    navigator.serviceWorker.addEventListener('message',e=>{
+      if(e.data&&e.data.type==='SW_UPDATED'){
+        window.location.reload();
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>
