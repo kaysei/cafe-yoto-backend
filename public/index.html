@@ -13,6 +13,7 @@
 <title>Cafe Yoto</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
 :root{
 --bg:#F4F7FD;--surf:#fff;--surf2:#EEF3FC;--ink:#161B26;--ink2:#616B82;--ink3:#9AA4BD;
@@ -534,6 +535,9 @@ function ra(){
 function _ra(){
   const m=mode();
   const low=lowList().length+soList().length;
+  // Save scroll position of content area
+  const contentEl=document.getElementById('content');
+  const savedScroll=contentEl?contentEl.scrollTop:0;
   document.getElementById('app').innerHTML=`
   <div class="sb">
     <div class="sb-logo">CY</div>
@@ -562,6 +566,9 @@ function _ra(){
   ${modalRender()}
   `;
   tickClock();
+  // Restore scroll position
+  const newContent=document.getElementById('content');
+  if(newContent&&savedScroll)newContent.scrollTop=savedScroll;
 }
 function ni(view,label,icon,dot){
   return`<div class="ni ${U.view===view?'act':''}" onclick="setView('${view}')" title="${label}">${icon}<span class="tip">${label}</span>${dot?'<span class="dot"></span>':''}</div>`;
@@ -1223,6 +1230,8 @@ function rAdminShifts(){
   if(U.adminShiftDate===undefined)U.adminShiftDate=todayStr2;
   const endDate=U.adminShiftEnd||selDate;
   const allShifts=S.shifts.filter(s=>{
+    const emp=S.employees.find(e=>e.id===s.employeeId);
+    if(emp&&(emp.role||'').toLowerCase()==='owner')return false;
     if(!selDate)return true;
     const d=s.timeIn.slice(0,10);
     return d>=selDate&&d<=(endDate||selDate);
@@ -1299,6 +1308,23 @@ function buildShiftsLogHtml(myShifts){
       </table>
     </div>`;
   }).join('');
+}
+function salaryPaidBanner(){
+  const periodKey=(U.salaryPreset||'all')==='custom'?(U.salaryStart+'_'+U.salaryEnd):(U.salaryPreset||'all');
+  const paidMap=S.settings.salaryPaidPeriods||{};
+  const isPaid=!!paidMap[periodKey];
+  const paidDate=isPaid&&paidMap[periodKey]?fdt(paidMap[periodKey]):'';
+  const bg=isPaid?'var(--greensoft)':'var(--surf2)';
+  const color=isPaid?'var(--green)':'var(--ink2)';
+  const btnCls=isPaid?'btn-out':'btn-grn';
+  const btnLbl=isPaid?'Mark Unpaid':'Mark as Paid';
+  const statusTxt=isPaid?'✓ Salary Paid for this period':'Not yet paid for this period';
+  const encodedKey=encodeURIComponent(periodKey);
+  return `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:${bg};border-radius:10px;flex-wrap:wrap;">
+    <span style="font-size:.82rem;font-weight:700;color:${color};">${statusTxt}</span>
+    <button class="btn btn-sm ${btnCls}" onclick="togglePeriodPaid(decodeURIComponent('${encodedKey}'))">${btnLbl}</button>
+    ${paidDate?`<span style="font-size:.72rem;color:var(--ink2);">Paid on ${paidDate}</span>`:''}
+  </div>`;
 }
 function safeAdminShifts(){try{return rAdminShifts();}catch(e){return'<div style="color:var(--red);padding:12px;font-weight:700;">Shifts error: '+e.message+'</div>';}}
 function rAdmin(){
@@ -1447,16 +1473,7 @@ function rAdmin(){
           <span style="font-size:.8rem;">to</span>
           <input type="date" value="${U.salaryEnd||''}" onchange="U.salaryEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;">`:''}
         </div>
-        ${(()=>{
-          const periodKey=(U.salaryPreset||'all')==='custom'?(U.salaryStart+'_'+U.salaryEnd):(U.salaryPreset||'all');
-          const paidMap=S.settings.salaryPaidPeriods||{};
-          const isPaid=!!paidMap[periodKey];
-          return`<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:${isPaid?'var(--greensoft)':'var(--surf2)'};border-radius:10px;">
-            <span style="font-size:.82rem;font-weight:700;color:${isPaid?'var(--green)':'var(--ink2)'};">${isPaid?'✓ Salary Paid for this period':'Not yet paid for this period'}</span>
-            <button class="btn btn-sm ${isPaid?'btn-out':'btn-grn'}" onclick="togglePeriodPaid('${periodKey}')">${isPaid?'Mark Unpaid':'Mark as Paid'}</button>
-            ${isPaid&&paidMap[periodKey]?`<span style="font-size:.72rem;color:var(--ink2);">Paid on ${fdt(paidMap[periodKey])}</span>`:''}
-          </div>`;
-        })()}
+        ${salaryPaidBanner()}}
       </div>
       ${staffEmps.length?`<div style="overflow-x:auto;"><table>
         <thead><tr><th>Name</th><th>Hrs</th><th>Earned</th><th>Tips (₱)</th><th>Penalty</th><th style="color:var(--blue2);">Total Earned</th><th>Status</th></tr></thead>
@@ -1553,29 +1570,96 @@ function updChitPrev(){
   el.style.width=(S.settings.chitWidth||200)+'px';
   const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
 }
+function styleCell(v,bold,bg,color,border){
+  const XLS=typeof XLSXStyle!=='undefined'?XLSXStyle:XLSX;
+  const c={v,t:typeof v==='number'?'n':'s'};
+  c.s={font:{bold:!!bold,color:{rgb:color||'000000'},sz:11},
+    fill:bg?{fgColor:{rgb:bg},patternType:'solid'}:{},
+    alignment:{vertical:'center',wrapText:true},
+    border:border?{top:{style:'thin',color:{rgb:'CCCCCC'}},bottom:{style:'thin',color:{rgb:'CCCCCC'}},left:{style:'thin',color:{rgb:'CCCCCC'}},right:{style:'thin',color:{rgb:'CCCCCC'}}}:{}};
+  return c;
+}
 function exportShiftsXls(startDate,endDate){
   endDate=endDate||startDate;
-  const shifts=startDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=startDate&&d<=(endDate||startDate);}):S.shifts;
-  const rows=[['Name','Work Type','Date','Time In','Time Out','Hours','Status','Pay (₱)','Tips (₱)','Salary Status','Location','Device']];
-  shifts.sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn)).forEach(s=>{
+  const XLS=typeof XLSXStyle!=='undefined'?XLSXStyle:XLSX;
+  const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
+  const allShifts=(startDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=startDate&&d<=(endDate||startDate);}):S.shifts)
+    .filter(s=>{const emp=S.employees.find(e=>e.id===s.employeeId);return!emp||(emp.role||'').toLowerCase()!=='owner';})
+    .sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn));
+  const wb=XLS.utils.book_new();
+  const periodLabel=startDate?(startDate+(endDate&&endDate!==startDate?' to '+endDate:'')):'All Time';
+
+  // ── Sheet 1: Summary ──
+  const HDR='1F4E79'; const HDR2='2E75B6'; const GOLD='C9A84C'; const GRN='375623'; const RED='9C0006'; const GRAY='D9D9D9'; const WHITE='FFFFFF';
+  const ws={};
+  let r=0;
+  // Title
+  ws[XLS.utils.encode_cell({r,c:0})]=styleCell('CAFE YOTO - STAFF SALARY REPORT',true,HDR,WHITE,false);
+  for(let c=1;c<8;c++)ws[XLS.utils.encode_cell({r,c})]=styleCell('',false,HDR,WHITE,false);
+  r++;
+  ws[XLS.utils.encode_cell({r,c:0})]=styleCell('Period: '+periodLabel,false,HDR2,WHITE,false);
+  for(let c=1;c<8;c++)ws[XLS.utils.encode_cell({r,c})]=styleCell('',false,HDR2,WHITE,false);
+  r++;r++;
+  // Header row
+  const headers=['NAME','ASSIGNED SHIFTS','HOURS WORKED','EARNED (P)','TIPS (P)','PENALTY (P)','TOTAL EARNED (P)','STATUS'];
+  headers.forEach((h,c)=>ws[XLS.utils.encode_cell({r,c})]=styleCell(h,true,HDR,WHITE,true));
+  r++;
+  let grandTotal=0;
+  staffEmps.forEach((e,ei)=>{
+    const empShifts=allShifts.filter(s=>s.employeeId===e.id&&s.timeOut);
+    const totalMins=empShifts.reduce((sum,s)=>sum+Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000),0);
+    const h=Math.floor(totalMins/60);const m=totalMins%60;
+    const hrsStr=m>0?h+'hr '+m+'min':h+'hr';
+    const earned=empShifts.reduce((sum,s)=>{const ms=new Date(s.timeOut)-new Date(s.timeIn);const totalM=Math.floor(ms/60000);const fullH=Math.floor(totalM/60);const remM=totalM%60;const wt=(s.workType||'barista').toLowerCase();const hr=wt==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);return sum+fullH*hr+Math.floor(remM/5)*5;},0);
+    const penalty=empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
+    const tips=e.tips||0;const total=earned-penalty+tips;grandTotal+=total;
+    const shiftDays=empShifts.map(s=>new Date(s.timeIn).toLocaleDateString('en-PH',{month:'short',day:'numeric'})).join(', ');
+    const rowBg=ei%2===0?'EBF3FB':WHITE;
+    const vals=[e.name,shiftDays||'—',hrsStr,earned,tips,penalty,total,e.salaryPaid?'PAID':'UNPAID'];
+    vals.forEach((v,c)=>{
+      const isMoney=c>=3&&c<=6;const isStatus=c===7;
+      const color=isStatus?(e.salaryPaid?GRN:RED):'000000';
+      const bg=isStatus?(e.salaryPaid?'E2EFDA':'FFCCCC'):rowBg;
+      ws[XLS.utils.encode_cell({r,c})]=styleCell(v,c===0,bg,color,true);
+    });
+    r++;
+  });
+  r++;
+  // Total row
+  const totVals=['','','','','','','TOTAL PAYROLL',grandTotal];
+  totVals.forEach((v,c)=>ws[XLS.utils.encode_cell({r,c})]=styleCell(v,true,GOLD,WHITE,true));
+  ws['!ref']=XLS.utils.encode_range({s:{r:0,c:0},e:{r,c:7}});
+  ws['!cols']=[{wch:14},{wch:35},{wch:14},{wch:12},{wch:10},{wch:12},{wch:16},{wch:10}];
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:7}},{s:{r:1,c:0},e:{r:1,c:7}}];
+  ws['!rows']=Array(r+1).fill({hpt:20});
+  XLS.utils.book_append_sheet(wb,ws,'Summary');
+
+  // ── Sheet 2: Detail log ──
+  const ws2={};
+  let r2=0;
+  const dHeaders=['NAME','WORK TYPE','DATE','TIME IN','TIME OUT','HOURS','STATUS','PAY (P)','TIPS','LOCATION'];
+  dHeaders.forEach((h,c)=>ws2[XLS.utils.encode_cell({r:r2,c})]=styleCell(h,true,HDR,WHITE,true));
+  r2++;
+  allShifts.forEach((s,ei)=>{
     const emp=S.employees.find(e=>e.id===s.employeeId)||{};
     const st=shiftStatus(s);
     const dur=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
     const h=Math.floor(dur/60);const m=dur%60;
     const hrsStr=m>0?h+'hr '+m+'min':h+'hr';
     const pay=s.timeOut?calcPay(emp,s):0;
-    rows.push([
-      emp.name||'—',s.workType||'—',fdt(s.timeIn),ftm(s.timeIn),
-      s.timeOut?ftm(s.timeOut):'ongoing',hrsStr,
-      st==='late'?'Late':st==='valid'?'Valid':'Present',
-      pay,s.tips||0,emp.salaryPaid?'Paid':'Unpaid',
-      s.location||'—',s.device||'—'
-    ]);
+    const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
+    const rowBg=ei%2===0?'EBF3FB':WHITE;
+    const stColor=st==='late'?RED:st==='valid'?GRN:'000000';
+    const vals=[emp.name||'—',s.workType||'—',fdt(s.timeIn),ftm(s.timeIn),s.timeOut?ftm(s.timeOut):'ongoing',hrsStr,stLabel,pay,s.tips||0,(s.location||'—').split(',').slice(0,2).join(',')];
+    vals.forEach((v,c)=>ws2[XLS.utils.encode_cell({r:r2,c})]=styleCell(v,c===0,c===6?'':rowBg,c===6?stColor:'000000',true));
+    r2++;
   });
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Shifts');
-  XLSX.writeFile(wb,'CafeYoto-Shifts-'+(startDate||'all')+(endDate&&endDate!==startDate?'-to-'+endDate:'')+'.xlsx');
-  toast('Shifts exported!');
+  ws2['!ref']=XLS.utils.encode_range({s:{r:0,c:0},e:{r:r2,c:9}});
+  ws2['!cols']=[{wch:12},{wch:14},{wch:14},{wch:10},{wch:10},{wch:12},{wch:10},{wch:10},{wch:8},{wch:28}];
+  XLS.utils.book_append_sheet(wb,ws2,'Shift Details');
+
+  XLS.writeFile(wb,'CafeYoto-Salary-'+periodLabel.replace(/ /g,'')+'.xlsx');
+  toast('Exported with styling!');
 }
 function togglePeriodPaid(periodKey){
   if(!S.settings.salaryPaidPeriods)S.settings.salaryPaidPeriods={};
