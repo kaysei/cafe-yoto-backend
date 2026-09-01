@@ -1408,12 +1408,23 @@ function rAdmin(){
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
         <div style="font-size:.76rem;color:var(--ink2);">Period:</div>
-        ${[['all','All time'],['month','This month'],['week','This week'],['today','Today'],['custom','Custom']].map(([k,l])=>`<button class="btn btn-sm ${(U.salaryPreset||'all')===k?'btn-blue':'btn-out'}" onclick="U.salaryPreset='${k}';ra();">${l}</button>`).join('')}
-        ${(U.salaryPreset||'all')==='custom'?`<div style="display:flex;align-items:center;gap:5px;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          ${[['all','All time'],['month','This month'],['week','This week'],['today','Today'],['custom','Custom']].map(([k,l])=>`<button class="btn btn-sm ${(U.salaryPreset||'all')===k?'btn-blue':'btn-out'}" onclick="U.salaryPreset='${k}';if(k==='custom'&&!U.salaryStart){const t=today();U.salaryStart=t;U.salaryEnd=t;}ra();">${l}</button>`).join('')}
+          ${(U.salaryPreset||'all')==='custom'?`
           <input type="date" value="${U.salaryStart||''}" onchange="U.salaryStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;">
           <span style="font-size:.8rem;">to</span>
-          <input type="date" value="${U.salaryEnd||''}" onchange="U.salaryEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;">
-        </div>`:''}
+          <input type="date" value="${U.salaryEnd||''}" onchange="U.salaryEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;">`:''}
+        </div>
+        ${(()=>{
+          const periodKey=(U.salaryPreset||'all')==='custom'?(U.salaryStart+'_'+U.salaryEnd):(U.salaryPreset||'all');
+          const paidMap=S.settings.salaryPaidPeriods||{};
+          const isPaid=!!paidMap[periodKey];
+          return`<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:${isPaid?'var(--greensoft)':'var(--surf2)'};border-radius:10px;">
+            <span style="font-size:.82rem;font-weight:700;color:${isPaid?'var(--green)':'var(--ink2)'};">${isPaid?'✓ Salary Paid for this period':'Not yet paid for this period'}</span>
+            <button class="btn btn-sm ${isPaid?'btn-out':'btn-grn'}" onclick="togglePeriodPaid('${periodKey}')">${isPaid?'Mark Unpaid':'Mark as Paid'}</button>
+            ${isPaid&&paidMap[periodKey]?`<span style="font-size:.72rem;color:var(--ink2);">Paid on ${fdt(paidMap[periodKey])}</span>`:''}
+          </div>`;
+        })()}
       </div>
       ${staffEmps.length?`<div style="overflow-x:auto;"><table>
         <thead><tr><th>Name</th><th>Hrs</th><th>Earned</th><th>Tips (₱)</th><th>Penalty</th><th style="color:var(--blue2);">Total Earned</th><th>Status</th></tr></thead>
@@ -1533,6 +1544,17 @@ function exportShiftsXls(dateFilter){
   XLSX.writeFile(wb,'CafeYoto-Shifts-'+(dateFilter||'all')+'.xlsx');
   toast('Shifts exported!');
 }
+function togglePeriodPaid(periodKey){
+  if(!S.settings.salaryPaidPeriods)S.settings.salaryPaidPeriods={};
+  if(S.settings.salaryPaidPeriods[periodKey]){
+    delete S.settings.salaryPaidPeriods[periodKey];
+    toast('Marked as unpaid.');
+  } else {
+    S.settings.salaryPaidPeriods[periodKey]=new Date().toISOString();
+    toast('Salary marked as Paid!');
+  }
+  saveCore();ra();
+}
 function toggleSalaryPaid(empId){
   const e=S.employees.find(x=>x.id===empId);if(!e)return;
   e.salaryPaid=!e.salaryPaid;
@@ -1543,12 +1565,22 @@ function toggleSalaryPaid(empId){
 function exportSalaryXls(){
   const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
   const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
-  const rows=[['Name','Hours','Earned (₱)','Tips (₱)','Penalty (₱)','Total Earned (₱)','Status','Paid Date']];
+  const periodKey=(U.salaryPreset||'all')==='custom'?(U.salaryStart+'_'+U.salaryEnd):(U.salaryPreset||'all');
+  const paidMap=S.settings.salaryPaidPeriods||{};
+  const periodPaid=!!paidMap[periodKey];
+  const periodLabel=(U.salaryPreset||'all')==='custom'?(U.salaryStart+' to '+U.salaryEnd):(U.salaryPreset||'all');
+  const wb=XLSX.utils.book_new();
+  // ── Styled like your screenshot ──
+  const wsData=[];
+  wsData.push(['CAFE YOTO - SALARY REPORT','','','','','','','']);
+  wsData.push(['Period: '+periodLabel,'','','','','','Status: '+(periodPaid?'PAID':'UNPAID')]);
+  wsData.push([]);
+  wsData.push(['EMPLOYEE','ASSIGNED SHIFT','HOURS WORKED','EARNED (P)','TIPS (P)','PENALTY (P)','TOTAL EARNED (P)','SALARY STATUS']);
   staffEmps.forEach(e=>{
     const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
     const totalMinsAll=empShifts.reduce((sum,s)=>sum+Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000),0);
     const dispH=Math.floor(totalMinsAll/60);const dispM=totalMinsAll%60;
-    const hrsStr=dispM>0?dispH+'hr '+dispM+'min':dispH+'hr';
+    const hrsStr=dispM>0?dispH+'h '+dispM+'m':dispH+'h';
     const earnedBase=empShifts.reduce((sum,s)=>{
       const ms=new Date(s.timeOut)-new Date(s.timeIn);
       const totalM=Math.floor(ms/60000);
@@ -1560,13 +1592,21 @@ function exportSalaryXls(){
     const totalPenalty=empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
     const tips=e.tips||0;
     const total=earnedBase-totalPenalty+tips;
-    rows.push([e.name,hrsStr,earnedBase,tips,totalPenalty,total,e.salaryPaid?'Paid':'Unpaid',e.salaryPaidDate?fdt(e.salaryPaidDate):'']);
+    // List shift days as "assigned shift"
+    const shiftDays=empShifts.map(s=>new Date(s.timeIn).toLocaleDateString('en-PH',{month:'short',day:'numeric'})).join(', ');
+    wsData.push([e.name,shiftDays||'—',hrsStr,earnedBase,tips,totalPenalty,total,e.salaryPaid?'PAID':'UNPAID']);
   });
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet(rows);
+  wsData.push([]);
+  wsData.push(['','','','','','','TOTAL PAYROLL',staffEmps.reduce((sum,e)=>{
+    const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
+    const earnedBase=empShifts.reduce((s2,s)=>{const ms=new Date(s.timeOut)-new Date(s.timeIn);const totalM=Math.floor(ms/60000);const fullH=Math.floor(totalM/60);const remM=totalM%60;const wt=(s.workType||'barista').toLowerCase();const hr=wt==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);return s2+fullH*hr+Math.floor(remM/5)*5;},0);
+    return sum+earnedBase-(empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30))+(e.tips||0);
+  },0)]);
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  // Column widths
+  ws['!cols']=[{wch:16},{wch:28},{wch:14},{wch:14},{wch:10},{wch:12},{wch:16},{wch:12}];
   XLSX.utils.book_append_sheet(wb,ws,'Salary Summary');
-  const period=U.salaryPreset==='custom'?(U.salaryStart+' to '+U.salaryEnd):U.salaryPreset||'all';
-  XLSX.writeFile(wb,'CafeYoto-Salary-'+period+'-'+today()+'.xlsx');
+  XLSX.writeFile(wb,'CafeYoto-Salary-'+periodLabel.replace(/ /g,'')+'.xlsx');
   toast('Salary report exported!');
 }
 function fixEmployees(){
