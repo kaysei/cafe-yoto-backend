@@ -1222,7 +1222,11 @@ function rAdminShifts(){
   const selDate=U.adminShiftDate!==undefined?U.adminShiftDate:todayStr2;
   if(U.adminShiftDate===undefined)U.adminShiftDate=todayStr2;
   const endDate=U.adminShiftEnd||selDate;
-  const allShifts=selDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=selDate&&d<=endDate;}):S.shifts;
+  const allShifts=S.shifts.filter(s=>{
+    if(!selDate)return true;
+    const d=s.timeIn.slice(0,10);
+    return d>=selDate&&d<=(endDate||selDate);
+  });
   const myShifts=[...allShifts].sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn));
   const selLabel=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'All';
   return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
@@ -1296,6 +1300,7 @@ function buildShiftsLogHtml(myShifts){
     </div>`;
   }).join('');
 }
+function safeAdminShifts(){try{return rAdminShifts();}catch(e){return'<div style="color:var(--red);padding:12px;font-weight:700;">Shifts error: '+e.message+'</div>';}}
 function rAdmin(){
   if(!U.isAdmin){return`<div class="lockgate"><div style="font-size:2rem;">🔐</div><h2>Admin Access</h2><p>Owner only. Enter the admin password.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><div id="adm-err" style="color:var(--red);font-size:.78rem;display:none;">Incorrect password. Default is Aekei14! — if changed, check your saved settings.</div><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;}
   const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
@@ -1414,7 +1419,7 @@ function rAdmin(){
       }).join('')}
     </div>
     `:''}
-    ${admTab==='shifts_log'?`<div>${(()=>{try{return rAdminShifts();}catch(e){return'<div style="color:var(--red);padding:12px;">Error loading shifts: '+e.message+'</div>';}})()}</div>`:''}
+    ${admTab==='shifts_log'?`<div>${safeAdminShifts()}</div>`:''}
     ${admTab==='rates'?`<div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:4px;">Rates by Role</div>
       <div style="font-size:.74rem;color:var(--ink2);margin-bottom:12px;">Set the default rates per role. These apply to all staff based on their work type at time-in.</div>
