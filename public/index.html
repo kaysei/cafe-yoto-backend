@@ -1225,14 +1225,15 @@ function rAdminShifts(){
   const selLabel=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'All';
   return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
     <div style="font-size:1.1rem;font-weight:800;">${selDate===todayStr2?'Today':''+selLabel}</div>
-    <div style="display:flex;gap:8px;align-items:center;">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       ${selDate!==todayStr2?`<button class="btn btn-out btn-sm" onclick="U.adminShiftDate=today();ra();">Today</button>`:''}
       <input type="date" value="${selDate||''}" onchange="U.adminShiftDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
+      <button class="btn btn-out btn-sm" onclick="exportShiftsXls('${selDate||''}')">${IC.dl} Export Excel</button>
     </div>
   </div>
   <div style="overflow-x:auto;">
     <table style="min-width:600px;">
-      <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th><th>Pay</th><th style="max-width:120px;">Location</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th><th>Pay</th><th>Salary</th><th style="max-width:120px;">Location</th><th>Actions</th></tr></thead>
       <tbody>${myShifts.length?myShifts.map(s=>{
         const st=shiftStatus(s);
         const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
@@ -1254,6 +1255,7 @@ function rAdminShifts(){
           <td style="white-space:nowrap;">${hrsLabel}</td>
           <td><span class="pill ${stPill}" style="white-space:nowrap;">${stLabel}</span></td>
           <td style="white-space:nowrap;">${s.timeOut?peso(pay):'—'}</td>
+          <td><button class="btn btn-xs ${rowEmp.salaryPaid?'btn-grn':'btn-out'}" onclick="toggleSalaryPaid('${rowEmp.id||''}')">${rowEmp.salaryPaid?'✓ Paid':'Unpaid'}</button></td>
           <td style="font-size:.68rem;color:var(--ink2);max-width:120px;" title="${s.location||'—'}">${shortLoc}<br><span style="color:var(--ink3);">${devShort}</span></td>
           <td><div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center;">
             ${st==='late'?`<button class="btn btn-red btn-xs" style="pointer-events:none;cursor:default;">Late</button><button class="btn btn-grn btn-xs" onclick="acceptLate('${s.id}')">✓ Valid</button>`:''}
@@ -1507,6 +1509,29 @@ function updChitPrev(){
   const el=document.getElementById('chit-prev');if(!el)return;
   el.style.width=(S.settings.chitWidth||200)+'px';
   const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
+}
+function exportShiftsXls(dateFilter){
+  const shifts=dateFilter?S.shifts.filter(s=>s.timeIn.slice(0,10)===dateFilter):S.shifts;
+  const rows=[['Name','Work Type','Date','Time In','Time Out','Hours','Status','Pay (₱)','Tips (₱)','Salary Status','Location','Device']];
+  shifts.sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn)).forEach(s=>{
+    const emp=S.employees.find(e=>e.id===s.employeeId)||{};
+    const st=shiftStatus(s);
+    const dur=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
+    const h=Math.floor(dur/60);const m=dur%60;
+    const hrsStr=m>0?h+'hr '+m+'min':h+'hr';
+    const pay=s.timeOut?calcPay(emp,s):0;
+    rows.push([
+      emp.name||'—',s.workType||'—',fdt(s.timeIn),ftm(s.timeIn),
+      s.timeOut?ftm(s.timeOut):'ongoing',hrsStr,
+      st==='late'?'Late':st==='valid'?'Valid':'Present',
+      pay,s.tips||0,emp.salaryPaid?'Paid':'Unpaid',
+      s.location||'—',s.device||'—'
+    ]);
+  });
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Shifts');
+  XLSX.writeFile(wb,'CafeYoto-Shifts-'+(dateFilter||'all')+'.xlsx');
+  toast('Shifts exported!');
 }
 function toggleSalaryPaid(empId){
   const e=S.employees.find(x=>x.id===empId);if(!e)return;
