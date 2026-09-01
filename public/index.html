@@ -1580,115 +1580,127 @@ function updChitPrev(){
   el.style.width=(S.settings.chitWidth||200)+'px';
   const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
 }
-function styleCell(v,bold,bg,color,border){
-  const XLS=XLSX;
-  const c={v,t:typeof v==='number'?'n':'s'};
-  c.s={font:{bold:!!bold,color:{rgb:color||'000000'},sz:11},
-    fill:bg?{fgColor:{rgb:bg},patternType:'solid'}:{},
-    alignment:{vertical:'center',wrapText:true},
-    border:border?{top:{style:'thin',color:{rgb:'CCCCCC'}},bottom:{style:'thin',color:{rgb:'CCCCCC'}},left:{style:'thin',color:{rgb:'CCCCCC'}},right:{style:'thin',color:{rgb:'CCCCCC'}}}:{}};
-  return c;
-}
 function exportShiftsXls(startDate,endDate){
   endDate=endDate||startDate;
-  const XLS=XLSX;
-  const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
-  const allShifts=(startDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=startDate&&d<=(endDate||startDate);}):S.shifts)
-    .filter(s=>{const emp=S.employees.find(e=>e.id===s.employeeId);return!emp||(emp.role||'').toLowerCase()!=='owner';})
+  const staffFilter=s=>{const e=S.employees.find(x=>x.id===s.employeeId);return e&&(e.role||'').toLowerCase()!=='owner';};
+  const allShifts=S.shifts.filter(staffFilter)
+    .filter(s=>!startDate||(s.timeIn.slice(0,10)>=startDate&&s.timeIn.slice(0,10)<=(endDate||startDate)))
     .sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn));
-  const wb=XLS.utils.book_new();
   const periodLabel=startDate?(startDate+(endDate&&endDate!==startDate?' to '+endDate:'')):'All Time';
 
-  // ── Sheet 1: Summary ──
-  const HDR='1F4E79'; const HDR2='2E75B6'; const GOLD='C9A84C'; const GRN='375623'; const RED='9C0006'; const GRAY='D9D9D9'; const WHITE='FFFFFF';
-  const ws={};
-  let r=0;
-  // Title
-  ws[XLS.utils.encode_cell({r,c:0})]=styleCell('CAFE YOTO - STAFF SALARY REPORT',true,HDR,WHITE,false);
-  for(let c=1;c<8;c++)ws[XLS.utils.encode_cell({r,c})]=styleCell('',false,HDR,WHITE,false);
-  r++;
-  ws[XLS.utils.encode_cell({r,c:0})]=styleCell('Period: '+periodLabel,false,HDR2,WHITE,false);
-  for(let c=1;c<8;c++)ws[XLS.utils.encode_cell({r,c})]=styleCell('',false,HDR2,WHITE,false);
-  r++;r++;
-  // Header row
-  const headers=['NAME','ASSIGNED SHIFTS','HOURS WORKED','EARNED (P)','TIPS (P)','PENALTY (P)','TOTAL EARNED (P)','STATUS'];
-  headers.forEach((h,c)=>ws[XLS.utils.encode_cell({r,c})]=styleCell(h,true,HDR,WHITE,true));
-  r++;
-  let grandTotal=0;
-  staffEmps.forEach((e,ei)=>{
-    const empShifts=allShifts.filter(s=>s.employeeId===e.id&&s.timeOut);
-    const totalMins=empShifts.reduce((sum,s)=>sum+Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000),0);
-    const h=Math.floor(totalMins/60);const m=totalMins%60;
-    const hrsStr=m>0?h+'hr '+m+'min':h+'hr';
-    const earned=empShifts.reduce((sum,s)=>{const ms=new Date(s.timeOut)-new Date(s.timeIn);const totalM=Math.floor(ms/60000);const fullH=Math.floor(totalM/60);const remM=totalM%60;const wt=(s.workType||'barista').toLowerCase();const hr=wt==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);return sum+fullH*hr+Math.floor(remM/5)*5;},0);
-    const penalty=empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
-    const tips=e.tips||0;const total=earned-penalty+tips;grandTotal+=total;
-    const shiftDays=empShifts.map(s=>new Date(s.timeIn).toLocaleDateString('en-PH',{month:'short',day:'numeric'})).join(', ');
-    const rowBg=ei%2===0?'EBF3FB':WHITE;
-    const vals=[e.name,shiftDays||'—',hrsStr,earned,tips,penalty,total,e.salaryPaid?'PAID':'UNPAID'];
-    vals.forEach((v,c)=>{
-      const isMoney=c>=3&&c<=6;const isStatus=c===7;
-      const color=isStatus?(e.salaryPaid?GRN:RED):'000000';
-      const bg=isStatus?(e.salaryPaid?'E2EFDA':'FFCCCC'):rowBg;
-      ws[XLS.utils.encode_cell({r,c})]=styleCell(v,c===0,bg,color,true);
-    });
-    r++;
-  });
-  r++;
-  // Total row
-  const totVals=['','','','','','','TOTAL PAYROLL',grandTotal];
-  totVals.forEach((v,c)=>ws[XLS.utils.encode_cell({r,c})]=styleCell(v,true,GOLD,WHITE,true));
-  ws['!ref']=XLS.utils.encode_range({s:{r:0,c:0},e:{r,c:7}});
-  ws['!cols']=[{wch:14},{wch:35},{wch:14},{wch:12},{wch:10},{wch:12},{wch:16},{wch:10}];
-  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:7}},{s:{r:1,c:0},e:{r:1,c:7}}];
-  ws['!rows']=Array(r+1).fill({hpt:20});
-  XLS.utils.book_append_sheet(wb,ws,'Summary');
+  // Group by date
+  const grouped={};
+  allShifts.forEach(s=>{const d=s.timeIn.slice(0,10);if(!grouped[d])grouped[d]=[];grouped[d].push(s);});
+  const sortedDates=Object.keys(grouped).sort();
 
-  // ── Sheet 2: Detail log ──
-  const ws2={};
-  let r2=0;
-  const dHeaders=['NAME','WORK TYPE','DATE','TIME IN','TIME OUT','HOURS','STATUS','PAY (P)','TIPS','LOCATION'];
-  dHeaders.forEach((h,c)=>ws2[XLS.utils.encode_cell({r:r2,c})]=styleCell(h,true,HDR,WHITE,true));
-  r2++;
-  allShifts.forEach((s,ei)=>{
-    const emp=S.employees.find(e=>e.id===s.employeeId)||{};
-    const st=shiftStatus(s);
-    const dur=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
-    const h=Math.floor(dur/60);const m=dur%60;
-    const hrsStr=m>0?h+'hr '+m+'min':h+'hr';
-    const pay=s.timeOut?calcPay(emp,s):0;
-    const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
-    const rowBg=ei%2===0?'EBF3FB':WHITE;
-    const stColor=st==='late'?RED:st==='valid'?GRN:'000000';
-    const vals=[emp.name||'—',s.workType||'—',fdt(s.timeIn),ftm(s.timeIn),s.timeOut?ftm(s.timeOut):'ongoing',hrsStr,stLabel,pay,s.tips||0,(s.location||'—').split(',').slice(0,2).join(',')];
-    vals.forEach((v,c)=>ws2[XLS.utils.encode_cell({r:r2,c})]=styleCell(v,c===0,c===6?'':rowBg,c===6?stColor:'000000',true));
-    r2++;
-  });
-  ws2['!ref']=XLS.utils.encode_range({s:{r:0,c:0},e:{r:r2,c:9}});
-  ws2['!cols']=[{wch:12},{wch:14},{wch:14},{wch:10},{wch:10},{wch:12},{wch:10},{wch:10},{wch:8},{wch:28}];
-  XLS.utils.book_append_sheet(wb,ws2,'Shift Details');
-
-  XLS.writeFile(wb,'CafeYoto-Salary-'+periodLabel.replace(/ /g,'')+'.xlsx');
-  toast('Exported with styling!');
-}
-function togglePeriodPaid(periodKey){
-  if(!S.settings.salaryPaidPeriods)S.settings.salaryPaidPeriods={};
-  if(S.settings.salaryPaidPeriods[periodKey]){
-    delete S.settings.salaryPaidPeriods[periodKey];
-    toast('Marked as unpaid.');
-  } else {
-    S.settings.salaryPaidPeriods[periodKey]=new Date().toISOString();
-    toast('Salary marked as Paid!');
+  // Build HTML table for styled print
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  function fdt3(ds){return new Date(ds+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});}
+  function ftm3(iso){return new Date(iso).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});}
+  function shiftPay2(s){
+    if(!s.timeOut)return 0;
+    const ms=new Date(s.timeOut)-new Date(s.timeIn);
+    const totalM=Math.floor(ms/60000);const fullH=Math.floor(totalM/60);const remM=totalM%60;
+    const wt=(s.workType||'barista').toLowerCase();
+    const hr=wt==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);
+    return fullH*hr+Math.floor(remM/5)*5;
   }
-  saveCore();ra();
+
+  const wb=XLSX.utils.book_new();
+  // Use aoa with cell objects for styling
+  const rows=[];
+  const css=[];
+
+  function addRow(cells){rows.push(cells);}
+
+  // Title rows
+  addRow([{v:'CAFE YOTO — STAFF SHIFT REPORT',s:{font:{bold:true,sz:16,color:{rgb:'FFFFFF'},name:'Calibri'},fill:{fgColor:{rgb:'1F4E79'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center'},border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}}}},...Array(8).fill({v:'',s:{fill:{fgColor:{rgb:'1F4E79'},patternType:'solid'}}})]);
+  addRow([{v:'Period: '+periodLabel,s:{font:{sz:11,color:{rgb:'FFFFFF'},name:'Calibri'},fill:{fgColor:{rgb:'2E75B6'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center'}}},...Array(8).fill({v:'',s:{fill:{fgColor:{rgb:'2E75B6'},patternType:'solid'}}})]);
+  addRow(Array(9).fill({v:''}));
+
+  const mkCell=(v,bg,fg,bold,align)=>({v:v===undefined||v===null?'':v,t:typeof v==='number'?'n':'s',s:{font:{bold:!!bold,sz:11,color:{rgb:fg||'000000'},name:'Calibri'},fill:bg?{fgColor:{rgb:bg},patternType:'solid'}:{patternType:'none'},alignment:{horizontal:align||'left',vertical:'center',wrapText:true},border:{top:{style:'thin',color:{rgb:'BFBFBF'}},bottom:{style:'thin',color:{rgb:'BFBFBF'}},left:{style:'thin',color:{rgb:'BFBFBF'}},right:{style:'thin',color:{rgb:'BFBFBF'}}}}});
+
+  const empTotals={};
+
+  sortedDates.forEach(dateKey=>{
+    const dt=new Date(dateKey+'T00:00:00');
+    const dayName=days[dt.getDay()];
+    const dateLabel=fdt3(dateKey);
+    const dayShifts=grouped[dateKey];
+    const dayTotal=dayShifts.reduce((s,sh)=>s+(sh.timeOut?shiftPay2(sh):0),0);
+    const dEarned=dayShifts.reduce((s,sh)=>s+(sh.timeOut?shiftPay2(sh):0),0);
+    const dPenalty=dayShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
+
+    // Date header
+    const dateRow=[mkCell(dateLabel+' | '+dayName,'1F4E79','FFFFFF',true,'left'),
+      ...Array(7).fill(mkCell('','1F4E79','FFFFFF',false,'left')),
+      mkCell('Total: P'+dayTotal.toFixed(2),'1F4E79','BF8F00',true,'right')];
+    addRow(dateRow);
+
+    // Col headers
+    addRow(['NAME','WORK TYPE','TIME IN','TIME OUT','HRS WORKED','STATUS','EARNED (P)','PENALTY (P)','TOTAL PAY (P)']
+      .map(h=>mkCell(h,'2E75B6','FFFFFF',true,'center')));
+
+    dayShifts.forEach((s,ei)=>{
+      const emp=S.employees.find(e=>e.id===s.employeeId)||{};
+      const st=shiftStatus(s);
+      const dur=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
+      const h=Math.floor(dur/60);const m=dur%60;
+      const hrsStr=s.timeOut?(m>0?h+'hr '+m+'min':h+'hr'):'ongoing';
+      const earned=s.timeOut?shiftPay2(s):0;
+      const penalty=st==='late'?(S.settings.latePenalty||30):0;
+      const total=earned-penalty;
+      const stLabel=st==='late'?'LATE':st==='valid'?'VALID':'PRESENT';
+      const stBg=st==='late'?'FFCCCC':st==='valid'?'E2EFDA':'F2F2F2';
+      const stFg=st==='late'?'9C0006':st==='valid'?'375623':'404040';
+      const rb=ei%2===0?'EBF3FB':'FFFFFF';
+      const n=emp.name||'—';
+      if(!empTotals[n])empTotals[n]={shifts:0,earned:0,penalty:0,total:0,types:new Set()};
+      empTotals[n].shifts++;empTotals[n].earned+=earned;empTotals[n].penalty+=penalty;empTotals[n].total+=total;
+      if(s.workType)empTotals[n].types.add(s.workType);
+      addRow([
+        mkCell(n,rb,'000000',true,'left'),mkCell(s.workType||'—',rb,'000000',false,'left'),
+        mkCell(ftm3(s.timeIn),rb,'000000',false,'left'),mkCell(s.timeOut?ftm3(s.timeOut):'—',rb,'000000',false,'left'),
+        mkCell(hrsStr,rb,'000000',false,'left'),mkCell(stLabel,stBg,stFg,true,'center'),
+        mkCell(earned,rb,'000000',false,'right'),mkCell(penalty,rb,penalty>0?'9C0006':'000000',false,'right'),
+        mkCell(total,rb,'1F4E79',true,'right')
+      ]);
+    });
+
+    // Daily total
+    addRow([mkCell('','FFF2CC','BF8F00',true),mkCell('','FFF2CC'),mkCell('','FFF2CC'),mkCell('','FFF2CC'),
+      mkCell('DAILY TOTAL','FFF2CC','BF8F00',true,'center'),mkCell('','FFF2CC'),
+      mkCell(dEarned,'FFF2CC','BF8F00',true,'right'),mkCell(dPenalty,'FFF2CC',dPenalty>0?'9C0006':'BF8F00',true,'right'),
+      mkCell(dayTotal,'FFF2CC','1F4E79',true,'right')]);
+    addRow(Array(9).fill({v:''}));
+  });
+
+  // Employee summary
+  addRow(Array(9).fill({v:''}));
+  addRow([{v:'EMPLOYEE SALARY SUMMARY',s:{font:{bold:true,sz:14,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1F4E79'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center'}}},...Array(8).fill({v:'',s:{fill:{fgColor:{rgb:'1F4E79'},patternType:'solid'}}})]);
+  addRow(['EMPLOYEE','WORK TYPE','SHIFTS','TOTAL EARNED (P)','TOTAL PENALTY (P)','TOTAL PAY (P)','','','']
+    .map(h=>mkCell(h,h?'2E75B6':undefined,h?'FFFFFF':'000000',!!h,'center')));
+
+  let ge=0,gp=0,gt=0;
+  Object.entries(empTotals).sort().forEach(([name,d],ei)=>{
+    const rb=ei%2===0?'EBF3FB':'FFFFFF';
+    ge+=d.earned;gp+=d.penalty;gt+=d.total;
+    addRow([mkCell(name,rb,'000000',true),mkCell([...d.types].join(', '),rb),mkCell(d.shifts,rb,'000000',false,'center'),
+      mkCell(d.earned,rb,'000000',false,'right'),mkCell(d.penalty,rb,d.penalty>0?'9C0006':'000000',false,'right'),
+      mkCell(d.total,rb,'1F4E79',true,'right'),mkCell('','',),mkCell(''),mkCell('')]);
+  });
+  addRow([mkCell('GRAND TOTAL','FFF2CC','BF8F00',true),mkCell('','FFF2CC'),mkCell('','FFF2CC'),
+    mkCell(ge,'FFF2CC','BF8F00',true,'right'),mkCell(gp,'FFF2CC',gp>0?'9C0006':'BF8F00',true,'right'),
+    mkCell(gt,'FFF2CC','1F4E79',true,'right'),mkCell('','FFF2CC'),mkCell('','FFF2CC'),mkCell('','FFF2CC')]);
+
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:14},{wch:15},{wch:10},{wch:10},{wch:13},{wch:10},{wch:14},{wch:14},{wch:14}];
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:8}},{s:{r:1,c:0},e:{r:1,c:8}}];
+  XLSX.utils.book_append_sheet(wb,ws,'Shift Report');
+  XLSX.writeFile(wb,'CafeYoto-ShiftReport-'+periodLabel.replace(/ /g,'')+'.xlsx');
+  toast('Excel exported!');
 }
-function toggleSalaryPaid(empId){
-  const e=S.employees.find(x=>x.id===empId);if(!e)return;
-  e.salaryPaid=!e.salaryPaid;
-  e.salaryPaidDate=e.salaryPaid?new Date().toISOString():null;
-  saveCore();ra();
-  toast(e.salaryPaid?e.name+' salary marked as Paid':'Marked as unpaid');
-}
+
 function exportSalaryXls(){
   const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
   const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
