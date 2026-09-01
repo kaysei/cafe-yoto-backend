@@ -1362,10 +1362,10 @@ function rAdmin(){
       <div style="font-weight:700;margin-bottom:12px;">Receipt &amp; Chit Designer</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
         <div style="display:flex;flex-direction:column;gap:10px;">
-          <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" oninput="S.settings.rcptHeader=this.value;updRcptPrev();"></div>
-          <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" oninput="S.settings.rcptFooter=this.value;updRcptPrev();"></div>
-          <div class="field"><label>Chit Header</label><input value="${S.settings.chitHeader||''}" oninput="S.settings.chitHeader=this.value;updChitPrev();"></div>
-          <div class="field"><label>Wifi Password</label><input value="${S.settings.wifiPw||''}" oninput="S.settings.wifiPw=this.value;updChitPrev();"></div>
+          <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" onchange="S.settings.rcptHeader=this.value;saveCore();"//onchange="S.settings.rcptHeader=this.value;saveCore();updRcptPrev();"></div>
+          <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" onchange="S.settings.rcptFooter=this.value;saveCore();"//onchange="S.settings.rcptFooter=this.value;saveCore();updRcptPrev();"></div>
+          <div class="field"><label>Chit Header</label><input value="${S.settings.chitHeader||''}" onchange="S.settings.chitHeader=this.value;saveCore();"//onchange="S.settings.chitHeader=this.value;saveCore();updChitPrev();"></div>
+          <div class="field"><label>Wifi Password</label><input value="${S.settings.wifiPw||''}" onchange="S.settings.wifiPw=this.value;saveCore();"//onchange="S.settings.wifiPw=this.value;saveCore();updChitPrev();"></div>
           <div class="field"><label>Receipt Font Size: <span id="rcpt-fs-val">${S.settings.rcptFontSize||12}px</span></label>
             <input type="range" min="10" max="16" value="${S.settings.rcptFontSize||12}" oninput="S.settings.rcptFontSize=parseInt(this.value);updRcptPrev();document.getElementById('rcpt-fs-val').textContent=this.value+'px';">
           </div>
@@ -1420,7 +1420,7 @@ function rAdmin(){
     <div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:4px;">Late Penalty</div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
-        <input type="number" value="${S.settings.latePenalty||30}" oninput="S.settings.latePenalty=parseFloat(this.value)||0;" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.86rem;width:110px;background:var(--bg);">
+        <input type="number" value="${S.settings.latePenalty||30}" onchange="S.settings.latePenalty=parseFloat(this.value)||0;" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.86rem;width:110px;background:var(--bg);">
         <span style="font-size:.82rem;color:var(--ink2);">₱ deducted per late time-in (Mon–Fri only)</span>
       </div>
     </div>
@@ -1441,9 +1441,9 @@ function rAdmin(){
             ${days.map(([d,dl])=>`<div style="background:var(--bg);padding:8px 10px;border-radius:9px;">
               <div style="font-size:.7rem;font-weight:700;color:var(--ink2);margin-bottom:4px;">${dl}</div>
               <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-                <input type="time" value="${sched[d]?.start||'10:00'}" onchange="S.employees[${empIdx}].schedule=S.employees[${empIdx}].schedule||{};S.employees[${empIdx}].schedule['${d}']=S.employees[${empIdx}].schedule['${d}']||{};S.employees[${empIdx}].schedule['${d}'].start=this.value;" style="width:85px;padding:4px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:.76rem;">
+                <input type="time" value="${sched[d]?.start||'10:00'}" onchange="S.employees[${empIdx}].schedule=S.employees[${empIdx}].schedule||{};S.employees[${empIdx}].schedule['${d}']=S.employees[${empIdx}].schedule['${d}']||{};S.employees[${empIdx}].schedule['${d}'].start=this.value;saveCore();" style="width:85px;padding:4px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:.76rem;">
                 <span style="font-size:.68rem;color:var(--ink3);">–</span>
-                <input type="time" value="${sched[d]?.end||'18:00'}" onchange="S.employees[${empIdx}].schedule=S.employees[${empIdx}].schedule||{};S.employees[${empIdx}].schedule['${d}']=S.employees[${empIdx}].schedule['${d}']||{};S.employees[${empIdx}].schedule['${d}'].end=this.value;" style="width:85px;padding:4px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:.76rem;">
+                <input type="time" value="${sched[d]?.end||'18:00'}" onchange="S.employees[${empIdx}].schedule=S.employees[${empIdx}].schedule||{};S.employees[${empIdx}].schedule['${d}']=S.employees[${empIdx}].schedule['${d}']||{};S.employees[${empIdx}].schedule['${d}'].end=this.value;saveCore();" style="width:85px;padding:4px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:.76rem;">
               </div>
             </div>`).join('')}
             <div style="background:var(--surf2);padding:8px 10px;border-radius:9px;display:flex;flex-direction:column;justify-content:center;">
@@ -1463,11 +1463,11 @@ function rAdmin(){
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px;">
         <div style="background:var(--bg);border-radius:10px;padding:12px;">
           <div style="font-weight:700;margin-bottom:8px;">☕ Barista</div>
-          <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.baristaRate||64}" oninput="S.settings.baristaRate=parseFloat(this.value)||0;"></div>
+          <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.baristaRate||64}" onchange="S.settings.baristaRate=parseFloat(this.value)||0;"></div>
         </div>
         <div style="background:var(--bg);border-radius:10px;padding:12px;">
           <div style="font-weight:700;margin-bottom:8px;">🐱 Cat Care</div>
-          <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.catRate||57}" oninput="S.settings.catRate=parseFloat(this.value)||0;"></div>
+          <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.catRate||57}" onchange="S.settings.catRate=parseFloat(this.value)||0;"></div>
         </div>
       </div>
       <div style="font-weight:700;margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
@@ -1524,7 +1524,7 @@ function rAdmin(){
               </div>
             </td>
             <td>${peso(earnedBase)}</td>
-            <td><input type="number" value="${tips}" oninput="S.employees[${empIdx}].tips=parseFloat(this.value)||0;saveCore();" style="width:80px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"></td>
+            <td><input type="number" value="${tips}" onchange="S.employees[${empIdx}].tips=parseFloat(this.value)||0;saveCore();" style="width:80px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"></td>
             <td style="color:var(--red);">-${peso(totalPenalty)}</td>
             <td style="font-weight:800;color:var(--blue2);">${peso(total)}</td>
             <td><button class="btn btn-xs ${e.salaryPaid?'btn-grn':'btn-out'}" onclick="toggleSalaryPaid('${e.id}')">${e.salaryPaid?'✓ Paid':'Mark Paid'}</button></td>
@@ -1803,7 +1803,11 @@ async function resetData(){
   toast('Data reset. Shifts, orders and expenses cleared.');
   ra();
 }
-function saveAdm(){saveCore();toast('Settings saved.');}
+async function saveAdm(){
+  await saveCore();
+  toast('Settings saved!');
+  ra();
+}
 
 // NUMPAD RENDER
 function npRender(){
@@ -2059,16 +2063,17 @@ function rRcpRows(){return(U.rdraft||[]).map((r,i)=>`<div style="display:grid;gr
 function addRcpRow(){if(!S.ingredients.length){toast('Add an ingredient first.');return;}U.rdraft.push({ingredientId:S.ingredients[0].id,qty:1});const el=document.getElementById('m-rrows');if(el)el.innerHTML=rRcpRows();updRcpCost();}
 function updRcpCost(){const el=document.getElementById('m-rcost');if(el)el.textContent=peso(U.rdraft.reduce((s,r)=>{const i=ingBy(r.ingredientId);return s+(i?ucost(i)*r.qty:0);},0));}
 function saveRcp(pid){const p=S.products.find(x=>x.id===pid);if(!p)return;p.recipe=U.rdraft.filter(r=>r.ingredientId&&r.qty>0);saveCore();toast('Recipe saved.');closeModal();}
-function saveShiftEd(sid){
+async function saveShiftEd(sid){
   const s=S.shifts.find(x=>x.id===sid);if(!s)return;
   const inv=document.getElementById('m-si')?.value;
   const outv=document.getElementById('m-so2')?.value;
   const tips=parseFloat(document.getElementById('m-stips')?.value)||0;
-  // datetime-local gives local time — convert properly
   if(inv){const d=new Date(inv);s.timeIn=d.toISOString();}
   if(outv){const d=new Date(outv);s.timeOut=d.toISOString();}
   s.tips=tips;
-  saveCore();closeModal();toast('Shift updated.');
+  await saveCore();
+  closeModal();toast('Shift updated.');
+  ra();
 }
 
 // CATEGORIES
