@@ -292,6 +292,7 @@ let U={
   editSchedEmp:null,
   editGoal:false,
   adminShiftDate:undefined,
+  adminShiftEnd:null,
   salaryPreset:'all',
   salaryStart:'',
   salaryEnd:'',
@@ -1220,15 +1221,18 @@ function rAdminShifts(){
   const todayStr2=today();
   const selDate=U.adminShiftDate!==undefined?U.adminShiftDate:todayStr2;
   if(U.adminShiftDate===undefined)U.adminShiftDate=todayStr2;
-  const allShifts=selDate?S.shifts.filter(s=>s.timeIn.slice(0,10)===selDate):S.shifts;
+  const endDate=U.adminShiftEnd||selDate;
+  const allShifts=selDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=selDate&&d<=(endDate||selDate);}):S.shifts;
   const myShifts=[...allShifts].sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn));
   const selLabel=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'All';
   return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
     <div style="font-size:1.1rem;font-weight:800;">${selDate===todayStr2?'Today':''+selLabel}</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      ${selDate!==todayStr2?`<button class="btn btn-out btn-sm" onclick="U.adminShiftDate=today();ra();">Today</button>`:''}
+      ${selDate!==todayStr2?`<button class="btn btn-out btn-sm" onclick="U.adminShiftDate=today();U.adminShiftEnd=null;ra();">Today</button>`:''}
       <input type="date" value="${selDate||''}" onchange="U.adminShiftDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
-      <button class="btn btn-out btn-sm" onclick="exportShiftsXls('${selDate||''}')">${IC.dl} Export Excel</button>
+      <span style="font-size:.8rem;color:var(--ink2);">to</span>
+      <input type="date" value="${U.adminShiftEnd||selDate||''}" onchange="U.adminShiftEnd=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
+      <button class="btn btn-out btn-sm" onclick="exportShiftsXls('${selDate||''}','${U.adminShiftEnd||selDate||''}')">${IC.dl} Export Excel</button>
     </div>
   </div>
   <div style="overflow-x:auto;">
@@ -1521,8 +1525,9 @@ function updChitPrev(){
   el.style.width=(S.settings.chitWidth||200)+'px';
   const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
 }
-function exportShiftsXls(dateFilter){
-  const shifts=dateFilter?S.shifts.filter(s=>s.timeIn.slice(0,10)===dateFilter):S.shifts;
+function exportShiftsXls(startDate,endDate){
+  endDate=endDate||startDate;
+  const shifts=startDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=startDate&&d<=(endDate||startDate);}):S.shifts;
   const rows=[['Name','Work Type','Date','Time In','Time Out','Hours','Status','Pay (₱)','Tips (₱)','Salary Status','Location','Device']];
   shifts.sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn)).forEach(s=>{
     const emp=S.employees.find(e=>e.id===s.employeeId)||{};
@@ -1541,7 +1546,7 @@ function exportShiftsXls(dateFilter){
   });
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Shifts');
-  XLSX.writeFile(wb,'CafeYoto-Shifts-'+(dateFilter||'all')+'.xlsx');
+  XLSX.writeFile(wb,'CafeYoto-Shifts-'+(startDate||'all')+(endDate&&endDate!==startDate?'-to-'+endDate:'')+'.xlsx');
   toast('Shifts exported!');
 }
 function togglePeriodPaid(periodKey){
