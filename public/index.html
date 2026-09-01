@@ -1236,41 +1236,67 @@ function rAdminShifts(){
     </div>
   </div>
   <div style="overflow-x:auto;">
-    <table style="min-width:600px;">
-      <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th><th>Pay</th><th>Salary</th><th style="max-width:120px;">Location</th><th>Actions</th></tr></thead>
-      <tbody>${myShifts.length?myShifts.map(s=>{
-        const st=shiftStatus(s);
-        const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
-        const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
-        const pay=calcPay(rowEmp,s);
-        const totalMinsAdm=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
-        const hrsAdmH=Math.floor(totalMinsAdm/60);const remMinsAdm=totalMinsAdm%60;
-        const fiveRnd=Math.floor(remMinsAdm/5)*5;
-        const hrsLabel=s.timeOut?(fiveRnd>0?hrsAdmH+'hr '+fiveRnd+'min':hrsAdmH+'hr'):'—';
-        const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
-        const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
-        const shortLoc=(s.location||'—').split(',').slice(0,2).join(',');
-        const devShort=(s.device||'—').split('·')[0].trim();
-        return`<tr>
-          <td style="font-weight:600;white-space:nowrap;">${rowEmp.name||'—'}</td>
-          <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}" style="white-space:nowrap;font-size:.64rem;">${s.workType||'—'}</span></td>
-          <td style="white-space:nowrap;">${ftm(s.timeIn)}</td>
-          <td style="white-space:nowrap;">${s.timeOut?ftm(s.timeOut):'—'}</td>
-          <td style="white-space:nowrap;">${hrsLabel}</td>
-          <td><span class="pill ${stPill}" style="white-space:nowrap;">${stLabel}</span></td>
-          <td style="white-space:nowrap;">${s.timeOut?peso(pay):'—'}</td>
-          <td><button class="btn btn-xs ${rowEmp.salaryPaid?'btn-grn':'btn-out'}" onclick="toggleSalaryPaid('${rowEmp.id||''}')">${rowEmp.salaryPaid?'✓ Paid':'Unpaid'}</button></td>
-          <td style="font-size:.68rem;color:var(--ink2);max-width:120px;" title="${s.location||'—'}">${shortLoc}<br><span style="color:var(--ink3);">${devShort}</span></td>
-          <td><div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center;">
-            ${st==='late'?`<button class="btn btn-red btn-xs" style="pointer-events:none;cursor:default;">Late</button><button class="btn btn-grn btn-xs" onclick="acceptLate('${s.id}')">✓ Valid</button>`:''}
-            ${st==='valid'?`<button class="btn btn-grn btn-xs" style="pointer-events:none;cursor:default;">✓ Valid</button><button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">✗ Invalid</button>`:''}
-            ${st!=='late'&&st!=='valid'?`<button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">Mark Late</button>`:''}
-            <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
-          </div></td>
-        </tr>`;
-      }).join(''):`<tr><td colspan="9" style="color:var(--ink3);">No shifts${selDate?' on '+selLabel:''}.</td></tr>`}
-      </tbody>
-    </table>
+    ${(()=>{
+      // Group shifts by date
+      const grouped={};
+      myShifts.forEach(s=>{
+        const d=s.timeIn.slice(0,10);
+        if(!grouped[d])grouped[d]=[];
+        grouped[d].push(s);
+      });
+      const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const sortedDates=Object.keys(grouped).sort();
+      if(!sortedDates.length)return`<div class="empty"><p>No shifts for this period.</p></div>`;
+      return sortedDates.map(dateKey=>{
+        const dt=new Date(dateKey+'T00:00:00');
+        const dayName=days[dt.getDay()];
+        const dateLabel=dt.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+        const dayShifts=grouped[dateKey];
+        const dayTotal=dayShifts.reduce((s,sh)=>s+(sh.timeOut?calcPay(S.employees.find(e=>e.id===sh.employeeId)||{},sh):0),0);
+        return`<div style="margin-bottom:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--ink);color:#fff;border-radius:10px 10px 0 0;">
+            <span style="font-weight:800;font-size:.92rem;">${dateLabel} &nbsp;|&nbsp; ${dayName}</span>
+            <span style="font-size:.78rem;opacity:.8;">Total Pay: ${peso(dayTotal)}</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;">
+            <thead><tr style="background:var(--surf2);">
+              <th>Name</th><th>Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th><th>Pay</th><th>Salary</th><th>Location</th><th>Actions</th>
+            </tr></thead>
+            <tbody>${dayShifts.map(s=>{
+              const st=shiftStatus(s);
+              const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
+              const pay=calcPay(rowEmp,s);
+              const totalMinsAdm=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
+              const hrsAdmH=Math.floor(totalMinsAdm/60);const remMinsAdm=totalMinsAdm%60;
+              const fiveRnd=Math.floor(remMinsAdm/5)*5;
+              const hrsLabel=s.timeOut?(fiveRnd>0?hrsAdmH+'hr '+fiveRnd+'min':hrsAdmH+'hr'):'—';
+              const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
+              const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
+              const shortLoc=(s.location||'—').split(',').slice(0,2).join(',');
+              const devShort=(s.device||'—').split('·')[0].trim();
+              return`<tr>
+                <td style="font-weight:600;white-space:nowrap;padding:8px 10px;">${rowEmp.name||'—'}</td>
+                <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}" style="font-size:.64rem;">${s.workType||'—'}</span></td>
+                <td style="white-space:nowrap;">${ftm(s.timeIn)}</td>
+                <td style="white-space:nowrap;">${s.timeOut?ftm(s.timeOut):'—'}</td>
+                <td style="white-space:nowrap;">${hrsLabel}</td>
+                <td><span class="pill ${stPill}">${stLabel}</span></td>
+                <td style="white-space:nowrap;font-weight:700;">${s.timeOut?peso(pay):'—'}</td>
+                <td><button class="btn btn-xs ${rowEmp.salaryPaid?'btn-grn':'btn-out'}" onclick="toggleSalaryPaid('${rowEmp.id||''}')">${rowEmp.salaryPaid?'✓ Paid':'Unpaid'}</button></td>
+                <td style="font-size:.68rem;color:var(--ink2);max-width:120px;" title="${s.location||'—'}">${shortLoc}<br><span style="color:var(--ink3);">${devShort}</span></td>
+                <td><div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center;">
+                  ${st==='late'?`<button class="btn btn-red btn-xs" style="pointer-events:none;">Late</button><button class="btn btn-grn btn-xs" onclick="acceptLate('${s.id}')">✓ Valid</button>`:''}
+                  ${st==='valid'?`<button class="btn btn-grn btn-xs" style="pointer-events:none;">✓ Valid</button><button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">✗ Invalid</button>`:''}
+                  ${st!=='late'&&st!=='valid'?`<button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">Mark Late</button>`:''}
+                  <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
+                </div></td>
+              </tr>`;
+            }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      }).join('');
+    })()}
   </div>`;
 }
 function rAdmin(){
