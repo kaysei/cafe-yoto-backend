@@ -1240,6 +1240,62 @@ function rAdminShifts(){
   </div>`;
 }
 
+function buildShiftsLogHtml(myShifts){
+  const grouped={};
+  myShifts.forEach(s=>{const d=s.timeIn.slice(0,10);if(!grouped[d])grouped[d]=[];grouped[d].push(s);});
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const sortedDates=Object.keys(grouped).sort();
+  if(!sortedDates.length)return'<div class="empty"><p>No shifts for this period.</p></div>';
+  return sortedDates.map(dateKey=>{
+    const dt=new Date(dateKey+'T00:00:00');
+    const dayName=dayNames[dt.getDay()];
+    const dateLabel=dt.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+    const dayShifts=grouped[dateKey];
+    const dayTotal=dayShifts.reduce((s,sh)=>{const emp=S.employees.find(e=>e.id===sh.employeeId)||{};return s+(sh.timeOut?calcPay(emp,sh):0);},0);
+    const rows=dayShifts.map(s=>{
+      const st=shiftStatus(s);
+      const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
+      const pay=calcPay(rowEmp,s);
+      const totalMinsAdm=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
+      const hrsAdmH=Math.floor(totalMinsAdm/60);const remMinsAdm=totalMinsAdm%60;
+      const fiveRnd=Math.floor(remMinsAdm/5)*5;
+      const hrsLabel=s.timeOut?(fiveRnd>0?hrsAdmH+'hr '+fiveRnd+'min':hrsAdmH+'hr'):'—';
+      const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
+      const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
+      const shortLoc=(s.location||'—').split(',').slice(0,2).join(',');
+      const devShort=(s.device||'—').split('·')[0].trim();
+      return`<tr>
+        <td style="font-weight:600;white-space:nowrap;padding:8px 10px;">${rowEmp.name||'—'}</td>
+        <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}" style="font-size:.64rem;">${s.workType||'—'}</span></td>
+        <td style="white-space:nowrap;">${ftm(s.timeIn)}</td>
+        <td style="white-space:nowrap;">${s.timeOut?ftm(s.timeOut):'—'}</td>
+        <td style="white-space:nowrap;">${hrsLabel}</td>
+        <td><span class="pill ${stPill}">${stLabel}</span></td>
+        <td style="white-space:nowrap;font-weight:700;">${s.timeOut?peso(pay):'—'}</td>
+        <td><button class="btn btn-xs ${rowEmp.salaryPaid?'btn-grn':'btn-out'}" onclick="toggleSalaryPaid('${rowEmp.id||''}')">${rowEmp.salaryPaid?'✓ Paid':'Unpaid'}</button></td>
+        <td style="font-size:.68rem;color:var(--ink2);max-width:120px;" title="${s.location||'—'}">${shortLoc}<br><span style="color:var(--ink3);">${devShort}</span></td>
+        <td><div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center;">
+          ${st==='late'?`<button class="btn btn-red btn-xs" style="pointer-events:none;">Late</button><button class="btn btn-grn btn-xs" onclick="acceptLate('${s.id}')">✓ Valid</button>`:''}
+          ${st==='valid'?`<button class="btn btn-grn btn-xs" style="pointer-events:none;">✓ Valid</button><button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">✗ Invalid</button>`:''}
+          ${st!=='late'&&st!=='valid'?`<button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">Mark Late</button>`:''}
+          <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+    return`<div style="margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:var(--ink);color:#fff;border-radius:10px 10px 0 0;">
+        <span style="font-weight:800;">${dateLabel} &nbsp;|&nbsp; ${dayName}</span>
+        <span style="font-size:.78rem;opacity:.8;">Total: ${peso(dayTotal)}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-top:none;">
+        <thead><tr style="background:var(--surf2);">
+          <th>Name</th><th>Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th><th>Pay</th><th>Salary</th><th>Location</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
 function rAdmin(){
   if(!U.isAdmin){return`<div class="lockgate"><div style="font-size:2rem;">🔐</div><h2>Admin Access</h2><p>Owner only. Enter the admin password.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><div id="adm-err" style="color:var(--red);font-size:.78rem;display:none;">Incorrect password. Default is Aekei14! — if changed, check your saved settings.</div><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;}
   const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
