@@ -13,7 +13,6 @@
 <title>Cafe Yoto</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
 :root{
 --bg:#F4F7FD;--surf:#fff;--surf2:#EEF3FC;--ink:#161B26;--ink2:#616B82;--ink3:#9AA4BD;
@@ -373,13 +372,24 @@ function shiftStatus(shift){
 }
 
 // PERSIST
+let _saveRetry=0;
 async function saveCore(){
-  try{await window.storage.set('yoto-core',JSON.stringify({employees:S.employees,shifts:S.shifts,products:S.products,ingredients:S.ingredients,expenses:S.expenses,settings:S.settings,categories:S.categories}));}
-  catch(e){U.backendDown=true;}
+  try{
+    await window.storage.set('yoto-core',JSON.stringify({employees:S.employees,shifts:S.shifts,products:S.products,ingredients:S.ingredients,expenses:S.expenses,settings:S.settings,categories:S.categories}));
+    if(U.backendDown){U.backendDown=false;_saveRetry=0;ra();}
+  }catch(e){
+    _saveRetry++;
+    if(_saveRetry>=3){U.backendDown=true;ra();}
+    // Retry after 3s
+    setTimeout(saveCore,3000);
+  }
 }
 async function saveOrders(){
-  try{await window.storage.set('yoto-orders',JSON.stringify({orders:S.orders}));}
-  catch(e){U.backendDown=true;}
+  try{
+    await window.storage.set('yoto-orders',JSON.stringify({orders:S.orders}));
+  }catch(e){
+    setTimeout(saveOrders,3000);
+  }
 }
 
 // DEFAULT DATA
@@ -1473,7 +1483,7 @@ function rAdmin(){
           <span style="font-size:.8rem;">to</span>
           <input type="date" value="${U.salaryEnd||''}" onchange="U.salaryEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;">`:''}
         </div>
-        ${salaryPaidBanner()}}
+        ${salaryPaidBanner()}
       </div>
       ${staffEmps.length?`<div style="overflow-x:auto;"><table>
         <thead><tr><th>Name</th><th>Hrs</th><th>Earned</th><th>Tips (₱)</th><th>Penalty</th><th style="color:var(--blue2);">Total Earned</th><th>Status</th></tr></thead>
@@ -1571,7 +1581,7 @@ function updChitPrev(){
   const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
 }
 function styleCell(v,bold,bg,color,border){
-  const XLS=typeof XLSXStyle!=='undefined'?XLSXStyle:XLSX;
+  const XLS=XLSX;
   const c={v,t:typeof v==='number'?'n':'s'};
   c.s={font:{bold:!!bold,color:{rgb:color||'000000'},sz:11},
     fill:bg?{fgColor:{rgb:bg},patternType:'solid'}:{},
@@ -1581,7 +1591,7 @@ function styleCell(v,bold,bg,color,border){
 }
 function exportShiftsXls(startDate,endDate){
   endDate=endDate||startDate;
-  const XLS=typeof XLSXStyle!=='undefined'?XLSXStyle:XLSX;
+  const XLS=XLSX;
   const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
   const allShifts=(startDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=startDate&&d<=(endDate||startDate);}):S.shifts)
     .filter(s=>{const emp=S.employees.find(e=>e.id===s.employeeId);return!emp||(emp.role||'').toLowerCase()!=='owner';})
