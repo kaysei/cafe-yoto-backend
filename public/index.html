@@ -984,7 +984,8 @@ function rExpenses(){
       <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Money Remaining</div>
       <div style="display:flex;justify-content:space-between;"><span>Net Sales</span><span>${peso(netSales)}</span></div>
       <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cafe Expenses</span><span>${peso(cafeExp)}</span></div>
-      <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${(netSales-cafeExp)>=0?'var(--green)':'var(--red)'};">${peso(netSales-cafeExp)}</span></div>
+      <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Personal Expenses</span><span>${peso(persExp)}</span></div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${(netSales-cafeExp-persExp)>=0?'var(--green)':'var(--red)'};">${peso(netSales-cafeExp-persExp)}</span></div>
     </div>
   </div>
   <div class="card"><table>
@@ -1399,7 +1400,10 @@ function rAdmin(){
           <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.catRate||57}" oninput="S.settings.catRate=parseFloat(this.value)||0;"></div>
         </div>
       </div>
-      <div style="font-weight:700;margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border);">Staff Salary Summary</div>
+      <div style="font-weight:700;margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <span>Staff Salary Summary</span>
+        <button class="btn btn-out btn-sm" onclick="exportSalaryXls()">${IC.dl} Export Excel</button>
+      </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
         <div style="font-size:.76rem;color:var(--ink2);">Period:</div>
         ${[['all','All time'],['month','This month'],['week','This week'],['today','Today'],['custom','Custom']].map(([k,l])=>`<button class="btn btn-sm ${(U.salaryPreset||'all')===k?'btn-blue':'btn-out'}" onclick="U.salaryPreset='${k}';ra();">${l}</button>`).join('')}
@@ -1410,7 +1414,7 @@ function rAdmin(){
         </div>`:''}
       </div>
       ${staffEmps.length?`<div style="overflow-x:auto;"><table>
-        <thead><tr><th>Name</th><th>Hrs</th><th>Earned</th><th>Tips (₱)</th><th>Penalty</th><th style="color:var(--blue2);">Total Earned</th></tr></thead>
+        <thead><tr><th>Name</th><th>Hrs</th><th>Earned</th><th>Tips (₱)</th><th>Penalty</th><th style="color:var(--blue2);">Total Earned</th><th>Status</th></tr></thead>
         <tbody>${staffEmps.map((e,ei)=>{
           const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
           const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
@@ -1451,6 +1455,7 @@ function rAdmin(){
             <td><input type="number" value="${tips}" oninput="S.employees[${empIdx}].tips=parseFloat(this.value)||0;saveCore();" style="width:80px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"></td>
             <td style="color:var(--red);">-${peso(totalPenalty)}</td>
             <td style="font-weight:800;color:var(--blue2);">${peso(total)}</td>
+            <td><button class="btn btn-xs ${e.salaryPaid?'btn-grn':'btn-out'}" onclick="toggleSalaryPaid('${e.id}')">${e.salaryPaid?'✓ Paid':'Mark Paid'}</button></td>
           </tr>`;
         }).join('')}
         </tbody>
@@ -1502,6 +1507,42 @@ function updChitPrev(){
   const el=document.getElementById('chit-prev');if(!el)return;
   el.style.width=(S.settings.chitWidth||200)+'px';
   const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
+}
+function toggleSalaryPaid(empId){
+  const e=S.employees.find(x=>x.id===empId);if(!e)return;
+  e.salaryPaid=!e.salaryPaid;
+  e.salaryPaidDate=e.salaryPaid?new Date().toISOString():null;
+  saveCore();ra();
+  toast(e.salaryPaid?e.name+' salary marked as Paid':'Marked as unpaid');
+}
+function exportSalaryXls(){
+  const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
+  const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
+  const rows=[['Name','Hours','Earned (₱)','Tips (₱)','Penalty (₱)','Total Earned (₱)','Status','Paid Date']];
+  staffEmps.forEach(e=>{
+    const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
+    const totalMinsAll=empShifts.reduce((sum,s)=>sum+Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000),0);
+    const dispH=Math.floor(totalMinsAll/60);const dispM=totalMinsAll%60;
+    const hrsStr=dispM>0?dispH+'hr '+dispM+'min':dispH+'hr';
+    const earnedBase=empShifts.reduce((sum,s)=>{
+      const ms=new Date(s.timeOut)-new Date(s.timeIn);
+      const totalM=Math.floor(ms/60000);
+      const fullH=Math.floor(totalM/60);const remM=totalM%60;
+      const wt=(s.workType||'barista').toLowerCase();
+      const hr=wt==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);
+      return sum+fullH*hr+Math.floor(remM/5)*5;
+    },0);
+    const totalPenalty=empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
+    const tips=e.tips||0;
+    const total=earnedBase-totalPenalty+tips;
+    rows.push([e.name,hrsStr,earnedBase,tips,totalPenalty,total,e.salaryPaid?'Paid':'Unpaid',e.salaryPaidDate?fdt(e.salaryPaidDate):'']);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb,ws,'Salary Summary');
+  const period=U.salaryPreset==='custom'?(U.salaryStart+' to '+U.salaryEnd):U.salaryPreset||'all';
+  XLSX.writeFile(wb,'CafeYoto-Salary-'+period+'-'+today()+'.xlsx');
+  toast('Salary report exported!');
 }
 function fixEmployees(){
   if(!U.isAdmin)return;
@@ -1723,9 +1764,10 @@ function modalRender(){
   }
   if(t==='editShift'){
     const s=S.shifts.find(x=>x.id===d);if(!s)return'';
+    const toLocalDT=iso=>{if(!iso)return'';const d=new Date(iso);const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());};
     return mwrap('Edit Shift',`
-      <div class="field"><label>Time In</label><input type="datetime-local" id="m-si" value="${new Date(s.timeIn).toISOString().slice(0,16)}"></div>
-      <div class="field"><label>Time Out</label><input type="datetime-local" id="m-so2" value="${s.timeOut?new Date(s.timeOut).toISOString().slice(0,16):''}"></div>
+      <div class="field"><label>Time In</label><input type="datetime-local" id="m-si" value="${toLocalDT(s.timeIn)}"></div>
+      <div class="field"><label>Time Out</label><input type="datetime-local" id="m-so2" value="${toLocalDT(s.timeOut)}"></div>
       <div class="field"><label>Tips (₱)</label><input type="number" id="m-stips" value="${s.tips||0}"></div>
     `,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveShiftEd('${s.id}')">Save</button>`);
   }
@@ -1815,8 +1857,13 @@ function updRcpCost(){const el=document.getElementById('m-rcost');if(el)el.textC
 function saveRcp(pid){const p=S.products.find(x=>x.id===pid);if(!p)return;p.recipe=U.rdraft.filter(r=>r.ingredientId&&r.qty>0);saveCore();toast('Recipe saved.');closeModal();}
 function saveShiftEd(sid){
   const s=S.shifts.find(x=>x.id===sid);if(!s)return;
-  const inv=document.getElementById('m-si')?.value;const outv=document.getElementById('m-so2')?.value;const tips=parseFloat(document.getElementById('m-stips')?.value)||0;
-  if(inv)s.timeIn=new Date(inv).toISOString();if(outv)s.timeOut=new Date(outv).toISOString();s.tips=tips;
+  const inv=document.getElementById('m-si')?.value;
+  const outv=document.getElementById('m-so2')?.value;
+  const tips=parseFloat(document.getElementById('m-stips')?.value)||0;
+  // datetime-local gives local time — convert properly
+  if(inv){const d=new Date(inv);s.timeIn=d.toISOString();}
+  if(outv){const d=new Date(outv);s.timeOut=d.toISOString();}
+  s.tips=tips;
   saveCore();closeModal();toast('Shift updated.');
 }
 
