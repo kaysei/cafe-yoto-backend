@@ -1222,83 +1222,24 @@ function rAdminShifts(){
   const selDate=U.adminShiftDate!==undefined?U.adminShiftDate:todayStr2;
   if(U.adminShiftDate===undefined)U.adminShiftDate=todayStr2;
   const endDate=U.adminShiftEnd||selDate;
-  const allShifts=selDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=selDate&&d<=(endDate||selDate);}):S.shifts;
-  const myShifts=[...allShifts].sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn));
+  const allShifts=selDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=selDate&&d<=endDate;}):S.shifts;
+  const myShifts=[...allShifts].sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn));
   const selLabel=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'All';
   return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-    <div style="font-size:1.1rem;font-weight:800;">${selDate===todayStr2?'Today':''+selLabel}</div>
+    <div style="font-size:1.1rem;font-weight:800;">${selDate===todayStr2?'Today':selLabel}${endDate&&endDate!==selDate?' — '+new Date(endDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):''}</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       ${selDate!==todayStr2?`<button class="btn btn-out btn-sm" onclick="U.adminShiftDate=today();U.adminShiftEnd=null;ra();">Today</button>`:''}
       <input type="date" value="${selDate||''}" onchange="U.adminShiftDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
       <span style="font-size:.8rem;color:var(--ink2);">to</span>
-      <input type="date" value="${U.adminShiftEnd||selDate||''}" onchange="U.adminShiftEnd=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
-      <button class="btn btn-out btn-sm" onclick="exportShiftsXls('${selDate||''}','${U.adminShiftEnd||selDate||''}')">${IC.dl} Export Excel</button>
+      <input type="date" value="${endDate||''}" onchange="U.adminShiftEnd=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
+      <button class="btn btn-out btn-sm" onclick="exportShiftsXls('${selDate||''}','${endDate||''}')">${IC.dl} Export Excel</button>
     </div>
   </div>
   <div style="overflow-x:auto;">
-    ${(()=>{
-      // Group shifts by date
-      const grouped={};
-      myShifts.forEach(s=>{
-        const d=s.timeIn.slice(0,10);
-        if(!grouped[d])grouped[d]=[];
-        grouped[d].push(s);
-      });
-      const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      const sortedDates=Object.keys(grouped).sort();
-      if(!sortedDates.length)return`<div class="empty"><p>No shifts for this period.</p></div>`;
-      return sortedDates.map(dateKey=>{
-        const dt=new Date(dateKey+'T00:00:00');
-        const dayName=days[dt.getDay()];
-        const dateLabel=dt.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
-        const dayShifts=grouped[dateKey];
-        const dayTotal=dayShifts.reduce((s,sh)=>s+(sh.timeOut?calcPay(S.employees.find(e=>e.id===sh.employeeId)||{},sh):0),0);
-        return`<div style="margin-bottom:18px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--ink);color:#fff;border-radius:10px 10px 0 0;">
-            <span style="font-weight:800;font-size:.92rem;">${dateLabel} &nbsp;|&nbsp; ${dayName}</span>
-            <span style="font-size:.78rem;opacity:.8;">Total Pay: ${peso(dayTotal)}</span>
-          </div>
-          <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;">
-            <thead><tr style="background:var(--surf2);">
-              <th>Name</th><th>Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th><th>Pay</th><th>Salary</th><th>Location</th><th>Actions</th>
-            </tr></thead>
-            <tbody>${dayShifts.map(s=>{
-              const st=shiftStatus(s);
-              const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
-              const pay=calcPay(rowEmp,s);
-              const totalMinsAdm=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
-              const hrsAdmH=Math.floor(totalMinsAdm/60);const remMinsAdm=totalMinsAdm%60;
-              const fiveRnd=Math.floor(remMinsAdm/5)*5;
-              const hrsLabel=s.timeOut?(fiveRnd>0?hrsAdmH+'hr '+fiveRnd+'min':hrsAdmH+'hr'):'—';
-              const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
-              const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
-              const shortLoc=(s.location||'—').split(',').slice(0,2).join(',');
-              const devShort=(s.device||'—').split('·')[0].trim();
-              return`<tr>
-                <td style="font-weight:600;white-space:nowrap;padding:8px 10px;">${rowEmp.name||'—'}</td>
-                <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}" style="font-size:.64rem;">${s.workType||'—'}</span></td>
-                <td style="white-space:nowrap;">${ftm(s.timeIn)}</td>
-                <td style="white-space:nowrap;">${s.timeOut?ftm(s.timeOut):'—'}</td>
-                <td style="white-space:nowrap;">${hrsLabel}</td>
-                <td><span class="pill ${stPill}">${stLabel}</span></td>
-                <td style="white-space:nowrap;font-weight:700;">${s.timeOut?peso(pay):'—'}</td>
-                <td><button class="btn btn-xs ${rowEmp.salaryPaid?'btn-grn':'btn-out'}" onclick="toggleSalaryPaid('${rowEmp.id||''}')">${rowEmp.salaryPaid?'✓ Paid':'Unpaid'}</button></td>
-                <td style="font-size:.68rem;color:var(--ink2);max-width:120px;" title="${s.location||'—'}">${shortLoc}<br><span style="color:var(--ink3);">${devShort}</span></td>
-                <td><div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center;">
-                  ${st==='late'?`<button class="btn btn-red btn-xs" style="pointer-events:none;">Late</button><button class="btn btn-grn btn-xs" onclick="acceptLate('${s.id}')">✓ Valid</button>`:''}
-                  ${st==='valid'?`<button class="btn btn-grn btn-xs" style="pointer-events:none;">✓ Valid</button><button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">✗ Invalid</button>`:''}
-                  ${st!=='late'&&st!=='valid'?`<button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">Mark Late</button>`:''}
-                  <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
-                </div></td>
-              </tr>`;
-            }).join('')}
-            </tbody>
-          </table>
-        </div>`;
-      }).join('');
-    })()}
+    ${buildShiftsLogHtml(myShifts)}
   </div>`;
 }
+
 function rAdmin(){
   if(!U.isAdmin){return`<div class="lockgate"><div style="font-size:2rem;">🔐</div><h2>Admin Access</h2><p>Owner only. Enter the admin password.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><div id="adm-err" style="color:var(--red);font-size:.78rem;display:none;">Incorrect password. Default is Aekei14! — if changed, check your saved settings.</div><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;}
   const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
@@ -1417,7 +1358,7 @@ function rAdmin(){
       }).join('')}
     </div>
     `:''}
-        ${admTab==='shifts_log'?`<div>${rAdminShifts()}</div>`:''}
+    ${admTab==='shifts_log'?`<div>${(()=>{try{return rAdminShifts();}catch(e){return'<div style="color:var(--red);padding:12px;">Error loading shifts: '+e.message+'</div>';}})()}</div>`:''}
     ${admTab==='rates'?`<div class="card" style="padding:16px;margin-bottom:14px;">
       <div style="font-weight:700;margin-bottom:4px;">Rates by Role</div>
       <div style="font-size:.74rem;color:var(--ink2);margin-bottom:12px;">Set the default rates per role. These apply to all staff based on their work type at time-in.</div>
