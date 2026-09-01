@@ -1234,7 +1234,6 @@ function rShifts(){
 }
 function prevShiftMo(){} function nextShiftMo(){}
 function rAdminShifts(){
-  const now=new Date();
   const todayStr2=today();
   const selDate=U.adminShiftDate!==undefined?U.adminShiftDate:todayStr2;
   if(U.adminShiftDate===undefined)U.adminShiftDate=todayStr2;
@@ -1247,20 +1246,21 @@ function rAdminShifts(){
     return d>=selDate&&d<=(endDate||selDate);
   });
   const myShifts=[...allShifts].sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn));
-  const selLabel=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'All';
-  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-    <div style="font-size:1.1rem;font-weight:800;">${selDate===todayStr2?'Today':selLabel}${endDate&&endDate!==selDate?' — '+new Date(endDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):''}</div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      ${selDate!==todayStr2?`<button class="btn btn-out btn-sm" onclick="U.adminShiftDate=today();U.adminShiftEnd=null;ra();">Today</button>`:''}
-      <input type="date" value="${selDate||''}" onchange="U.adminShiftDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
-      <span style="font-size:.8rem;color:var(--ink2);">to</span>
-      <input type="date" value="${endDate||''}" onchange="U.adminShiftEnd=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
-      <button class="btn btn-out btn-sm" onclick="exportShiftsXls('${selDate||''}','${endDate||''}')">${IC.dl} Export Excel</button>
-    </div>
-  </div>
-  <div style="overflow-x:auto;">
-    ${buildShiftsLogHtml(myShifts)}
-  </div>`;
+  const dt1=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'';
+  const dt2=endDate&&endDate!==selDate?new Date(endDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'';
+  const heading=selDate===todayStr2?'Today':(dt1+(dt2?' — '+dt2:''));
+  const todayBtn=selDate!==todayStr2?'<button class="btn btn-out btn-sm" onclick="U.adminShiftDate=today();U.adminShiftEnd=null;ra();">Today</button>':'';
+  const html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">'
+    +'<div style="font-size:1.1rem;font-weight:800;">'+heading+'</div>'
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+    +todayBtn
+    +'<input type="date" value="'+(selDate||'')+'" onchange="U.adminShiftDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">'
+    +'<span style="font-size:.8rem;color:var(--ink2);">to</span>'
+    +'<input type="date" value="'+(endDate||'')+'" onchange="U.adminShiftEnd=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">'
+    +'<button class="btn btn-out btn-sm" onclick="exportShiftsXls(this.dataset.s,this.dataset.e)" data-s="'+(selDate||'')+'" data-e="'+(endDate||'')+'">'+(IC.dl||'')+'Export Excel</button>'
+    +'</div></div>'
+    +'<div style="overflow-x:auto;">'+buildShiftsLogHtml(myShifts)+'</div>';
+  return html;
 }
 
 function buildShiftsLogHtml(myShifts){
@@ -1328,7 +1328,7 @@ function salaryPaidBanner(){
   const color=isPaid?'var(--green)':'var(--ink2)';
   const btnCls=isPaid?'btn-out':'btn-grn';
   const btnLbl=isPaid?'Mark Unpaid':'Mark as Paid';
-  const statusTxt=isPaid?'✓ Salary Paid for this period':'Not yet paid for this period';
+  const statusTxt=isPaid?'Salary Paid for this period':'Not yet paid for this period';
   const encodedKey=encodeURIComponent(periodKey);
   return `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:${bg};border-radius:10px;flex-wrap:wrap;">
     <span style="font-size:.82rem;font-weight:700;color:${color};">${statusTxt}</span>
@@ -1362,10 +1362,10 @@ function rAdmin(){
       <div style="font-weight:700;margin-bottom:12px;">Receipt &amp; Chit Designer</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
         <div style="display:flex;flex-direction:column;gap:10px;">
-          <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" onchange="S.settings.rcptHeader=this.value;saveCore();"//onchange="S.settings.rcptHeader=this.value;saveCore();updRcptPrev();"></div>
-          <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" onchange="S.settings.rcptFooter=this.value;saveCore();"//onchange="S.settings.rcptFooter=this.value;saveCore();updRcptPrev();"></div>
-          <div class="field"><label>Chit Header</label><input value="${S.settings.chitHeader||''}" onchange="S.settings.chitHeader=this.value;saveCore();"//onchange="S.settings.chitHeader=this.value;saveCore();updChitPrev();"></div>
-          <div class="field"><label>Wifi Password</label><input value="${S.settings.wifiPw||''}" onchange="S.settings.wifiPw=this.value;saveCore();"//onchange="S.settings.wifiPw=this.value;saveCore();updChitPrev();"></div>
+          <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" onchange="S.settings.rcptHeader=this.value;saveCore();updRcptPrev();"></div>
+          <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" onchange="S.settings.rcptFooter=this.value;saveCore();updRcptPrev();"></div>
+          <div class="field"><label>Chit Header</label><input value="${S.settings.chitHeader||''}" onchange="S.settings.chitHeader=this.value;saveCore();updChitPrev();"></div>
+          <div class="field"><label>Wifi Password</label><input value="${S.settings.wifiPw||''}" onchange="S.settings.wifiPw=this.value;saveCore();updChitPrev();"></div>
           <div class="field"><label>Receipt Font Size: <span id="rcpt-fs-val">${S.settings.rcptFontSize||12}px</span></label>
             <input type="range" min="10" max="16" value="${S.settings.rcptFontSize||12}" oninput="S.settings.rcptFontSize=parseInt(this.value);updRcptPrev();document.getElementById('rcpt-fs-val').textContent=this.value+'px';">
           </div>
@@ -1408,7 +1408,7 @@ function rAdmin(){
               <div style="background:#000;color:#fff;display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-bottom:5px;">DINE IN</div>
               <div><strong>Latte</strong></div>
               <div style="border-top:1px dashed #ccc;margin:5px 0;font-size:10px;color:#666;">Aug 5, 2026</div>
-              <div id="chit-wifi" style="font-size:10px;color:#666;">WiFi: ${S.settings.wifiPw||'—'}</div>
+              <div id="chit-wifi" style="font-size:10px;color:#666;">WiFi: ${S.settings.wifiPw||'-'}</div>
             </div>
           </div>
         </div>
@@ -1781,9 +1781,9 @@ function confirmReset(){
   if(!U.isAdmin)return;
   const confirmed=confirm(
     'This will permanently delete:\n\n' +
-    '• All shift/time-in logs\n' +
-    '• All orders and receipts\n' +
-    '• All expenses\n\n' +
+    '- All shift/time-in logs\n' +
+    '- All orders and receipts\n' +
+    '- All expenses\n\n' +
     'Your employees, menu items, ingredients, and settings will be kept.\n\n' +
     'Type RESET in the next prompt to confirm.'
   );
