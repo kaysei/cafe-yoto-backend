@@ -209,7 +209,7 @@ tr:last-child td{border-bottom:none;}
 </style>
 </head>
 <body>
-<div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--ink2);font-weight:700;">Loading Cafe Yotou2026</div></div>
+<div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--ink2);font-weight:700;">Loading Cafe Yoto…</div></div>
 <div id="print-area"></div>
 <script>
 const BK='https://cafe-yoto-backend.onrender.com';
@@ -275,7 +275,7 @@ let U={
 
 // HELPERS
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const peso=n=>'u20b1'+(Math.round((n||0)*100)/100).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const peso=n=>'₱'+(Math.round((n||0)*100)/100).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const ftm=iso=>new Date(iso).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
 const fdt=iso=>new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
@@ -458,7 +458,7 @@ function _ra(){
         ${m==='viewonly'?`<div class="vo-chip">${IC.ey} View Only</div><button class="btn btn-out btn-sm" onclick="U.viewOnly=false;ra();">Exit</button>`:''}
       </div>
     </div>
-    ${U.backendDown?`<div class="backend-warn">u26a0 Can't reach backend u2014 data won't save. Start server then refresh.</div>`:''}
+    ${U.backendDown?`<div class="backend-warn">⚠ Can't reach backend — data won't save. Start server then refresh.</div>`:''}
     <div class="content" id="content" style="${U.view==='pos'?'padding:0;overflow:hidden;display:flex;flex-direction:column;':''}">${vrender()}</div>
   </div>
   ${npRender()}
@@ -486,7 +486,7 @@ function vrender(){
   if(U.view==='shifts')return rShifts();
   return'';
 }
-function rLock(){return`<div class="lockgate"><div style="font-size:2rem;">ud83dudd12</div><h2>Locked</h2><p>Time in or browse in View Only.</p><div style="display:flex;gap:9px;margin-top:10px;"><button class="btn btn-blue" onclick="setView('clock')">Time Clock</button><button class="btn btn-out" onclick="U.viewOnly=true;ra();">${IC.ey} View Only</button></div></div>`;}
+function rLock(){return`<div class="lockgate"><div style="font-size:2rem;">🔒</div><h2>Locked</h2><p>Time in or browse in View Only.</p><div style="display:flex;gap:9px;margin-top:10px;"><button class="btn btn-blue" onclick="setView('clock')">Time Clock</button><button class="btn btn-out" onclick="U.viewOnly=true;ra();">${IC.ey} View Only</button></div></div>`;}
 
 // CLOCK
 function rClock(){
@@ -496,16 +496,16 @@ function rClock(){
     <div style="font-size:1.9rem;font-weight:800;" id="ctcard"></div>
     <div style="color:var(--ink2);font-size:.8rem;margin-bottom:18px;">${fdt(new Date().toISOString())}</div>
     <select onchange="U.activeEmpId=this.value;U.clockWorkType='';ra();" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:10px;font-size:.86rem;">
-      <option value="">Select employeeu2026</option>
+      <option value="">Select employee…</option>
       ${S.employees.map(e=>`<option value="${e.id}" ${U.activeEmpId===e.id?'selected':''}>${e.name}</option>`).join('')}
     </select>
     ${emp&&!sh?`
     <select onchange="U.clockWorkType=this.value;" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:12px;font-size:.86rem;">
-      <option value="">Select work type for this shiftu2026</option>
-      <option value="Barista" ${U.clockWorkType==='Barista'?'selected':''}>u2615 Barista</option>
-      <option value="Cat Front Desk" ${U.clockWorkType==='Cat Front Desk'?'selected':''}>ud83dudc31 Cat Front Desk</option>
+      <option value="">Select work type for this shift…</option>
+      <option value="Barista" ${U.clockWorkType==='Barista'?'selected':''}>☕ Barista</option>
+      <option value="Cat Front Desk" ${U.clockWorkType==='Cat Front Desk'?'selected':''}>🐱 Cat Front Desk</option>
     </select>`:''}
-    ${emp?`<div style="margin:8px 0 16px;color:var(--ink2);font-size:.83rem;">${sh?`On shift since ${ftm(sh.timeIn)} u00b7 <strong>${sh.workType||'u2014'}</strong>`:'Not clocked in'}</div>
+    ${emp?`<div style="margin:8px 0 16px;color:var(--ink2);font-size:.83rem;">${sh?`On shift since ${ftm(sh.timeIn)} · <strong>${sh.workType||'—'}</strong>`:'Not clocked in'}</div>
     ${sh?`<button class="btn btn-red" style="width:100%;justify-content:center;padding:11px;" onclick="timeOut()">Time Out</button>`:
     `<button class="btn btn-blue" style="width:100%;justify-content:center;padding:11px;" ${!U.clockWorkType?'disabled':''} onclick="timeIn()">Time In</button>`}`
     :`<div style="margin:8px 0 16px;color:var(--ink2);font-size:.83rem;">Choose your name above</div><button style="font-size:.76rem;color:var(--ink2);text-decoration:underline;" onclick="U.viewOnly=true;setView('pos');">View Only mode</button>`}
@@ -538,7 +538,7 @@ async function timeIn(){
 function timeOut(){
   const s=actShift(U.activeEmpId);if(!s)return;
   s.timeOut=new Date().toISOString();
-  saveCore();ra();toast(`Shift ended u2014 ${fdur(new Date(s.timeOut)-new Date(s.timeIn))} worked.`);
+  saveCore();ra();toast(`Shift ended — ${fdur(new Date(s.timeOut)-new Date(s.timeIn))} worked.`);
 }
 function signOut(){timeOut();U.activeEmpId=null;setView('clock');}
 
@@ -557,9 +557,9 @@ function rPOS(){
     <div class="cat-list">
       ${S.categories.map(c=>{
         const items=S.products.filter(p=>p.category===c);
-        const icons={'Coffee':'u2615','Non-Coffee':'ud83euddcb','Pastries':'ud83eudd50','Add-ons':'u2728'};
+        const icons={'Coffee':'☕','Non-Coffee':'🧋','Pastries':'🥐','Add-ons':'✨'};
         return`<button class="cat-card" onclick="U.posCategory='${c}';ra();">
-          <div class="cat-icon">${icons[c]||'ud83cudf75'}</div>
+          <div class="cat-icon">${icons[c]||'🍵'}</div>
           <div style="flex:1;text-align:left;"><div class="cat-name">${c}</div><div class="cat-count">${items.length} items</div></div>
           ${U.editMode?`<div style="display:flex;gap:4px;" onclick="event.stopPropagation();">
             <button class="btn btn-out btn-xs" onclick="renameCategory('${c}')">${IC.pe}</button>
@@ -582,7 +582,7 @@ function rPOS(){
           <span class="sdot sdot-${st==='so'?'so':st==='low'?'low':'ok'}"></span>
           <div class="pc-name">${p.name}</div>
           <div class="pc-price">${p.sizes.length>1?'from ':''} ${peso(minP)}</div>
-          ${p.sizes.length>1?`<div class="pc-sizes">${p.sizes.map(s=>s.label).join(' u00b7 ')}</div>`:''}
+          ${p.sizes.length>1?`<div class="pc-sizes">${p.sizes.map(s=>s.label).join(' · ')}</div>`:''}
           ${!U.editMode&&avail&&manage?`<div style="position:absolute;inset:0;border-radius:13px;" onclick="addToCart('${p.id}')"></div>`:''}
           ${!avail?`<div style="font-size:.66rem;color:var(--red);font-weight:700;margin-top:3px;">Out of stock</div>`:''}
         </div>`;
@@ -606,10 +606,10 @@ function rPOS(){
           <button onclick="U.cart.splice(${idx},1);ra();" style="color:var(--ink3);">${IC.xx}</button>
         </div>
         <div class="ao-row">
-          ${(ci.addons||[]).map((a,ai)=>`<span class="ao-chip">+${a.name}<button onclick="U.cart[${idx}].addons.splice(${ai},1);ra();" style="margin-left:2px;opacity:.6;font-size:.7rem;">u00d7</button></span>`).join('')}
+          ${(ci.addons||[]).map((a,ai)=>`<span class="ao-chip">+${a.name}<button onclick="U.cart[${idx}].addons.splice(${ai},1);ra();" style="margin-left:2px;opacity:.6;font-size:.7rem;">×</button></span>`).join('')}
           <button class="ao-add" onclick="openModal('addAddon','${idx}')">+ Add-on</button>
         </div>
-        <textarea class="note-inp" rows="1" placeholder="Note (e.g. less sugar)u2026" oninput="U.cart[${idx}].note=this.value;">${ci.note||''}</textarea>
+        <textarea class="note-inp" rows="1" placeholder="Note (e.g. less sugar)…" oninput="U.cart[${idx}].note=this.value;">${ci.note||''}</textarea>
       </div>`).join(''):`<div class="empty"><p>Tap a drink to add it</p></div>`}
     </div>
     <div class="cart-bot">
@@ -698,7 +698,7 @@ function rOrders(){
     return`<div class="card oc">
       <div class="och">
         <div class="tbadge">${o.number}</div>
-        <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">${o.employeeName} u00b7 <span class="pill ${o.orderType==='Grab'?'pill-late':o.orderType==='Take Out'?'pill-low':'pill-ot'}">${o.orderType}</span></div><div style="font-size:.68rem;color:var(--ink3);">${ftm(o.timestamp)}</div></div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">${o.employeeName} · <span class="pill ${o.orderType==='Grab'?'pill-late':o.orderType==='Take Out'?'pill-low':'pill-ot'}">${o.orderType}</span></div><div style="font-size:.68rem;color:var(--ink3);">${ftm(o.timestamp)}</div></div>
         <span class="pill ${o.status==='preparing'?'pill-so':'pill-low'}">${o.status}</span>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
           ${o.status==='preparing'?`<button class="btn btn-out btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','ready')">Ready</button>`:''}
@@ -715,7 +715,7 @@ function rOrders(){
           <div style="flex:1;">
             <div class="dname">${item.qty}x ${item.name}</div>
             ${(item.addons&&item.addons.length)?`<div class="dmeta">+${item.addons.map(a=>a.name).join(', +')}</div>`:''}
-            ${item.note?`<div class="dmeta" style="font-style:italic;">ud83dudcdd ${item.note}</div>`:''}
+            ${item.note?`<div class="dmeta" style="font-style:italic;">📝 ${item.note}</div>`:''}
           </div>
         </div>`).join('')}
       </div>
@@ -741,11 +741,11 @@ function rInventory(){
     <h1 style="font-weight:800;font-size:1.25rem;">Inventory</h1>
     ${manage?`<button class="btn btn-blue" onclick="openModal('${U.invTab==='ingredients'?'addIng':'addProd'}')">${IC.pls} ${U.invTab==='ingredients'?'Add Ingredient':'Add Item'}</button>`:''}
   </div>
-  ${low.length||so.length?`<div style="background:var(--redsoft);color:var(--red);padding:9px 13px;border-radius:10px;font-size:.8rem;font-weight:700;margin-bottom:12px;">u26a0 ${so.map(i=>i.name+' (Sold Out)').concat(low.map(i=>i.name+' (Low)')).join(' u00b7 ')}</div>`:''}
+  ${low.length||so.length?`<div style="background:var(--redsoft);color:var(--red);padding:9px 13px;border-radius:10px;font-size:.8rem;font-weight:700;margin-bottom:12px;">⚠ ${so.map(i=>i.name+' (Sold Out)').concat(low.map(i=>i.name+' (Low)')).join(' · ')}</div>`:''}
   <div style="display:flex;gap:7px;margin-bottom:11px;">
     <button class="dp ${U.invTab==='menu'?'act':''}" onclick="U.invTab='menu';ra();">Menu Items</button>
     <button class="dp ${U.invTab==='ingredients'?'act':''}" onclick="U.invTab='ingredients';ra();">Ingredients</button>
-    ${U.invTab==='ingredients'?`<button class="dp ${U.invFilter==='warn'?'act':''}" onclick="U.invFilter=U.invFilter==='warn'?'all':'warn';ra();">u26a0 Warning ${low.length+so.length?`<span style="background:var(--red);color:#fff;border-radius:999px;padding:1px 6px;font-size:.62rem;margin-left:3px;">${low.length+so.length}</span>`:''}</button>`:''}
+    ${U.invTab==='ingredients'?`<button class="dp ${U.invFilter==='warn'?'act':''}" onclick="U.invFilter=U.invFilter==='warn'?'all':'warn';ra();">⚠ Warning ${low.length+so.length?`<span style="background:var(--red);color:#fff;border-radius:999px;padding:1px 6px;font-size:.62rem;margin-left:3px;">${low.length+so.length}</span>`:''}</button>`:''}
   </div>
   ${U.invTab==='menu'?rMenuTab(manage):rIngTab(manage)}`;
 }
@@ -757,7 +757,7 @@ function rMenuTab(manage){
       return`<tr>
         <td style="font-weight:700;">${p.name}</td>
         <td>${p.category}</td>
-        <td>${p.sizes.map(s=>`${s.label?s.label+' ':''}<strong>${peso(s.price)}</strong>`).join(' u00b7 ')}</td>
+        <td>${p.sizes.map(s=>`${s.label?s.label+' ':''}<strong>${peso(s.price)}</strong>`).join(' · ')}</td>
         <td>${peso(cost)}</td>
         <td>${p.sizes.map(s=>{const m=s.price>0?(s.price-cost)/s.price*100:0;return`<span class="pill ${m<0?'pill-so':'pill-ot'}">${m.toFixed(0)}%</span>`;}).join(' ')}</td>
         <td><span class="pill ${st==='ok'?'pill-ok':st==='low'?'pill-low':'pill-so'}">${st==='ok'?'Available':st==='low'?'Low Stock':'Sold Out'}</span></td>
@@ -800,12 +800,12 @@ function rExpenses(){
   return`<h1 style="font-weight:800;font-size:1.25rem;margin-bottom:12px;">Expenses</h1>
   ${manage?`<div class="card" style="padding:13px;margin-bottom:14px;">
     <div style="display:flex;gap:7px;margin-bottom:10px;">
-      <button onclick="U.expType='Cafe';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Cafe'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">u2615 Cafe</button>
-      <button onclick="U.expType='Personal';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Personal'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">ud83dudc64 Personal</button>
+      <button onclick="U.expType='Cafe';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Cafe'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">☕ Cafe</button>
+      <button onclick="U.expType='Personal';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Personal'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">👤 Personal</button>
     </div>
     <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:9px;align-items:end;">
       <div class="field"><label>What did you buy</label><input id="exp-name" placeholder="e.g. Coffee beans"></div>
-      <div class="field"><label>Amount (u20b1)</label><input id="exp-amt" type="number" placeholder="0.00"></div>
+      <div class="field"><label>Amount (₱)</label><input id="exp-amt" type="number" placeholder="0.00"></div>
       <button class="btn btn-blue" onclick="addExp()">${IC.pls} Add</button>
     </div>
   </div>`:''}
@@ -883,7 +883,7 @@ function rShifts(){
     ${isAdmin?`<select onchange="U.shiftEmpId=this.value;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">${S.employees.map(e=>`<option value="${e.id}" ${empId===e.id?'selected':''}>${e.name}</option>`).join('')}</select>`:''}
   </div>
   ${emp?`<div class="card" style="padding:13px;margin-bottom:13px;">
-    <div style="font-weight:700;margin-bottom:9px;font-size:.88rem;">${emp.name} u2014 ${new Date(yr,mo).toLocaleString('en-PH',{month:'long',year:'numeric'})}</div>
+    <div style="font-weight:700;margin-bottom:9px;font-size:.88rem;">${emp.name} — ${new Date(yr,mo).toLocaleString('en-PH',{month:'long',year:'numeric'})}</div>
     <div class="cal-grid">
       ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div style="text-align:center;font-size:.62rem;font-weight:700;color:var(--ink3);padding-bottom:3px;">${d}</div>`).join('')}
       ${Array(fd).fill('<div></div>').join('')}
@@ -900,13 +900,13 @@ function rShifts(){
         const pay=calcPay(emp2,s);
         return`<tr>
           <td>${fdt(s.timeIn)}</td>
-          <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}">${s.workType||'u2014'}</span></td>
+          <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}">${s.workType||'—'}</span></td>
           <td>${ftm(s.timeIn)}</td>
-          <td>${s.timeOut?ftm(s.timeOut):'u2014'}</td>
+          <td>${s.timeOut?ftm(s.timeOut):'—'}</td>
           <td>${s.timeOut?dur.toFixed(2)+'h':'ongoing'}</td>
           <td><span class="pill pill-${st}">${st==='late'?'Late':st==='valid'?'Valid':' On Time'}</span></td>
-          <td>${s.timeOut?peso(pay):'u2014'}</td>
-          ${isAdmin?`<td style="font-size:.72rem;color:var(--ink2);max-width:160px;word-break:break-all;">${s.location||'u2014'}</td>
+          <td>${s.timeOut?peso(pay):'—'}</td>
+          ${isAdmin?`<td style="font-size:.72rem;color:var(--ink2);max-width:160px;word-break:break-all;">${s.location||'—'}</td>
           <td><div style="display:flex;gap:3px;flex-wrap:wrap;">
             ${st==='late'?`<button class="btn btn-out btn-xs" onclick="acceptLate('${s.id}')">Accept Late</button>`:''}
             <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
@@ -1125,11 +1125,11 @@ function modalRender(){
   if(!U.modal)return'';
   const t=U.modal;const d=U.mdata;
 
-  if(t==='addEmp')return mwrap('Add Employee',`<div class="field"><label>Name</label><input id="m-en" placeholder="e.g. Maria Santos" autofocus></div><div class="frow"><div class="field"><label>Role</label><select id="m-er"><option value="barista">Barista</option><option value="cat">Cat Care</option></select></div><div class="field"><label>Rate/hr (u20b1)</label><input type="number" id="m-ehr" value="64"></div></div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveEmp()">Add</button>`);
+  if(t==='addEmp')return mwrap('Add Employee',`<div class="field"><label>Name</label><input id="m-en" placeholder="e.g. Maria Santos" autofocus></div><div class="frow"><div class="field"><label>Role</label><select id="m-er"><option value="barista">Barista</option><option value="cat">Cat Care</option></select></div><div class="field"><label>Rate/hr (₱)</label><input type="number" id="m-ehr" value="64"></div></div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveEmp()">Add</button>`);
 
   if(t==='pickSize'){
     const p=S.products.find(x=>x.id===d);if(!p)return'';
-    return mwrap(`${p.name} u2014 Size`,`<div style="display:flex;flex-direction:column;gap:7px;">${p.sizes.map(s=>`<button onclick="pickSz('${p.id}','${s.id}')" style="display:flex;justify-content:space-between;padding:13px 15px;border:1.5px solid var(--border);border-radius:11px;font-weight:700;font-size:.88rem;width:100%;"><span>${s.label}</span><span>${peso(s.price)}</span></button>`).join('')}</div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button>`);
+    return mwrap(`${p.name} — Size`,`<div style="display:flex;flex-direction:column;gap:7px;">${p.sizes.map(s=>`<button onclick="pickSz('${p.id}','${s.id}')" style="display:flex;justify-content:space-between;padding:13px 15px;border:1.5px solid var(--border);border-radius:11px;font-weight:700;font-size:.88rem;width:100%;"><span>${s.label}</span><span>${peso(s.price)}</span></button>`).join('')}</div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button>`);
   }
 
   if(t==='addAddon'){
@@ -1160,8 +1160,8 @@ function modalRender(){
         <div class="field"><label>Current stock</label><input id="m-ist" type="number" value="${ing?ing.stockInBase:''}"></div>
       </div>
       <div class="frow">
-        <div class="field"><label>Purchase price (u20b1)</label><input id="m-ipp" type="number" value="${ing?ing.purchasePrice:''}"></div>
-        <div class="field"><label>Shipping (u20b1)</label><input id="m-ish" type="number" value="${ing?ing.shippingCost:0}"></div>
+        <div class="field"><label>Purchase price (₱)</label><input id="m-ipp" type="number" value="${ing?ing.purchasePrice:''}"></div>
+        <div class="field"><label>Shipping (₱)</label><input id="m-ish" type="number" value="${ing?ing.shippingCost:0}"></div>
       </div>
       <div class="frow">
         <div class="field"><label>Low stock at (base unit)</label><input id="m-ilo" type="number" value="${ing?ing.lowThresh:100}"></div>
@@ -1174,7 +1174,7 @@ function modalRender(){
     const p=S.products.find(x=>x.id===d);if(!p)return'';
     if(!U.rdraft.length&&!U.rdraft._set){U.rdraft=(p.recipe||[]).map(r=>({...r}));U.rdraft._set=true;}
     const cost=U.rdraft.reduce((s,r)=>{const i=ingBy(r.ingredientId);return s+(i?ucost(i)*r.qty:0);},0);
-    return mwrap(`Recipe u2014 ${p.name}`,`
+    return mwrap(`Recipe — ${p.name}`,`
       <div id="m-rrows">${rRcpRows()}</div>
       <div class="cprev"><span>Cost per item</span><span id="m-rcost">${peso(cost)}</span></div>
     `,`<button class="btn btn-out btn-sm" onclick="addRcpRow()">${IC.pls} Add</button><button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveRcp('${d}')">Save</button>`);
@@ -1187,9 +1187,9 @@ function modalRender(){
         <div class="chit">
           <div class="chit-num">#${o.number}</div>
           <div class="chit-type">${o.orderType}</div>
-          ${o.items.map(i=>`<div style="margin-bottom:4px;"><strong>${i.qty}x ${i.name}</strong>${(i.addons&&i.addons.length)?`<br><span style="font-size:.72rem;color:var(--ink2);">+${i.addons.map(a=>a.name).join(', +')}</span>`:''}${i.note?`<br><span style="font-size:.7rem;color:var(--ink2);font-style:italic;">ud83dudcdd${i.note}</span>`:''}</div>`).join('')}
-          <div style="border-top:1px dashed var(--ink3);margin:7px 0;font-size:.7rem;color:var(--ink2);">${fdt(o.timestamp)} u00b7 ${ftm(o.timestamp)}</div>
-          <div style="font-size:.7rem;color:var(--ink2);">WiFi: ${S.settings.wifiPw||'u2014'}</div>
+          ${o.items.map(i=>`<div style="margin-bottom:4px;"><strong>${i.qty}x ${i.name}</strong>${(i.addons&&i.addons.length)?`<br><span style="font-size:.72rem;color:var(--ink2);">+${i.addons.map(a=>a.name).join(', +')}</span>`:''}${i.note?`<br><span style="font-size:.7rem;color:var(--ink2);font-style:italic;">📝${i.note}</span>`:''}</div>`).join('')}
+          <div style="border-top:1px dashed var(--ink3);margin:7px 0;font-size:.7rem;color:var(--ink2);">${fdt(o.timestamp)} · ${ftm(o.timestamp)}</div>
+          <div style="font-size:.7rem;color:var(--ink2);">WiFi: ${S.settings.wifiPw||'—'}</div>
         </div>
         <div class="rcv" style="flex:1;min-width:180px;">
           <div class="rcc" style="font-weight:800;">${S.settings.rcptHeader||'CAFE YOTO'}</div>
@@ -1197,7 +1197,7 @@ function modalRender(){
           <div class="rcr"><span>#${o.number}</span><span>${o.orderType}</span></div>
           <div class="rcr"><span>${ftm(o.timestamp)}</span><span>${o.employeeName}</span></div>
           <div class="rcl"></div>
-          ${o.items.map(i=>`<div class="rcr"><span>${i.qty}x ${i.name}</span><span>${peso(i.qty*i.price)}</span></div>${(i.addons||[]).map(a=>`<div style="padding-left:9px;color:var(--ink2);font-size:.74rem;"> +${a.name} ${peso(a.price)}</div>`).join('')}${i.note?`<div style="padding-left:9px;font-style:italic;color:var(--ink2);font-size:.72rem;">ud83dudcdd${i.note}</div>`:''}`).join('')}
+          ${o.items.map(i=>`<div class="rcr"><span>${i.qty}x ${i.name}</span><span>${peso(i.qty*i.price)}</span></div>${(i.addons||[]).map(a=>`<div style="padding-left:9px;color:var(--ink2);font-size:.74rem;"> +${a.name} ${peso(a.price)}</div>`).join('')}${i.note?`<div style="padding-left:9px;font-style:italic;color:var(--ink2);font-size:.72rem;">📝${i.note}</div>`:''}`).join('')}
           <div class="rcl"></div>
           <div class="rcr"><span>Subtotal</span><span>${peso(o.sub)}</span></div>
           ${o.discount>0?`<div class="rcr"><span>Discount</span><span>-${peso(o.discount)}</span></div>`:''}
@@ -1219,7 +1219,7 @@ function modalRender(){
     return mwrap('Edit Shift',`
       <div class="field"><label>Time In</label><input type="datetime-local" id="m-si" value="${new Date(s.timeIn).toISOString().slice(0,16)}"></div>
       <div class="field"><label>Time Out</label><input type="datetime-local" id="m-so2" value="${s.timeOut?new Date(s.timeOut).toISOString().slice(0,16):''}"></div>
-      <div class="field"><label>Tips (u20b1)</label><input type="number" id="m-stips" value="${s.tips||0}"></div>
+      <div class="field"><label>Tips (₱)</label><input type="number" id="m-stips" value="${s.tips||0}"></div>
     `,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveShiftEd('${s.id}')">Save</button>`);
   }
   return'';
@@ -1311,38 +1311,38 @@ function dRange(preset,start,end){
 function buildChit(o){
   return`${S.settings.chitHeader||'CAFE YOTO'}\
 #${o.number}  ${o.orderType.toUpperCase()}\
-${'u2014'.repeat(28)}\
+${'—'.repeat(28)}\
 `+o.items.map(i=>`${i.qty}x ${i.name}${(i.addons&&i.addons.length)?'\
   +'+i.addons.map(a=>a.name).join(', +'):''}${i.note?'\
-  ud83dudcdd'+i.note:''}`).join('\
+  📝'+i.note:''}`).join('\
 ')+`\
-${'u2014'.repeat(28)}\
+${'—'.repeat(28)}\
 ${fdt(o.timestamp)} ${ftm(o.timestamp)}\
-WiFi: ${S.settings.wifiPw||'u2014'}\
+WiFi: ${S.settings.wifiPw||'—'}\
 \
 \
 `;
 }
 function buildRcpt(o){
   return`${S.settings.rcptHeader||'CAFE YOTO'}\
-${'u2014'.repeat(28)}\
+${'—'.repeat(28)}\
 #${o.number}  ${o.orderType}  ${ftm(o.timestamp)}\
 ${o.employeeName}\
-${'u2014'.repeat(28)}\
+${'—'.repeat(28)}\
 `+o.items.map(i=>`${i.qty}x ${i.name}  ${peso(i.qty*i.price)}${(i.addons||[]).map(a=>'\
   +'+a.name+' '+peso(a.price)).join('')}${i.note?'\
-  ud83dudcdd'+i.note:''}`).join('\
+  📝'+i.note:''}`).join('\
 ')+`\
-${'u2014'.repeat(28)}\
+${'—'.repeat(28)}\
 Subtotal: ${peso(o.sub)}\
 ${o.discount>0?'Discount: -'+peso(o.discount)+'\
 ':''}VAT: ${peso(o.vat)}\
 TOTAL: ${peso(o.total)}\
-${'u2014'.repeat(28)}\
+${'—'.repeat(28)}\
 ${o.paymentMethod}${o.paymentMethod==='Cash'&&o.tendered?'  Change: '+peso(Math.max(0,o.tendered-o.total)):''}\
 ${o.payRef?'Ref: '+o.payRef+'\
 ':''}${o.discName?'ID: '+o.discName+' ('+o.discId+')\
-':''}${'u2014'.repeat(28)}\
+':''}${'—'.repeat(28)}\
 ${S.settings.rcptFooter||'Thank you!'}\
 \
 \
