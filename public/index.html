@@ -7,6 +7,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
+
+
+
 :root{
 --bg:#F4F7FD;--surf:#fff;--surf2:#EEF3FC;--ink:#161B26;--ink2:#616B82;--ink3:#9AA4BD;
 --blue:#3B6FF0;--blue2:#2952C4;--bluesoft:#DCE6FE;
@@ -206,12 +209,18 @@ tr:last-child td{border-bottom:none;}
 @keyframes ti{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px 18px;color:var(--ink3);text-align:center;gap:7px;}
 .empty h3{color:var(--ink2);font-weight:700;font-size:.95rem;}
+
+
+
 </style>
 </head>
 <body>
 <div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--ink2);font-weight:700;">Loading Cafe Yoto…</div></div>
 <div id="print-area"></div>
 <script>
+
+
+
 const BK='https://cafe-yoto-backend.onrender.com';
 window.storage={
   async get(k){const r=await fetch(`${BK}/api/state/${encodeURIComponent(k)}`);if(r.status===404)return null;if(!r.ok)throw new Error();return r.json();},
@@ -256,7 +265,7 @@ let S={
     latePenalty:30,
     discountRate:0.20
   },
-  categories:['Coffee','Non-Coffee','Pastries','Add-ons']
+  categories:['Iced Coffee','Iced Drinks','Hot Drinks','Coffee Frappe','Shakes','Yogurt Series','Matcha Series','Cookies','Add-ons']
 };
 let U={
   view:'clock',activeEmpId:null,viewOnly:false,isAdmin:false,
@@ -357,19 +366,66 @@ function defIngs(){return[
   {id:'ing-straw',name:'Straws',baseUnit:'piece',purchaseLabel:'100-pc pack',purchaseQtyInBase:100,purchasePrice:40,shippingCost:0,stockInBase:100,lowThresh:20,soThresh:1}
 ];}
 const sz=(l,p)=>({id:uid(),label:l,price:p});
-function defProds(){return[
-  {id:'p-am',name:'Americano',category:'Coffee',sizes:[sz('Regular',89)],recipe:[{ingredientId:'ing-beans',qty:18},{ingredientId:'ing-cups',qty:1}]},
-  {id:'p-la',name:'Latte',category:'Coffee',sizes:[sz('Regular',103)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-foam',qty:10},{ingredientId:'ing-cups',qty:1}]},
-  {id:'p-bi',name:'Biscoff',category:'Non-Coffee',sizes:[sz('Regular',131)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cd',qty:10},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-bc',name:'Biscoff Coffee',category:'Coffee',sizes:[sz('Regular',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cd',qty:10},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-sp',name:'Spanish',category:'Coffee',sizes:[sz('Regular',117),sz('Large',152)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-cd',qty:5},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-mo',name:'Mocha',category:'Coffee',sizes:[sz('Regular',120)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-cond',qty:10},{ingredientId:'ing-foam',qty:30},{ingredientId:'ing-cd',qty:10},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-ma',name:'Matcha',category:'Non-Coffee',sizes:[sz('Regular',115)],recipe:[{ingredientId:'ing-milk',qty:80},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-matcha',qty:45},{ingredientId:'ing-oat',qty:115},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-dm',name:'Dirty Matcha',category:'Coffee',sizes:[sz('Regular',134)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:80},{ingredientId:'ing-ice',qty:1},{ingredientId:'ing-matcha',qty:45},{ingredientId:'ing-oat',qty:115},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-sa',name:'Samidori',category:'Non-Coffee',sizes:[sz('Regular',254)],recipe:[{ingredientId:'ing-sami',qty:4},{ingredientId:'ing-ice',qty:6},{ingredientId:'ing-foam',qty:20},{ingredientId:'ing-oat',qty:120},{ingredientId:'ing-cups',qty:1},{ingredientId:'ing-straw',qty:1}]},
-  {id:'p-es',name:'Extra Shot',category:'Add-ons',sizes:[sz('',25)],recipe:[{ingredientId:'ing-beans',qty:9}]},
-  {id:'p-om',name:'Oat Milk',category:'Add-ons',sizes:[sz('',30)],recipe:[]},
-  {id:'p-wc',name:'Whipped Cream',category:'Add-ons',sizes:[sz('',20)],recipe:[]}
+function defProds(){
+const s=(l,p)=>({id:uid(),label:l,price:p});
+return[
+{id:'p-am',name:'Americano',category:'Iced Coffee',sizes:[s('16oz',80),s('22oz',100)],recipe:[{ingredientId:'ing-beans',qty:18},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-yl',name:'Yoto Latte',category:'Iced Coffee',sizes:[s('16oz',99),s('22oz',119)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-ld',name:'Lavender Deluxe',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[]},
+{id:'p-sw',name:'Sweet Spanish',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-sw2',name:'Salty Sweet Spanish',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[]},
+{id:'p-cm',name:'Caramel Macchiato',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-wm',name:'White Mocha',category:'Iced Coffee',sizes:[s('16oz',125),s('22oz',145)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-dk',name:'Dark Mocha',category:'Iced Coffee',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-orc',name:'Oreo Coffee',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-ntc',name:'Nutella Coffee',category:'Iced Coffee',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-bc',name:'Biscoff Coffee',category:'Iced Coffee',sizes:[s('16oz',160),s('22oz',180)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-bi',name:'Biscoff',category:'Iced Drinks',sizes:[s('16oz',131),s('22oz',151)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-cho',name:'Chocolate',category:'Iced Drinks',sizes:[s('16oz',110),s('22oz',130)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-oc',name:'Oreo Choco',category:'Iced Drinks',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-nt',name:'Nutella',category:'Iced Drinks',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-lv',name:'Lavender',category:'Iced Drinks',sizes:[s('16oz',110),s('22oz',130)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-bb',name:'Brown Sugar Boba',category:'Iced Drinks',sizes:[s('16oz',99),s('22oz',119)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-sml',name:'Smores Latte',category:'Iced Drinks',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-ham',name:'Hot Americano',category:'Hot Drinks',sizes:[s('8oz',80),s('12oz',100)],recipe:[{ingredientId:'ing-beans',qty:18},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-hla',name:'Hot Latte',category:'Hot Drinks',sizes:[s('8oz',99),s('12oz',119)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-hch',name:'Hot Chocolate',category:'Hot Drinks',sizes:[s('8oz',110),s('12oz',130)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-hma',name:'Hot Matcha',category:'Hot Drinks',sizes:[s('8oz',110),s('12oz',130)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-oat',qty:180},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-hbs',name:'Hot Brown Sugar',category:'Hot Drinks',sizes:[s('8oz',99),s('12oz',119)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-cof',name:'Coffee Frappe',category:'Coffee Frappe',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mof',name:'Mocha Frappe',category:'Coffee Frappe',sizes:[s('16oz',140),s('22oz',160)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-bif',name:'Biscoff Frappe',category:'Coffee Frappe',sizes:[s('16oz',160),s('22oz',180)],recipe:[{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-ntf',name:'Nutella Frappe',category:'Coffee Frappe',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-cups',qty:1}]},
+{id:'p-chs',name:'Chocolate Shake',category:'Shakes',sizes:[s('16oz',120),s('22oz',140)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-ors',name:'Oreo Shake',category:'Shakes',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-bis',name:'Biscoff Shake',category:'Shakes',sizes:[s('16oz',140),s('22oz',160)],recipe:[{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mgs',name:'Mango Shake',category:'Shakes',sizes:[s('16oz',120),s('22oz',140)],recipe:[{ingredientId:'ing-cups',qty:1}]},
+{id:'p-sts',name:'Strawberry Shake',category:'Shakes',sizes:[s('16oz',120),s('22oz',140)],recipe:[{ingredientId:'ing-cups',qty:1}]},
+{id:'p-py',name:'Plain Yogurt',category:'Yogurt Series',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mgy',name:'Mango Yogurt',category:'Yogurt Series',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-cups',qty:1}]},
+{id:'p-sty',name:'Strawberry Yogurt',category:'Yogurt Series',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mat',name:'Matcha',category:'Matcha Series',sizes:[s('16oz',115),s('22oz',135)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-oat',qty:180},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-dmt',name:'Dirty Matcha',category:'Matcha Series',sizes:[s('16oz',134),s('22oz',154)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-sam',name:'Samidori',category:'Matcha Series',sizes:[s('16oz',254),s('22oz',274)],recipe:[{ingredientId:'ing-sami',qty:4},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mlt',name:'Matcha Latte',category:'Matcha Series',sizes:[s('16oz',120),s('22oz',140)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mfp',name:'Matcha Frappe',category:'Matcha Series',sizes:[s('16oz',140),s('22oz',160)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mbc',name:'Matcha Biscoff',category:'Matcha Series',sizes:[s('16oz',160),s('22oz',180)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mnt',name:'Matcha Nutella',category:'Matcha Series',sizes:[s('16oz',160),s('22oz',180)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mor',name:'Matcha Oreo',category:'Matcha Series',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-mot',name:'Matcha Oat',category:'Matcha Series',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-oat',qty:180},{ingredientId:'ing-cups',qty:1}]},
+{id:'p-ck1',name:'Chocolate Chip Cookie',category:'Cookies',sizes:[s('',55)],recipe:[]},
+{id:'p-ck2',name:'Oreo Cookie',category:'Cookies',sizes:[s('',55)],recipe:[]},
+{id:'p-ck3',name:'Red Velvet Cookie',category:'Cookies',sizes:[s('',55)],recipe:[]},
+{id:'p-es',name:'Extra Shot',category:'Add-ons',sizes:[s('',25)],recipe:[{ingredientId:'ing-beans',qty:9}]},
+{id:'p-om',name:'Oat Milk',category:'Add-ons',sizes:[s('',30)],recipe:[]},
+{id:'p-wc',name:'Whipped Cream',category:'Add-ons',sizes:[s('',20)],recipe:[]},
+{id:'p-exs',name:'Extra Syrup',category:'Add-ons',sizes:[s('',15)],recipe:[]},
+{id:'p-prl',name:'Pearl / Boba',category:'Add-ons',sizes:[s('',25)],recipe:[]},
+{id:'p-cin',name:'Cinnamon',category:'Add-ons',sizes:[s('',15)],recipe:[]},
+{id:'p-cbt',name:'Cookie Butter',category:'Add-ons',sizes:[s('',30)],recipe:[]},
+{id:'p-jly',name:'Jelly',category:'Add-ons',sizes:[s('',20)],recipe:[]},
+{id:'p-crm',name:'Cream Cheese',category:'Add-ons',sizes:[s('',35)],recipe:[]},
+{id:'p-slt',name:'Sea Salt',category:'Add-ons',sizes:[s('',15)],recipe:[]}
 ];}
 
 function migrateP(p){
@@ -522,17 +578,11 @@ setInterval(()=>{const el=document.getElementById('ctcard');if(el)el.textContent
 
 async function timeIn(){
   if(!U.activeEmpId)return;
-  let loc='Unknown location';
-  try{
-    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));
-    const{latitude:lat,longitude:lng}=pos.coords;
-    try{
-      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
-      const d=await r.json();
-      loc=d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    }catch{loc=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;}
-  }catch{loc='Location unavailable';}
-  S.shifts.push({id:uid(),employeeId:U.activeEmpId,workType:U.clockWorkType,timeIn:new Date().toISOString(),timeOut:null,lateExcused:false,tips:0,location:loc});
+  const ua=navigator.userAgent;
+  const device=ua.includes('Mobile')?'Mobile':'Desktop';
+  const browser=ua.includes('Chrome')?'Chrome':ua.includes('Firefox')?'Firefox':ua.includes('Safari')?'Safari':'Browser';
+  const deviceStr=device+' · '+browser;
+  S.shifts.push({id:uid(),employeeId:U.activeEmpId,workType:U.clockWorkType,timeIn:new Date().toISOString(),timeOut:null,lateExcused:false,tips:0,location:'',device:deviceStr});
   U.viewOnly=false;saveCore();ra();toast('Timed in!');
 }
 function timeOut(){
@@ -557,7 +607,7 @@ function rPOS(){
     <div class="cat-list">
       ${S.categories.map(c=>{
         const items=S.products.filter(p=>p.category===c);
-        const icons={'Coffee':'☕','Non-Coffee':'🧋','Pastries':'🥐','Add-ons':'✨'};
+        const icons={'Iced Coffee':'☕','Iced Drinks':'🧋','Hot Drinks':'☕','Coffee Frappe':'🧊','Shakes':'🥤','Yogurt Series':'🥛','Matcha Series':'🍵','Cookies':'🍪','Add-ons':'✨'};
         return`<button class="cat-card" onclick="U.posCategory='${c}';ra();">
           <div class="cat-icon">${icons[c]||'🍵'}</div>
           <div style="flex:1;text-align:left;"><div class="cat-name">${c}</div><div class="cat-count">${items.length} items</div></div>
@@ -1365,8 +1415,9 @@ function printBoth(oid){btPrint('chit',oid);setTimeout(()=>btPrint('receipt',oid
 
 // INIT
 (async()=>{await loadData();ra();})();
+
+
+
 </script>
 </body>
 </html>
-","stderr":""}
-function confirmReset(){if(!U.isAdmin)return;if(!confirm('Delete all orders and shifts? This cannot be undone.'))return;S.orders=[];S.shifts=[];saveCore();saveOrders();ra();toast('Data reset.');}
