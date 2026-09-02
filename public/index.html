@@ -1,11 +1,11 @@
-"<!DOCTYPE html>
-<html lang=\"en\">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset=\"UTF-8\">
-<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Cafe Yoto</title>
-<link href=\"https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap\" rel=\"stylesheet\">
-<script src=\"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js\"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
 --bg:#F4F7FD;--surf:#fff;--surf2:#EEF3FC;--ink:#161B26;--ink2:#616B82;--ink3:#9AA4BD;
@@ -209,8 +209,8 @@ tr:last-child td{border-bottom:none;}
 </style>
 </head>
 <body>
-<div id=\"app\"><div style=\"display:flex;align-items:center;justify-content:center;height:100vh;color:var(--ink2);font-weight:700;\">Loading Cafe Yotou2026</div></div>
-<div id=\"print-area\"></div>
+<div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--ink2);font-weight:700;">Loading Cafe Yotou2026</div></div>
+<div id="print-area"></div>
 <script>
 const BK='https://cafe-yoto-backend.onrender.com';
 window.storage={
@@ -220,27 +220,27 @@ window.storage={
 
 // ICONS
 const IC={
-  clk:'<svg width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 3\"/></svg>',
-  pos:'<svg width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M4 8l1.5-3h13L20 8\"/><path d=\"M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z\"/><path d=\"M9 12h6\"/></svg>',
-  ord:'<svg width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><rect x=\"5\" y=\"3\" width=\"14\" height=\"18\" rx=\"2\"/><path d=\"M9 8h6M9 12h6M9 16h3\"/></svg>',
-  inv:'<svg width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M21 8l-9-5-9 5 9 5 9-5z\"/><path d=\"M3 8v8l9 5 9-5V8\"/><path d=\"M12 13v8\"/></svg>',
-  rep:'<svg width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M3 3v18h18\"/><path d=\"M7 15l4-5 3 3 5-7\"/></svg>',
-  exp:'<svg width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1\"/><path d=\"M21 12h-4a2 2 0 0 0 0 4h4v-4z\"/></svg>',
-  shf:'<svg width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"/><path d=\"M3 9h18M8 3v3M16 3v3\"/></svg>',
-  adm:'<svg width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><rect x=\"4\" y=\"11\" width=\"16\" height=\"10\" rx=\"2\"/><path d=\"M8 11V7a4 4 0 0 1 8 0v4\"/></svg>',
-  pls:'<svg width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" viewBox=\"0 0 24 24\"><path d=\"M12 5v14M5 12h14\"/></svg>',
-  mns:'<svg width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" viewBox=\"0 0 24 24\"><path d=\"M5 12h14\"/></svg>',
-  xx:'<svg width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" viewBox=\"0 0 24 24\"><path d=\"M18 6L6 18M6 6l12 12\"/></svg>',
-  bk:'<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M19 12H5M12 5l-7 7 7 7\"/></svg>',
-  tr:'<svg width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6\"/></svg>',
-  pr:'<svg width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M6 9V3h12v6\"/><rect x=\"4\" y=\"9\" width=\"16\" height=\"8\" rx=\"1\"/><path d=\"M6 17h12v5H6z\"/></svg>',
-  bt:'<svg width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11\"/></svg>',
-  pe:'<svg width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z\"/></svg>',
-  ck:'<svg width=\"11\" height=\"11\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M20 6L9 17l-5-5\"/></svg>',
-  dl:'<svg width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M12 3v13m0 0l-4-4m4 4l4-4\"/><path d=\"M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2\"/></svg>',
-  so:'<svg width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4\"/><path d=\"M16 17l5-5-5-5\"/><path d=\"M21 12H9\"/></svg>',
-  ey:'<svg width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>',
-  loc:'<svg width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/></svg>'
+  clk:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  pos:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 8l1.5-3h13L20 8"/><path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 12h6"/></svg>',
+  ord:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+  inv:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>',
+  rep:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
+  exp:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M21 12h-4a2 2 0 0 0 0 4h4v-4z"/></svg>',
+  shf:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>',
+  adm:'<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  pls:'<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  mns:'<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
+  xx:'<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  bk:'<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>',
+  tr:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>',
+  pr:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17h12v5H6z"/></svg>',
+  bt:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/></svg>',
+  pe:'<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  ck:'<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>',
+  dl:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 3v13m0 0l-4-4m4 4l4-4"/><path d="M4 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>',
+  so:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
+  ey:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+  loc:'<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
 };
 
 // STATE
@@ -438,8 +438,8 @@ function _ra(){
   const m=mode();
   const low=lowList().length+soList().length;
   document.getElementById('app').innerHTML=`
-  <div class=\"sb\">
-    <div class=\"sb-logo\">CY</div>
+  <div class="sb">
+    <div class="sb-logo">CY</div>
     ${ni('clock','Time Clock',IC.clk)}
     ${ni('pos','POS',IC.pos)}
     ${ni('orders','Orders',IC.ord)}
@@ -447,19 +447,19 @@ function _ra(){
     ${ni('expenses','Expenses',IC.exp)}
     ${ni('reports','Reports',IC.rep)}
     ${ni('shifts','Shifts',IC.shf)}
-    <div class=\"sb-foot\">${ni('admin','Admin',IC.adm)}</div>
+    <div class="sb-foot">${ni('admin','Admin',IC.adm)}</div>
   </div>
-  <div class=\"main\">
-    <div class=\"topbar\">
-      <div class=\"tb-title\">${vtitle()}</div>
-      <div class=\"tb-right\">
-        <span class=\"clock-live\" id=\"lc\"></span>
-        ${m==='active'?`<div class=\"chip\"><span class=\"chip-dot\"></span>${curEmp().name}</div><button class=\"btn btn-out btn-sm\" onclick=\"signOut()\">${IC.so} Sign Out</button>`:''}
-        ${m==='viewonly'?`<div class=\"vo-chip\">${IC.ey} View Only</div><button class=\"btn btn-out btn-sm\" onclick=\"U.viewOnly=false;ra();\">Exit</button>`:''}
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-title">${vtitle()}</div>
+      <div class="tb-right">
+        <span class="clock-live" id="lc"></span>
+        ${m==='active'?`<div class="chip"><span class="chip-dot"></span>${curEmp().name}</div><button class="btn btn-out btn-sm" onclick="signOut()">${IC.so} Sign Out</button>`:''}
+        ${m==='viewonly'?`<div class="vo-chip">${IC.ey} View Only</div><button class="btn btn-out btn-sm" onclick="U.viewOnly=false;ra();">Exit</button>`:''}
       </div>
     </div>
-    ${U.backendDown?`<div class=\"backend-warn\">u26a0 Can't reach backend u2014 data won't save. Start server then refresh.</div>`:''}
-    <div class=\"content\" id=\"content\" style=\"${U.view==='pos'?'padding:0;overflow:hidden;display:flex;flex-direction:column;':''}\">${vrender()}</div>
+    ${U.backendDown?`<div class="backend-warn">u26a0 Can't reach backend u2014 data won't save. Start server then refresh.</div>`:''}
+    <div class="content" id="content" style="${U.view==='pos'?'padding:0;overflow:hidden;display:flex;flex-direction:column;':''}">${vrender()}</div>
   </div>
   ${npRender()}
   ${modalRender()}
@@ -467,7 +467,7 @@ function _ra(){
   tickClock();
 }
 function ni(view,label,icon,dot){
-  return`<div class=\"ni ${U.view===view?'act':''}\" onclick=\"setView('${view}')\" title=\"${label}\">${icon}<span class=\"tip\">${label}</span>${dot?'<span class=\"dot\"></span>':''}</div>`;
+  return`<div class="ni ${U.view===view?'act':''}" onclick="setView('${view}')" title="${label}">${icon}<span class="tip">${label}</span>${dot?'<span class="dot"></span>':''}</div>`;
 }
 function vtitle(){return{clock:'Time Clock',pos:'Point of Sale',orders:'Ongoing Orders',inventory:'Inventory',expenses:'Expenses',reports:'Reports',shifts:'Shifts',admin:'Admin'}[U.view]||'';}
 function tickClock(){const el=document.getElementById('lc');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');}
@@ -486,35 +486,35 @@ function vrender(){
   if(U.view==='shifts')return rShifts();
   return'';
 }
-function rLock(){return`<div class=\"lockgate\"><div style=\"font-size:2rem;\">ud83dudd12</div><h2>Locked</h2><p>Time in or browse in View Only.</p><div style=\"display:flex;gap:9px;margin-top:10px;\"><button class=\"btn btn-blue\" onclick=\"setView('clock')\">Time Clock</button><button class=\"btn btn-out\" onclick=\"U.viewOnly=true;ra();\">${IC.ey} View Only</button></div></div>`;}
+function rLock(){return`<div class="lockgate"><div style="font-size:2rem;">ud83dudd12</div><h2>Locked</h2><p>Time in or browse in View Only.</p><div style="display:flex;gap:9px;margin-top:10px;"><button class="btn btn-blue" onclick="setView('clock')">Time Clock</button><button class="btn btn-out" onclick="U.viewOnly=true;ra();">${IC.ey} View Only</button></div></div>`;}
 
 // CLOCK
 function rClock(){
   const emp=curEmp();const sh=emp?actShift(emp.id):null;
-  return`<div style=\"display:flex;justify-content:center;padding-top:18px;\">
-  <div class=\"card\" style=\"width:100%;max-width:380px;padding:24px;text-align:center;\">
-    <div style=\"font-size:1.9rem;font-weight:800;\" id=\"ctcard\"></div>
-    <div style=\"color:var(--ink2);font-size:.8rem;margin-bottom:18px;\">${fdt(new Date().toISOString())}</div>
-    <select onchange=\"U.activeEmpId=this.value;U.clockWorkType='';ra();\" style=\"width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:10px;font-size:.86rem;\">
-      <option value=\"\">Select employeeu2026</option>
-      ${S.employees.map(e=>`<option value=\"${e.id}\" ${U.activeEmpId===e.id?'selected':''}>${e.name}</option>`).join('')}
+  return`<div style="display:flex;justify-content:center;padding-top:18px;">
+  <div class="card" style="width:100%;max-width:380px;padding:24px;text-align:center;">
+    <div style="font-size:1.9rem;font-weight:800;" id="ctcard"></div>
+    <div style="color:var(--ink2);font-size:.8rem;margin-bottom:18px;">${fdt(new Date().toISOString())}</div>
+    <select onchange="U.activeEmpId=this.value;U.clockWorkType='';ra();" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:10px;font-size:.86rem;">
+      <option value="">Select employeeu2026</option>
+      ${S.employees.map(e=>`<option value="${e.id}" ${U.activeEmpId===e.id?'selected':''}>${e.name}</option>`).join('')}
     </select>
     ${emp&&!sh?`
-    <select onchange=\"U.clockWorkType=this.value;\" style=\"width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:12px;font-size:.86rem;\">
-      <option value=\"\">Select work type for this shiftu2026</option>
-      <option value=\"Barista\" ${U.clockWorkType==='Barista'?'selected':''}>u2615 Barista</option>
-      <option value=\"Cat Front Desk\" ${U.clockWorkType==='Cat Front Desk'?'selected':''}>ud83dudc31 Cat Front Desk</option>
+    <select onchange="U.clockWorkType=this.value;" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:12px;font-size:.86rem;">
+      <option value="">Select work type for this shiftu2026</option>
+      <option value="Barista" ${U.clockWorkType==='Barista'?'selected':''}>u2615 Barista</option>
+      <option value="Cat Front Desk" ${U.clockWorkType==='Cat Front Desk'?'selected':''}>ud83dudc31 Cat Front Desk</option>
     </select>`:''}
-    ${emp?`<div style=\"margin:8px 0 16px;color:var(--ink2);font-size:.83rem;\">${sh?`On shift since ${ftm(sh.timeIn)} u00b7 <strong>${sh.workType||'u2014'}</strong>`:'Not clocked in'}</div>
-    ${sh?`<button class=\"btn btn-red\" style=\"width:100%;justify-content:center;padding:11px;\" onclick=\"timeOut()\">Time Out</button>`:
-    `<button class=\"btn btn-blue\" style=\"width:100%;justify-content:center;padding:11px;\" ${!U.clockWorkType?'disabled':''} onclick=\"timeIn()\">Time In</button>`}`
-    :`<div style=\"margin:8px 0 16px;color:var(--ink2);font-size:.83rem;\">Choose your name above</div><button style=\"font-size:.76rem;color:var(--ink2);text-decoration:underline;\" onclick=\"U.viewOnly=true;setView('pos');\">View Only mode</button>`}
-    <div style=\"margin-top:18px;text-align:left;\">
-      <div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;\">
-        <span style=\"font-size:.7rem;font-weight:700;color:var(--ink2);\">TEAM</span>
-        <button class=\"btn btn-out btn-sm\" onclick=\"openModal('addEmp')\">${IC.pls} Add</button>
+    ${emp?`<div style="margin:8px 0 16px;color:var(--ink2);font-size:.83rem;">${sh?`On shift since ${ftm(sh.timeIn)} u00b7 <strong>${sh.workType||'u2014'}</strong>`:'Not clocked in'}</div>
+    ${sh?`<button class="btn btn-red" style="width:100%;justify-content:center;padding:11px;" onclick="timeOut()">Time Out</button>`:
+    `<button class="btn btn-blue" style="width:100%;justify-content:center;padding:11px;" ${!U.clockWorkType?'disabled':''} onclick="timeIn()">Time In</button>`}`
+    :`<div style="margin:8px 0 16px;color:var(--ink2);font-size:.83rem;">Choose your name above</div><button style="font-size:.76rem;color:var(--ink2);text-decoration:underline;" onclick="U.viewOnly=true;setView('pos');">View Only mode</button>`}
+    <div style="margin-top:18px;text-align:left;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+        <span style="font-size:.7rem;font-weight:700;color:var(--ink2);">TEAM</span>
+        <button class="btn btn-out btn-sm" onclick="openModal('addEmp')">${IC.pls} Add</button>
       </div>
-      ${S.employees.map(e=>{const s=actShift(e.id);return`<div style=\"display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.81rem;\"><span>${e.name}</span><div style=\"display:flex;align-items:center;gap:6px;\">${s?`<span style=\"font-size:.7rem;color:var(--ink2);\">${s.workType||''}</span>`:''}<span class=\"pill ${s?'pill-ot':''}\" style=\"${s?'':'background:var(--surf2);color:var(--ink3);'}\">${s?'On shift':'Off'}</span></div></div>`;}).join('')||'<div style=\"color:var(--ink3);font-size:.8rem;\">No employees yet.</div>'}
+      ${S.employees.map(e=>{const s=actShift(e.id);return`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.81rem;"><span>${e.name}</span><div style="display:flex;align-items:center;gap:6px;">${s?`<span style="font-size:.7rem;color:var(--ink2);">${s.workType||''}</span>`:''}<span class="pill ${s?'pill-ot':''}" style="${s?'':'background:var(--surf2);color:var(--ink3);'}">${s?'On shift':'Off'}</span></div></div>`;}).join('')||'<div style="color:var(--ink3);font-size:.8rem;">No employees yet.</div>'}
     </div>
   </div></div>`;
 }
@@ -547,100 +547,100 @@ function rPOS(){
   const manage=canM();
   const totals=calcTotals();
   const prods=U.posCategory?S.products.filter(p=>p.category===U.posCategory):[];
-  return`<div class=\"pos-wrap\">
-  <div class=\"pos-left\">
+  return`<div class="pos-wrap">
+  <div class="pos-left">
     ${!U.posCategory?`
-    <div class=\"pos-lhead\">
-      <span style=\"font-weight:800;font-size:.92rem;\">Categories</span>
-      ${manage?`<button class=\"edit-tog ${U.editMode?'on':''}\" onclick=\"U.editMode=!U.editMode;ra();\">${IC.pe} ${U.editMode?'Done':'Edit'}</button>`:''}
+    <div class="pos-lhead">
+      <span style="font-weight:800;font-size:.92rem;">Categories</span>
+      ${manage?`<button class="edit-tog ${U.editMode?'on':''}" onclick="U.editMode=!U.editMode;ra();">${IC.pe} ${U.editMode?'Done':'Edit'}</button>`:''}
     </div>
-    <div class=\"cat-list\">
+    <div class="cat-list">
       ${S.categories.map(c=>{
         const items=S.products.filter(p=>p.category===c);
         const icons={'Coffee':'u2615','Non-Coffee':'ud83euddcb','Pastries':'ud83eudd50','Add-ons':'u2728'};
-        return`<button class=\"cat-card\" onclick=\"U.posCategory='${c}';ra();\">
-          <div class=\"cat-icon\">${icons[c]||'ud83cudf75'}</div>
-          <div style=\"flex:1;text-align:left;\"><div class=\"cat-name\">${c}</div><div class=\"cat-count\">${items.length} items</div></div>
-          ${U.editMode?`<div style=\"display:flex;gap:4px;\" onclick=\"event.stopPropagation();\">
-            <button class=\"btn btn-out btn-xs\" onclick=\"renameCategory('${c}')\">${IC.pe}</button>
-            <button class=\"btn btn-red btn-xs\" onclick=\"deleteCategory('${c}')\">${IC.xx}</button>
+        return`<button class="cat-card" onclick="U.posCategory='${c}';ra();">
+          <div class="cat-icon">${icons[c]||'ud83cudf75'}</div>
+          <div style="flex:1;text-align:left;"><div class="cat-name">${c}</div><div class="cat-count">${items.length} items</div></div>
+          ${U.editMode?`<div style="display:flex;gap:4px;" onclick="event.stopPropagation();">
+            <button class="btn btn-out btn-xs" onclick="renameCategory('${c}')">${IC.pe}</button>
+            <button class="btn btn-red btn-xs" onclick="deleteCategory('${c}')">${IC.xx}</button>
           </div>`:''}
         </button>`;
       }).join('')}
-      ${U.editMode?`<button class=\"cat-card\" style=\"border-style:dashed;color:var(--ink3);\" onclick=\"addCategory()\">${IC.pls} Add Category</button>`:''}
+      ${U.editMode?`<button class="cat-card" style="border-style:dashed;color:var(--ink3);" onclick="addCategory()">${IC.pls} Add Category</button>`:''}
     </div>`:`
-    <div class=\"pos-lhead\">
-      <button style=\"width:32px;height:32px;border-radius:9px;background:var(--surf2);display:flex;align-items:center;justify-content:center;\" onclick=\"U.posCategory=null;ra();\">${IC.bk}</button>
-      <span style=\"font-weight:800;font-size:.92rem;\">${U.posCategory}</span>
-      ${manage?`<button class=\"edit-tog ${U.editMode?'on':''}\" onclick=\"U.editMode=!U.editMode;ra();\">${IC.pe} ${U.editMode?'Done':'Edit'}</button>`:''}
+    <div class="pos-lhead">
+      <button style="width:32px;height:32px;border-radius:9px;background:var(--surf2);display:flex;align-items:center;justify-content:center;" onclick="U.posCategory=null;ra();">${IC.bk}</button>
+      <span style="font-weight:800;font-size:.92rem;">${U.posCategory}</span>
+      ${manage?`<button class="edit-tog ${U.editMode?'on':''}" onclick="U.editMode=!U.editMode;ra();">${IC.pe} ${U.editMode?'Done':'Edit'}</button>`:''}
     </div>
-    <div class=\"prod-grid\">
+    <div class="prod-grid">
       ${prods.map(p=>{
         const st=pStatus(p);const avail=pAvail(p);
         const minP=Math.min(...p.sizes.map(s=>s.price));
-        return`<div class=\"pc ${U.editMode?'em':''}\" onclick=\"${U.editMode?`openModal('editProd','${p.id}')`:`${!avail||!manage?'':''}`}\">
-          <span class=\"sdot sdot-${st==='so'?'so':st==='low'?'low':'ok'}\"></span>
-          <div class=\"pc-name\">${p.name}</div>
-          <div class=\"pc-price\">${p.sizes.length>1?'from ':''} ${peso(minP)}</div>
-          ${p.sizes.length>1?`<div class=\"pc-sizes\">${p.sizes.map(s=>s.label).join(' u00b7 ')}</div>`:''}
-          ${!U.editMode&&avail&&manage?`<div style=\"position:absolute;inset:0;border-radius:13px;\" onclick=\"addToCart('${p.id}')\"></div>`:''}
-          ${!avail?`<div style=\"font-size:.66rem;color:var(--red);font-weight:700;margin-top:3px;\">Out of stock</div>`:''}
+        return`<div class="pc ${U.editMode?'em':''}" onclick="${U.editMode?`openModal('editProd','${p.id}')`:`${!avail||!manage?'':''}`}">
+          <span class="sdot sdot-${st==='so'?'so':st==='low'?'low':'ok'}"></span>
+          <div class="pc-name">${p.name}</div>
+          <div class="pc-price">${p.sizes.length>1?'from ':''} ${peso(minP)}</div>
+          ${p.sizes.length>1?`<div class="pc-sizes">${p.sizes.map(s=>s.label).join(' u00b7 ')}</div>`:''}
+          ${!U.editMode&&avail&&manage?`<div style="position:absolute;inset:0;border-radius:13px;" onclick="addToCart('${p.id}')"></div>`:''}
+          ${!avail?`<div style="font-size:.66rem;color:var(--red);font-weight:700;margin-top:3px;">Out of stock</div>`:''}
         </div>`;
       }).join('')}
-      ${U.editMode?`<div class=\"pc-ghost\" onclick=\"openModal('addProd',null)\">${IC.pls} Add Item</div>`:''}
+      ${U.editMode?`<div class="pc-ghost" onclick="openModal('addProd',null)">${IC.pls} Add Item</div>`:''}
     </div>`}
   </div>
-  <div class=\"pos-right\">
-    <div class=\"ch\"><h3>Current Order</h3>${U.cart.length?`<button class=\"btn btn-red btn-sm\" onclick=\"clearCart()\">Clear</button>`:''}</div>
-    <div class=\"ot-row\">${['Dine In','Take Out','Grab'].map(t=>`<button class=\"ot-btn ${U.orderType===t?'act':''}\" onclick=\"U.orderType='${t}';ra();\">${t}</button>`).join('')}</div>
-    <div class=\"cart-items\">
+  <div class="pos-right">
+    <div class="ch"><h3>Current Order</h3>${U.cart.length?`<button class="btn btn-red btn-sm" onclick="clearCart()">Clear</button>`:''}</div>
+    <div class="ot-row">${['Dine In','Take Out','Grab'].map(t=>`<button class="ot-btn ${U.orderType===t?'act':''}" onclick="U.orderType='${t}';ra();">${t}</button>`).join('')}</div>
+    <div class="cart-items">
       ${U.cart.length?U.cart.map((ci,idx)=>`
-      <div class=\"cib\">
-        <div class=\"cim\">
-          <div class=\"qc\">
-            <button onclick=\"changeQty(${idx},-1)\">${IC.mns}</button>
-            <span style=\"font-weight:700;font-size:.82rem;min-width:16px;text-align:center;\">${ci.qty}</span>
-            <button onclick=\"changeQty(${idx},1)\">${IC.pls}</button>
+      <div class="cib">
+        <div class="cim">
+          <div class="qc">
+            <button onclick="changeQty(${idx},-1)">${IC.mns}</button>
+            <span style="font-weight:700;font-size:.82rem;min-width:16px;text-align:center;">${ci.qty}</span>
+            <button onclick="changeQty(${idx},1)">${IC.pls}</button>
           </div>
-          <div style=\"flex:1;\"><div class=\"ci-name\">${ci.name}</div><div class=\"ci-price\">${peso(ci.price)}</div></div>
-          <button onclick=\"U.cart.splice(${idx},1);ra();\" style=\"color:var(--ink3);\">${IC.xx}</button>
+          <div style="flex:1;"><div class="ci-name">${ci.name}</div><div class="ci-price">${peso(ci.price)}</div></div>
+          <button onclick="U.cart.splice(${idx},1);ra();" style="color:var(--ink3);">${IC.xx}</button>
         </div>
-        <div class=\"ao-row\">
-          ${(ci.addons||[]).map((a,ai)=>`<span class=\"ao-chip\">+${a.name}<button onclick=\"U.cart[${idx}].addons.splice(${ai},1);ra();\" style=\"margin-left:2px;opacity:.6;font-size:.7rem;\">u00d7</button></span>`).join('')}
-          <button class=\"ao-add\" onclick=\"openModal('addAddon','${idx}')\">+ Add-on</button>
+        <div class="ao-row">
+          ${(ci.addons||[]).map((a,ai)=>`<span class="ao-chip">+${a.name}<button onclick="U.cart[${idx}].addons.splice(${ai},1);ra();" style="margin-left:2px;opacity:.6;font-size:.7rem;">u00d7</button></span>`).join('')}
+          <button class="ao-add" onclick="openModal('addAddon','${idx}')">+ Add-on</button>
         </div>
-        <textarea class=\"note-inp\" rows=\"1\" placeholder=\"Note (e.g. less sugar)u2026\" oninput=\"U.cart[${idx}].note=this.value;\">${ci.note||''}</textarea>
-      </div>`).join(''):`<div class=\"empty\"><p>Tap a drink to add it</p></div>`}
+        <textarea class="note-inp" rows="1" placeholder="Note (e.g. less sugar)u2026" oninput="U.cart[${idx}].note=this.value;">${ci.note||''}</textarea>
+      </div>`).join(''):`<div class="empty"><p>Tap a drink to add it</p></div>`}
     </div>
-    <div class=\"cart-bot\">
-      <div class=\"sect\">
-        <div class=\"slabel\">Discount</div>
-        <div class=\"disc-row\">
-          ${['none','senior','pwd'].map(d=>`<button class=\"db ${U.discType===d?'act':''}\" onclick=\"U.discType='${d}';ra();\">${d==='none'?'None':d.charAt(0).toUpperCase()+d.slice(1)}</button>`).join('')}
+    <div class="cart-bot">
+      <div class="sect">
+        <div class="slabel">Discount</div>
+        <div class="disc-row">
+          ${['none','senior','pwd'].map(d=>`<button class="db ${U.discType===d?'act':''}" onclick="U.discType='${d}';ra();">${d==='none'?'None':d.charAt(0).toUpperCase()+d.slice(1)}</button>`).join('')}
         </div>
-        ${U.discType!=='none'?`<div style=\"display:flex;gap:5px;margin-top:5px;\">
-          <input placeholder=\"ID holder name\" value=\"${U.discName}\" oninput=\"U.discName=this.value;\" style=\"flex:1;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);\">
-          <input placeholder=\"ID #\" value=\"${U.discId}\" oninput=\"U.discId=this.value;\" style=\"width:80px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);\">
+        ${U.discType!=='none'?`<div style="display:flex;gap:5px;margin-top:5px;">
+          <input placeholder="ID holder name" value="${U.discName}" oninput="U.discName=this.value;" style="flex:1;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
+          <input placeholder="ID #" value="${U.discId}" oninput="U.discId=this.value;" style="width:80px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
         </div>`:''}
       </div>
-      <div class=\"sect\">
-        <div class=\"slabel\">Payment</div>
-        <div class=\"pay-row\">${['Cash','GCash','Maya'].map(m=>`<button class=\"pb ${U.payMethod===m?'act':''}\" onclick=\"U.payMethod='${m}';U.tendered=0;ra();\">${m}</button>`).join('')}</div>
+      <div class="sect">
+        <div class="slabel">Payment</div>
+        <div class="pay-row">${['Cash','GCash','Maya'].map(m=>`<button class="pb ${U.payMethod===m?'act':''}" onclick="U.payMethod='${m}';U.tendered=0;ra();">${m}</button>`).join('')}</div>
         ${U.payMethod==='Cash'?`
-        <div class=\"tender-row\">
-          <button class=\"tb2 exact\" onclick=\"U.tendered=${totals.total.toFixed(2)};ra();\">Exact ${peso(totals.total)}</button>
-          <button class=\"tb2 amt\" onclick=\"openNP('tendered',U.tendered)\">Enter Amount</button>
+        <div class="tender-row">
+          <button class="tb2 exact" onclick="U.tendered=${totals.total.toFixed(2)};ra();">Exact ${peso(totals.total)}</button>
+          <button class="tb2 amt" onclick="openNP('tendered',U.tendered)">Enter Amount</button>
         </div>
-        ${U.tendered&&U.tendered!==totals.total?`<div style=\"font-size:.78rem;color:var(--ink2);padding:2px;\">Change: <strong>${peso(Math.max(0,U.tendered-totals.total))}</strong></div>`:''}`
-        :`<input placeholder=\"Reference no.\" value=\"${U.payRef}\" oninput=\"U.payRef=this.value;\" style=\"width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);margin-bottom:5px;\">`}
+        ${U.tendered&&U.tendered!==totals.total?`<div style="font-size:.78rem;color:var(--ink2);padding:2px;">Change: <strong>${peso(Math.max(0,U.tendered-totals.total))}</strong></div>`:''}`
+        :`<input placeholder="Reference no." value="${U.payRef}" oninput="U.payRef=this.value;" style="width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);margin-bottom:5px;">`}
       </div>
-      <div class=\"sumbox\">
-        <div class=\"sr\"><span>Subtotal</span><span>${peso(totals.sub)}</span></div>
-        ${totals.disc>0?`<div class=\"sr\" style=\"color:var(--green);\"><span>Discount (20%)</span><span>-${peso(totals.disc)}</span></div>`:''}
-        <div class=\"sr\" style=\"font-size:.75rem;\"><span>VAT ${U.discType!=='none'?'(exempt)':'(12% incl.)'}</span><span>${peso(totals.vat)}</span></div>
-        <div class=\"sr tot\"><span>Total</span><span>${peso(totals.total)}</span></div>
+      <div class="sumbox">
+        <div class="sr"><span>Subtotal</span><span>${peso(totals.sub)}</span></div>
+        ${totals.disc>0?`<div class="sr" style="color:var(--green);"><span>Discount (20%)</span><span>-${peso(totals.disc)}</span></div>`:''}
+        <div class="sr" style="font-size:.75rem;"><span>VAT ${U.discType!=='none'?'(exempt)':'(12% incl.)'}</span><span>${peso(totals.vat)}</span></div>
+        <div class="sr tot"><span>Total</span><span>${peso(totals.total)}</span></div>
       </div>
-      <div style=\"padding:8px 13px 12px;\"><button class=\"btn btn-blue\" style=\"width:100%;justify-content:center;padding:11px;\" ${U.cart.length&&canM()?'':'disabled'} onclick=\"completeSale()\">Send to Queue &amp; Pay</button></div>
+      <div style="padding:8px 13px 12px;"><button class="btn btn-blue" style="width:100%;justify-content:center;padding:11px;" ${U.cart.length&&canM()?'':'disabled'} onclick="completeSale()">Send to Queue &amp; Pay</button></div>
     </div>
   </div></div>`;
 }
@@ -689,38 +689,38 @@ function completeSale(){
 // ORDERS
 function rOrders(){
   const active=S.orders.filter(o=>o.status!=='completed'&&o.status!=='cancelled'&&!o.isRefunded).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-  return`<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;\">
-    <div><h1 style=\"font-weight:800;font-size:1.25rem;\">Ongoing Orders</h1><p style=\"color:var(--ink2);font-size:.8rem;\">${active.length} in queue</p></div>
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div><h1 style="font-weight:800;font-size:1.25rem;">Ongoing Orders</h1><p style="color:var(--ink2);font-size:.8rem;">${active.length} in queue</p></div>
   </div>
-  <div class=\"ord-list\">
+  <div class="ord-list">
   ${active.length?active.map(o=>{
     const allDone=o.items.every(i=>i.checked);
-    return`<div class=\"card oc\">
-      <div class=\"och\">
-        <div class=\"tbadge\">${o.number}</div>
-        <div style=\"flex:1;\"><div style=\"font-weight:700;font-size:.83rem;\">${o.employeeName} u00b7 <span class=\"pill ${o.orderType==='Grab'?'pill-late':o.orderType==='Take Out'?'pill-low':'pill-ot'}\">${o.orderType}</span></div><div style=\"font-size:.68rem;color:var(--ink3);\">${ftm(o.timestamp)}</div></div>
-        <span class=\"pill ${o.status==='preparing'?'pill-so':'pill-low'}\">${o.status}</span>
-        <div style=\"display:flex;gap:5px;flex-wrap:wrap;\">
-          ${o.status==='preparing'?`<button class=\"btn btn-out btn-sm\" ${canM()?'':'disabled'} onclick=\"advOrder('${o.id}','ready')\">Ready</button>`:''}
-          ${o.status==='ready'&&allDone?`<button class=\"btn btn-grn btn-sm\" ${canM()?'':'disabled'} onclick=\"advOrder('${o.id}','completed')\">Complete</button>`:''}
-          <button class=\"btn btn-out btn-sm\" onclick=\"openModal('receipt','${o.id}')\">${IC.pr}</button>
-          ${canM()?`<button class=\"btn btn-red btn-sm\" onclick=\"refundOrder('${o.id}')\">Refund</button>`:''}
+    return`<div class="card oc">
+      <div class="och">
+        <div class="tbadge">${o.number}</div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">${o.employeeName} u00b7 <span class="pill ${o.orderType==='Grab'?'pill-late':o.orderType==='Take Out'?'pill-low':'pill-ot'}">${o.orderType}</span></div><div style="font-size:.68rem;color:var(--ink3);">${ftm(o.timestamp)}</div></div>
+        <span class="pill ${o.status==='preparing'?'pill-so':'pill-low'}">${o.status}</span>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          ${o.status==='preparing'?`<button class="btn btn-out btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','ready')">Ready</button>`:''}
+          ${o.status==='ready'&&allDone?`<button class="btn btn-grn btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','completed')">Complete</button>`:''}
+          <button class="btn btn-out btn-sm" onclick="openModal('receipt','${o.id}')">${IC.pr}</button>
+          ${canM()?`<button class="btn btn-red btn-sm" onclick="refundOrder('${o.id}')">Refund</button>`:''}
         </div>
       </div>
       <div>${o.items.map((item,idx)=>`
-        <div class=\"drow\">
-          <div class=\"dchk ${item.checked?'on':''}\" onclick=\"${canM()?`toggleCheck('${o.id}',${idx})`:''}\">
+        <div class="drow">
+          <div class="dchk ${item.checked?'on':''}" onclick="${canM()?`toggleCheck('${o.id}',${idx})`:''}">
             ${item.checked?IC.ck:''}
           </div>
-          <div style=\"flex:1;\">
-            <div class=\"dname\">${item.qty}x ${item.name}</div>
-            ${(item.addons&&item.addons.length)?`<div class=\"dmeta\">+${item.addons.map(a=>a.name).join(', +')}</div>`:''}
-            ${item.note?`<div class=\"dmeta\" style=\"font-style:italic;\">ud83dudcdd ${item.note}</div>`:''}
+          <div style="flex:1;">
+            <div class="dname">${item.qty}x ${item.name}</div>
+            ${(item.addons&&item.addons.length)?`<div class="dmeta">+${item.addons.map(a=>a.name).join(', +')}</div>`:''}
+            ${item.note?`<div class="dmeta" style="font-style:italic;">ud83dudcdd ${item.note}</div>`:''}
           </div>
         </div>`).join('')}
       </div>
     </div>`;
-  }).join(''):`<div class=\"empty\"><h3>Queue is empty</h3><p>New orders appear here.</p></div>`}
+  }).join(''):`<div class="empty"><h3>Queue is empty</h3><p>New orders appear here.</p></div>`}
   </div>`;
 }
 function toggleCheck(oid,idx){const o=S.orders.find(x=>x.id===oid);if(!o)return;o.items[idx].checked=!o.items[idx].checked;saveOrders();ra();}
@@ -737,50 +737,50 @@ function refundOrder(id){
 // INVENTORY
 function rInventory(){
   const manage=canM();const low=lowList();const so=soList();
-  return`<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;\">
-    <h1 style=\"font-weight:800;font-size:1.25rem;\">Inventory</h1>
-    ${manage?`<button class=\"btn btn-blue\" onclick=\"openModal('${U.invTab==='ingredients'?'addIng':'addProd'}')\">${IC.pls} ${U.invTab==='ingredients'?'Add Ingredient':'Add Item'}</button>`:''}
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <h1 style="font-weight:800;font-size:1.25rem;">Inventory</h1>
+    ${manage?`<button class="btn btn-blue" onclick="openModal('${U.invTab==='ingredients'?'addIng':'addProd'}')">${IC.pls} ${U.invTab==='ingredients'?'Add Ingredient':'Add Item'}</button>`:''}
   </div>
-  ${low.length||so.length?`<div style=\"background:var(--redsoft);color:var(--red);padding:9px 13px;border-radius:10px;font-size:.8rem;font-weight:700;margin-bottom:12px;\">u26a0 ${so.map(i=>i.name+' (Sold Out)').concat(low.map(i=>i.name+' (Low)')).join(' u00b7 ')}</div>`:''}
-  <div style=\"display:flex;gap:7px;margin-bottom:11px;\">
-    <button class=\"dp ${U.invTab==='menu'?'act':''}\" onclick=\"U.invTab='menu';ra();\">Menu Items</button>
-    <button class=\"dp ${U.invTab==='ingredients'?'act':''}\" onclick=\"U.invTab='ingredients';ra();\">Ingredients</button>
-    ${U.invTab==='ingredients'?`<button class=\"dp ${U.invFilter==='warn'?'act':''}\" onclick=\"U.invFilter=U.invFilter==='warn'?'all':'warn';ra();\">u26a0 Warning ${low.length+so.length?`<span style=\"background:var(--red);color:#fff;border-radius:999px;padding:1px 6px;font-size:.62rem;margin-left:3px;\">${low.length+so.length}</span>`:''}</button>`:''}
+  ${low.length||so.length?`<div style="background:var(--redsoft);color:var(--red);padding:9px 13px;border-radius:10px;font-size:.8rem;font-weight:700;margin-bottom:12px;">u26a0 ${so.map(i=>i.name+' (Sold Out)').concat(low.map(i=>i.name+' (Low)')).join(' u00b7 ')}</div>`:''}
+  <div style="display:flex;gap:7px;margin-bottom:11px;">
+    <button class="dp ${U.invTab==='menu'?'act':''}" onclick="U.invTab='menu';ra();">Menu Items</button>
+    <button class="dp ${U.invTab==='ingredients'?'act':''}" onclick="U.invTab='ingredients';ra();">Ingredients</button>
+    ${U.invTab==='ingredients'?`<button class="dp ${U.invFilter==='warn'?'act':''}" onclick="U.invFilter=U.invFilter==='warn'?'all':'warn';ra();">u26a0 Warning ${low.length+so.length?`<span style="background:var(--red);color:#fff;border-radius:999px;padding:1px 6px;font-size:.62rem;margin-left:3px;">${low.length+so.length}</span>`:''}</button>`:''}
   </div>
   ${U.invTab==='menu'?rMenuTab(manage):rIngTab(manage)}`;
 }
 function rMenuTab(manage){
-  return`<div class=\"card\" style=\"overflow-x:auto;\"><table>
+  return`<div class="card" style="overflow-x:auto;"><table>
     <thead><tr><th>Name</th><th>Category</th><th>Sizes & Prices</th><th>Cost</th><th>Margin</th><th>Status</th>${manage?'<th></th>':''}</tr></thead>
     <tbody>${S.products.map(p=>{
       const cost=pcost(p);const st=pStatus(p);
       return`<tr>
-        <td style=\"font-weight:700;\">${p.name}</td>
+        <td style="font-weight:700;">${p.name}</td>
         <td>${p.category}</td>
         <td>${p.sizes.map(s=>`${s.label?s.label+' ':''}<strong>${peso(s.price)}</strong>`).join(' u00b7 ')}</td>
         <td>${peso(cost)}</td>
-        <td>${p.sizes.map(s=>{const m=s.price>0?(s.price-cost)/s.price*100:0;return`<span class=\"pill ${m<0?'pill-so':'pill-ot'}\">${m.toFixed(0)}%</span>`;}).join(' ')}</td>
-        <td><span class=\"pill ${st==='ok'?'pill-ok':st==='low'?'pill-low':'pill-so'}\">${st==='ok'?'Available':st==='low'?'Low Stock':'Sold Out'}</span></td>
-        ${manage?`<td><div style=\"display:flex;gap:4px;\"><button class=\"btn btn-out btn-xs\" onclick=\"openModal('editProd','${p.id}')\">${IC.pe}</button><button class=\"btn btn-out btn-xs\" onclick=\"openModal('editRecipe','${p.id}')\">Recipe</button><button class=\"btn btn-red btn-xs\" onclick=\"delProd('${p.id}')\">${IC.tr}</button></div></td>`:''}
+        <td>${p.sizes.map(s=>{const m=s.price>0?(s.price-cost)/s.price*100:0;return`<span class="pill ${m<0?'pill-so':'pill-ot'}">${m.toFixed(0)}%</span>`;}).join(' ')}</td>
+        <td><span class="pill ${st==='ok'?'pill-ok':st==='low'?'pill-low':'pill-so'}">${st==='ok'?'Available':st==='low'?'Low Stock':'Sold Out'}</span></td>
+        ${manage?`<td><div style="display:flex;gap:4px;"><button class="btn btn-out btn-xs" onclick="openModal('editProd','${p.id}')">${IC.pe}</button><button class="btn btn-out btn-xs" onclick="openModal('editRecipe','${p.id}')">Recipe</button><button class="btn btn-red btn-xs" onclick="delProd('${p.id}')">${IC.tr}</button></div></td>`:''}
       </tr>`;
     }).join('')}</tbody>
   </table></div>`;
 }
 function rIngTab(manage){
   const rows=S.ingredients.filter(i=>U.invFilter==='warn'?(isLow(i)||isSO(i)):true);
-  return`<div class=\"card\" style=\"overflow-x:auto;\"><table>
+  return`<div class="card" style="overflow-x:auto;"><table>
     <thead><tr><th>Name</th><th>In Stock</th><th>Low Stock At</th><th>Sold Out At</th><th>Status</th>${manage?'<th></th>':''}</tr></thead>
     <tbody>${rows.map(ing=>{
       const st=isSO(ing)?'so':isLow(ing)?'low':'ok';
       return`<tr>
-        <td style=\"font-weight:700;\">${ing.name}</td>
+        <td style="font-weight:700;">${ing.name}</td>
         <td>${ing.stockInBase} ${ing.baseUnit}</td>
         <td>${ing.lowThresh} ${ing.baseUnit}</td>
         <td>${ing.soThresh} ${ing.baseUnit}</td>
-        <td><span class=\"pill ${st==='ok'?'pill-ok':st==='low'?'pill-low':'pill-so'}\">${st==='ok'?'Available':st==='low'?'Low Stock':'Sold Out'}</span></td>
-        ${manage?`<td><div style=\"display:flex;gap:4px;\"><button class=\"btn btn-out btn-xs\" onclick=\"restockIng('${ing.id}')\">+1 pack</button><button class=\"btn btn-out btn-xs\" onclick=\"openModal('editIng','${ing.id}')\">${IC.pe}</button><button class=\"btn btn-red btn-xs\" onclick=\"delIng('${ing.id}')\">${IC.tr}</button></div></td>`:''}
+        <td><span class="pill ${st==='ok'?'pill-ok':st==='low'?'pill-low':'pill-so'}">${st==='ok'?'Available':st==='low'?'Low Stock':'Sold Out'}</span></td>
+        ${manage?`<td><div style="display:flex;gap:4px;"><button class="btn btn-out btn-xs" onclick="restockIng('${ing.id}')">+1 pack</button><button class="btn btn-out btn-xs" onclick="openModal('editIng','${ing.id}')">${IC.pe}</button><button class="btn btn-red btn-xs" onclick="delIng('${ing.id}')">${IC.tr}</button></div></td>`:''}
       </tr>`;
-    }).join('')||'<tr><td colspan=\"6\" style=\"color:var(--ink3);\">Nothing here.</td></tr>'}</tbody>
+    }).join('')||'<tr><td colspan="6" style="color:var(--ink3);">Nothing here.</td></tr>'}</tbody>
   </table></div>`;
 }
 function restockIng(id){if(!canM())return;const i=ingBy(id);if(!i)return;i.stockInBase+=i.purchaseQtyInBase;saveCore();ra();toast(`Restocked ${i.name}`);}
@@ -797,28 +797,28 @@ function rExpenses(){
   const persExp=exps.filter(e=>e.type==='Personal').reduce((s,e)=>s+e.amount,0);
   const manage=canM();
   const presets=[['today','Today'],['week','7 days'],['month','30 days'],['all','All'],['custom','Custom']];
-  return`<h1 style=\"font-weight:800;font-size:1.25rem;margin-bottom:12px;\">Expenses</h1>
-  ${manage?`<div class=\"card\" style=\"padding:13px;margin-bottom:14px;\">
-    <div style=\"display:flex;gap:7px;margin-bottom:10px;\">
-      <button onclick=\"U.expType='Cafe';\" style=\"flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Cafe'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}\">u2615 Cafe</button>
-      <button onclick=\"U.expType='Personal';\" style=\"flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Personal'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}\">ud83dudc64 Personal</button>
+  return`<h1 style="font-weight:800;font-size:1.25rem;margin-bottom:12px;">Expenses</h1>
+  ${manage?`<div class="card" style="padding:13px;margin-bottom:14px;">
+    <div style="display:flex;gap:7px;margin-bottom:10px;">
+      <button onclick="U.expType='Cafe';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Cafe'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">u2615 Cafe</button>
+      <button onclick="U.expType='Personal';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Personal'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">ud83dudc64 Personal</button>
     </div>
-    <div style=\"display:grid;grid-template-columns:1.5fr 1fr auto;gap:9px;align-items:end;\">
-      <div class=\"field\"><label>What did you buy</label><input id=\"exp-name\" placeholder=\"e.g. Coffee beans\"></div>
-      <div class=\"field\"><label>Amount (u20b1)</label><input id=\"exp-amt\" type=\"number\" placeholder=\"0.00\"></div>
-      <button class=\"btn btn-blue\" onclick=\"addExp()\">${IC.pls} Add</button>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:9px;align-items:end;">
+      <div class="field"><label>What did you buy</label><input id="exp-name" placeholder="e.g. Coffee beans"></div>
+      <div class="field"><label>Amount (u20b1)</label><input id="exp-amt" type="number" placeholder="0.00"></div>
+      <button class="btn btn-blue" onclick="addExp()">${IC.pls} Add</button>
     </div>
   </div>`:''}
-  <div class=\"dfbar\">${presets.map(([k,l])=>`<button class=\"dp ${U.expPreset===k?'act':''}\" onclick=\"setExpPreset('${k}')\">${l}</button>`).join('')}${U.expPreset==='custom'?`<div style=\"display:flex;align-items:center;gap:5px;\"><input type=\"date\" value=\"${U.expStart}\" onchange=\"U.expStart=this.value;ra();\" style=\"padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;\"><span>to</span><input type=\"date\" value=\"${U.expEnd}\" onchange=\"U.expEnd=this.value;ra();\" style=\"padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;\"></div>`:''}</div>
-  <div class=\"stat-grid\">
-    <div class=\"card sc\"><div class=\"lbl\">Net Sales</div><div class=\"val\">${peso(netSales)}</div></div>
-    <div class=\"card sc\"><div class=\"lbl\">Cafe Expenses</div><div class=\"val\">${peso(cafeExp)}</div></div>
-    <div class=\"card sc\"><div class=\"lbl\">Personal</div><div class=\"val\">${peso(persExp)}</div></div>
-    <div class=\"card sc\"><div class=\"lbl\">Money Left</div><div class=\"val\">${peso(netSales-cafeExp)}</div></div>
+  <div class="dfbar">${presets.map(([k,l])=>`<button class="dp ${U.expPreset===k?'act':''}" onclick="setExpPreset('${k}')">${l}</button>`).join('')}${U.expPreset==='custom'?`<div style="display:flex;align-items:center;gap:5px;"><input type="date" value="${U.expStart}" onchange="U.expStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.expEnd}" onchange="U.expEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:''}</div>
+  <div class="stat-grid">
+    <div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(netSales)}</div></div>
+    <div class="card sc"><div class="lbl">Cafe Expenses</div><div class="val">${peso(cafeExp)}</div></div>
+    <div class="card sc"><div class="lbl">Personal</div><div class="val">${peso(persExp)}</div></div>
+    <div class="card sc"><div class="lbl">Money Left</div><div class="val">${peso(netSales-cafeExp)}</div></div>
   </div>
-  <div class=\"card\"><table>
+  <div class="card"><table>
     <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Amount</th>${manage?'<th></th>':''}</tr></thead>
-    <tbody>${exps.map(e=>`<tr><td>${fdt(e.timestamp)}</td><td><span class=\"pill ${e.type==='Cafe'?'pill-cafe':'pill-pers'}\">${e.type}</span></td><td>${e.name}</td><td>${peso(e.amount)}</td>${manage?`<td><button class=\"btn btn-red btn-xs\" onclick=\"delExp('${e.id}')\">${IC.tr}</button></td>`:''}</tr>`).join('')||'<tr><td colspan=\"5\" style=\"color:var(--ink3);\">No expenses.</td></tr>'}</tbody>
+    <tbody>${exps.map(e=>`<tr><td>${fdt(e.timestamp)}</td><td><span class="pill ${e.type==='Cafe'?'pill-cafe':'pill-pers'}">${e.type}</span></td><td>${e.name}</td><td>${peso(e.amount)}</td>${manage?`<td><button class="btn btn-red btn-xs" onclick="delExp('${e.id}')">${IC.tr}</button></td>`:''}</tr>`).join('')||'<tr><td colspan="5" style="color:var(--ink3);">No expenses.</td></tr>'}</tbody>
   </table></div>`;
 }
 function setExpPreset(k){U.expPreset=k;if(k==='custom'&&!U.expStart){const t=today();U.expStart=t;U.expEnd=t;}ra();}
@@ -848,13 +848,13 @@ function rReports(){
   const presets=[['today','Today'],['week','7 days'],['month','30 days'],['all','All'],['custom','Custom']];
   const tabs=[['summary','Summary'],['item','By Item'],['category','By Category'],['employee','By Employee']];
   let body='';
-  if(U.repTab==='summary')body=`<div class=\"stat-grid\"><div class=\"card sc\"><div class=\"lbl\">Gross Sales</div><div class=\"val\">${peso(gross)}</div></div><div class=\"card sc\"><div class=\"lbl\">Discounts</div><div class=\"val\">${peso(discs)}</div></div><div class=\"card sc\"><div class=\"lbl\">Refunds</div><div class=\"val\">${peso(refunds)}</div></div><div class=\"card sc\"><div class=\"lbl\">Net Sales</div><div class=\"val\">${peso(net)}</div></div><div class=\"card sc\"><div class=\"lbl\">Gross Profit</div><div class=\"val\">${peso(net-cogs)}</div></div><div class=\"card sc\"><div class=\"lbl\">Orders</div><div class=\"val\">${ords.length}</div></div></div>`;
-  else if(U.repTab==='item')body=`<div class=\"card\"><table><thead><tr><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${itemRows.map(([n,d],i)=>`<tr><td>${n}${i===0?'<span class=\"tflag\">TOP</span>':''}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan=\"3\" style=\"color:var(--ink3);\">No data.</td></tr>'}</tbody></table></div>`;
-  else if(U.repTab==='category')body=`<div class=\"card\"><table><thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${Object.entries(catMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan=\"3\" style=\"color:var(--ink3);\">No data.</td></tr>'}</tbody></table></div>`;
-  else if(U.repTab==='employee')body=`<div class=\"card\"><table><thead><tr><th>Employee</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>${Object.entries(empMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.count}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan=\"3\" style=\"color:var(--ink3);\">No data.</td></tr>'}</tbody></table></div>`;
-  return`<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;\"><h1 style=\"font-weight:800;font-size:1.25rem;\">Reports</h1><button class=\"btn btn-out\" onclick=\"exportXls()\">${IC.dl} Export Excel</button></div>
-  <div class=\"dfbar\">${presets.map(([k,l])=>`<button class=\"dp ${U.repPreset===k?'act':''}\" onclick=\"setRepPreset('${k}')\">${l}</button>`).join('')}${U.repPreset==='custom'?`<div style=\"display:flex;align-items:center;gap:5px;\"><input type=\"date\" value=\"${U.repStart}\" onchange=\"U.repStart=this.value;ra();\" style=\"padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;\"><span>to</span><input type=\"date\" value=\"${U.repEnd}\" onchange=\"U.repEnd=this.value;ra();\" style=\"padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;\"></div>`:''}</div>
-  <div class=\"rtabs\">${tabs.map(([k,l])=>`<button class=\"dp ${U.repTab===k?'act':''}\" onclick=\"U.repTab='${k}';ra();\">${l}</button>`).join('')}</div>
+  if(U.repTab==='summary')body=`<div class="stat-grid"><div class="card sc"><div class="lbl">Gross Sales</div><div class="val">${peso(gross)}</div></div><div class="card sc"><div class="lbl">Discounts</div><div class="val">${peso(discs)}</div></div><div class="card sc"><div class="lbl">Refunds</div><div class="val">${peso(refunds)}</div></div><div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(net)}</div></div><div class="card sc"><div class="lbl">Gross Profit</div><div class="val">${peso(net-cogs)}</div></div><div class="card sc"><div class="lbl">Orders</div><div class="val">${ords.length}</div></div></div>`;
+  else if(U.repTab==='item')body=`<div class="card"><table><thead><tr><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${itemRows.map(([n,d],i)=>`<tr><td>${n}${i===0?'<span class="tflag">TOP</span>':''}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
+  else if(U.repTab==='category')body=`<div class="card"><table><thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${Object.entries(catMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
+  else if(U.repTab==='employee')body=`<div class="card"><table><thead><tr><th>Employee</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>${Object.entries(empMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.count}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><h1 style="font-weight:800;font-size:1.25rem;">Reports</h1><button class="btn btn-out" onclick="exportXls()">${IC.dl} Export Excel</button></div>
+  <div class="dfbar">${presets.map(([k,l])=>`<button class="dp ${U.repPreset===k?'act':''}" onclick="setRepPreset('${k}')">${l}</button>`).join('')}${U.repPreset==='custom'?`<div style="display:flex;align-items:center;gap:5px;"><input type="date" value="${U.repStart}" onchange="U.repStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.repEnd}" onchange="U.repEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:''}</div>
+  <div class="rtabs">${tabs.map(([k,l])=>`<button class="dp ${U.repTab===k?'act':''}" onclick="U.repTab='${k}';ra();">${l}</button>`).join('')}</div>
   ${body}`;
 }
 function setRepPreset(k){U.repPreset=k;if(k==='custom'&&!U.repStart){const t=today();U.repStart=t;U.repEnd=t;}ra();}
@@ -878,19 +878,19 @@ function rShifts(){
   const now=new Date();const yr=now.getFullYear();const mo=now.getMonth();
   const dim=new Date(yr,mo+1,0).getDate();const fd=new Date(yr,mo,1).getDay();
   const worked=new Set(myShifts.map(s=>new Date(s.timeIn).getDate()));
-  return`<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;\">
-    <h1 style=\"font-weight:800;font-size:1.25rem;\">Shifts</h1>
-    ${isAdmin?`<select onchange=\"U.shiftEmpId=this.value;ra();\" style=\"padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;\">${S.employees.map(e=>`<option value=\"${e.id}\" ${empId===e.id?'selected':''}>${e.name}</option>`).join('')}</select>`:''}
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <h1 style="font-weight:800;font-size:1.25rem;">Shifts</h1>
+    ${isAdmin?`<select onchange="U.shiftEmpId=this.value;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">${S.employees.map(e=>`<option value="${e.id}" ${empId===e.id?'selected':''}>${e.name}</option>`).join('')}</select>`:''}
   </div>
-  ${emp?`<div class=\"card\" style=\"padding:13px;margin-bottom:13px;\">
-    <div style=\"font-weight:700;margin-bottom:9px;font-size:.88rem;\">${emp.name} u2014 ${new Date(yr,mo).toLocaleString('en-PH',{month:'long',year:'numeric'})}</div>
-    <div class=\"cal-grid\">
-      ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div style=\"text-align:center;font-size:.62rem;font-weight:700;color:var(--ink3);padding-bottom:3px;\">${d}</div>`).join('')}
+  ${emp?`<div class="card" style="padding:13px;margin-bottom:13px;">
+    <div style="font-weight:700;margin-bottom:9px;font-size:.88rem;">${emp.name} u2014 ${new Date(yr,mo).toLocaleString('en-PH',{month:'long',year:'numeric'})}</div>
+    <div class="cal-grid">
+      ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div style="text-align:center;font-size:.62rem;font-weight:700;color:var(--ink3);padding-bottom:3px;">${d}</div>`).join('')}
       ${Array(fd).fill('<div></div>').join('')}
-      ${Array.from({length:dim},(_,i)=>i+1).map(d=>`<div class=\"cal-day ${worked.has(d)?'worked':''} ${d===now.getDate()&&mo===now.getMonth()?'today-d':''}\">${d}</div>`).join('')}
+      ${Array.from({length:dim},(_,i)=>i+1).map(d=>`<div class="cal-day ${worked.has(d)?'worked':''} ${d===now.getDate()&&mo===now.getMonth()?'today-d':''}">${d}</div>`).join('')}
     </div>
   </div>`:''}
-  <div class=\"card\" style=\"overflow-x:auto;\">
+  <div class="card" style="overflow-x:auto;">
     <table>
       <thead><tr><th>Date</th><th>Work Type</th><th>In</th><th>Out</th><th>Hours</th><th>Status</th><th>Pay</th>${isAdmin?`<th>Location</th><th></th>`:''}</tr></thead>
       <tbody>${myShifts.length?myShifts.map(s=>{
@@ -900,19 +900,19 @@ function rShifts(){
         const pay=calcPay(emp2,s);
         return`<tr>
           <td>${fdt(s.timeIn)}</td>
-          <td><span class=\"pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}\">${s.workType||'u2014'}</span></td>
+          <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}">${s.workType||'u2014'}</span></td>
           <td>${ftm(s.timeIn)}</td>
           <td>${s.timeOut?ftm(s.timeOut):'u2014'}</td>
           <td>${s.timeOut?dur.toFixed(2)+'h':'ongoing'}</td>
-          <td><span class=\"pill pill-${st}\">${st==='late'?'Late':st==='valid'?'Valid':' On Time'}</span></td>
+          <td><span class="pill pill-${st}">${st==='late'?'Late':st==='valid'?'Valid':' On Time'}</span></td>
           <td>${s.timeOut?peso(pay):'u2014'}</td>
-          ${isAdmin?`<td style=\"font-size:.72rem;color:var(--ink2);max-width:160px;word-break:break-all;\">${s.location||'u2014'}</td>
-          <td><div style=\"display:flex;gap:3px;flex-wrap:wrap;\">
-            ${st==='late'?`<button class=\"btn btn-out btn-xs\" onclick=\"acceptLate('${s.id}')\">Accept Late</button>`:''}
-            <button class=\"btn btn-out btn-xs\" onclick=\"openModal('editShift','${s.id}')\">${IC.pe}</button>
+          ${isAdmin?`<td style="font-size:.72rem;color:var(--ink2);max-width:160px;word-break:break-all;">${s.location||'u2014'}</td>
+          <td><div style="display:flex;gap:3px;flex-wrap:wrap;">
+            ${st==='late'?`<button class="btn btn-out btn-xs" onclick="acceptLate('${s.id}')">Accept Late</button>`:''}
+            <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
           </div></td>`:''}
         </tr>`;
-      }).join(''):'<tr><td colspan=\"9\" style=\"color:var(--ink3);\">No shifts yet.</td></tr>'}
+      }).join(''):'<tr><td colspan="9" style="color:var(--ink3);">No shifts yet.</td></tr>'}
       </tbody>
     </table>
   </div>`;
@@ -1107,12 +1107,12 @@ function saveAdm(){saveCore();toast('Settings saved.');}
 function npRender(){
   if(!U.npShow)return'';
   const keys=['7','8','9','4','5','6','1','2','3','.','0','DEL'];
-  return`<div class=\"np-ov\" onclick=\"npCancel()\"><div class=\"np-sheet\" onclick=\"event.stopPropagation()\">
-    <div class=\"np-disp\" id=\"np-disp\">${U.npVal||'0'}</div>
-    <div class=\"np-grid\">${keys.map(k=>`<button class=\"np-key ${k==='DEL'?'kred':''}\" onclick=\"npPress('${k}')\">${k}</button>`).join('')}</div>
-    <div style=\"display:flex;gap:7px;margin-top:9px;\">
-      <button class=\"btn btn-out\" style=\"flex:1;\" onclick=\"npCancel()\">Cancel</button>
-      <button class=\"btn btn-blue\" style=\"flex:1;\" onclick=\"npConfirm()\">Confirm</button>
+  return`<div class="np-ov" onclick="npCancel()"><div class="np-sheet" onclick="event.stopPropagation()">
+    <div class="np-disp" id="np-disp">${U.npVal||'0'}</div>
+    <div class="np-grid">${keys.map(k=>`<button class="np-key ${k==='DEL'?'kred':''}" onclick="npPress('${k}')">${k}</button>`).join('')}</div>
+    <div style="display:flex;gap:7px;margin-top:9px;">
+      <button class="btn btn-out" style="flex:1;" onclick="npCancel()">Cancel</button>
+      <button class="btn btn-blue" style="flex:1;" onclick="npConfirm()">Confirm</button>
     </div>
   </div></div>`;
 }
@@ -1125,49 +1125,49 @@ function modalRender(){
   if(!U.modal)return'';
   const t=U.modal;const d=U.mdata;
 
-  if(t==='addEmp')return mwrap('Add Employee',`<div class=\"field\"><label>Name</label><input id=\"m-en\" placeholder=\"e.g. Maria Santos\" autofocus></div><div class=\"frow\"><div class=\"field\"><label>Role</label><select id=\"m-er\"><option value=\"barista\">Barista</option><option value=\"cat\">Cat Care</option></select></div><div class=\"field\"><label>Rate/hr (u20b1)</label><input type=\"number\" id=\"m-ehr\" value=\"64\"></div></div>`,`<button class=\"btn btn-out\" onclick=\"closeModal()\">Cancel</button><button class=\"btn btn-blue\" onclick=\"saveEmp()\">Add</button>`);
+  if(t==='addEmp')return mwrap('Add Employee',`<div class="field"><label>Name</label><input id="m-en" placeholder="e.g. Maria Santos" autofocus></div><div class="frow"><div class="field"><label>Role</label><select id="m-er"><option value="barista">Barista</option><option value="cat">Cat Care</option></select></div><div class="field"><label>Rate/hr (u20b1)</label><input type="number" id="m-ehr" value="64"></div></div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveEmp()">Add</button>`);
 
   if(t==='pickSize'){
     const p=S.products.find(x=>x.id===d);if(!p)return'';
-    return mwrap(`${p.name} u2014 Size`,`<div style=\"display:flex;flex-direction:column;gap:7px;\">${p.sizes.map(s=>`<button onclick=\"pickSz('${p.id}','${s.id}')\" style=\"display:flex;justify-content:space-between;padding:13px 15px;border:1.5px solid var(--border);border-radius:11px;font-weight:700;font-size:.88rem;width:100%;\"><span>${s.label}</span><span>${peso(s.price)}</span></button>`).join('')}</div>`,`<button class=\"btn btn-out\" onclick=\"closeModal()\">Cancel</button>`);
+    return mwrap(`${p.name} u2014 Size`,`<div style="display:flex;flex-direction:column;gap:7px;">${p.sizes.map(s=>`<button onclick="pickSz('${p.id}','${s.id}')" style="display:flex;justify-content:space-between;padding:13px 15px;border:1.5px solid var(--border);border-radius:11px;font-weight:700;font-size:.88rem;width:100%;"><span>${s.label}</span><span>${peso(s.price)}</span></button>`).join('')}</div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button>`);
   }
 
   if(t==='addAddon'){
     const aos=addOnProds();
-    return mwrap('Add Add-on',`<div style=\"display:flex;flex-direction:column;gap:7px;\">${aos.map(a=>`<button onclick=\"applyAO('${d}','${a.id}')\" style=\"display:flex;justify-content:space-between;padding:11px 14px;border:1.5px solid var(--border);border-radius:11px;font-weight:700;width:100%;font-size:.86rem;\"><span>${a.name}</span><span>+${peso(a.sizes[0]?.price||0)}</span></button>`).join('')||'<p style=\"color:var(--ink3);\">No add-ons defined yet.</p>'}</div>`,`<button class=\"btn btn-out\" onclick=\"closeModal()\">Cancel</button>`);
+    return mwrap('Add Add-on',`<div style="display:flex;flex-direction:column;gap:7px;">${aos.map(a=>`<button onclick="applyAO('${d}','${a.id}')" style="display:flex;justify-content:space-between;padding:11px 14px;border:1.5px solid var(--border);border-radius:11px;font-weight:700;width:100%;font-size:.86rem;"><span>${a.name}</span><span>+${peso(a.sizes[0]?.price||0)}</span></button>`).join('')||'<p style="color:var(--ink3);">No add-ons defined yet.</p>'}</div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button>`);
   }
 
   if(t==='addProd'||t==='editProd'){
     const p=d?S.products.find(x=>x.id===d):null;
     if(!U.sdraft.length&&!U.sdraft._set){U.sdraft=p?p.sizes.map(s=>({...s})):[{id:uid(),label:'Regular',price:0}];U.sdraft._set=true;}
     return mwrap(p?`Edit ${p.name}`:'Add Menu Item',`
-      <div class=\"field\"><label>Name</label><input id=\"m-pn\" value=\"${p?p.name:''}\" placeholder=\"Drink name\"></div>
-      <div class=\"field\"><label>Category</label><select id=\"m-pc\">${S.categories.map(c=>`<option value=\"${c}\" ${(p?p.category:U.posCategory)===c?'selected':''}>${c}</option>`).join('')}</select></div>
-      <div class=\"field\"><label>Sizes & Prices</label><div id=\"m-szrows\">${rSzRows()}</div><button class=\"btn btn-out btn-sm\" style=\"margin-top:5px;\" onclick=\"addSzRow()\">${IC.pls} Add size</button></div>
-    `,`<button class=\"btn btn-out\" onclick=\"closeModal()\">Cancel</button>${p?`<button class=\"btn btn-red\" onclick=\"delProd('${p.id}');closeModal();\">${IC.tr}</button>`:''}<button class=\"btn btn-blue\" onclick=\"saveProd()\">Save</button>`);
+      <div class="field"><label>Name</label><input id="m-pn" value="${p?p.name:''}" placeholder="Drink name"></div>
+      <div class="field"><label>Category</label><select id="m-pc">${S.categories.map(c=>`<option value="${c}" ${(p?p.category:U.posCategory)===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="field"><label>Sizes & Prices</label><div id="m-szrows">${rSzRows()}</div><button class="btn btn-out btn-sm" style="margin-top:5px;" onclick="addSzRow()">${IC.pls} Add size</button></div>
+    `,`<button class="btn btn-out" onclick="closeModal()">Cancel</button>${p?`<button class="btn btn-red" onclick="delProd('${p.id}');closeModal();">${IC.tr}</button>`:''}<button class="btn btn-blue" onclick="saveProd()">Save</button>`);
   }
 
   if(t==='addIng'||t==='editIng'){
     const ing=d?ingBy(d):null;
     return mwrap(ing?`Edit ${ing.name}`:'Add Ingredient',`
-      <div class=\"field\"><label>Name</label><input id=\"m-in\" value=\"${ing?ing.name:''}\" placeholder=\"e.g. Coffee Beans\"></div>
-      <div class=\"frow\">
-        <div class=\"field\"><label>Base unit</label><select id=\"m-iu\"><option value=\"g\" ${ing?.baseUnit==='g'?'selected':''}>grams (g)</option><option value=\"mL\" ${ing?.baseUnit==='mL'?'selected':''}>mL</option><option value=\"piece\" ${ing?.baseUnit==='piece'?'selected':''}>pieces</option></select></div>
-        <div class=\"field\"><label>Purchase label</label><input id=\"m-il\" value=\"${ing?ing.purchaseLabel:''}\" placeholder=\"e.g. 1kg bag\"></div>
+      <div class="field"><label>Name</label><input id="m-in" value="${ing?ing.name:''}" placeholder="e.g. Coffee Beans"></div>
+      <div class="frow">
+        <div class="field"><label>Base unit</label><select id="m-iu"><option value="g" ${ing?.baseUnit==='g'?'selected':''}>grams (g)</option><option value="mL" ${ing?.baseUnit==='mL'?'selected':''}>mL</option><option value="piece" ${ing?.baseUnit==='piece'?'selected':''}>pieces</option></select></div>
+        <div class="field"><label>Purchase label</label><input id="m-il" value="${ing?ing.purchaseLabel:''}" placeholder="e.g. 1kg bag"></div>
       </div>
-      <div class=\"frow\">
-        <div class=\"field\"><label>Qty per purchase</label><input id=\"m-ipq\" type=\"number\" value=\"${ing?ing.purchaseQtyInBase:''}\"></div>
-        <div class=\"field\"><label>Current stock</label><input id=\"m-ist\" type=\"number\" value=\"${ing?ing.stockInBase:''}\"></div>
+      <div class="frow">
+        <div class="field"><label>Qty per purchase</label><input id="m-ipq" type="number" value="${ing?ing.purchaseQtyInBase:''}"></div>
+        <div class="field"><label>Current stock</label><input id="m-ist" type="number" value="${ing?ing.stockInBase:''}"></div>
       </div>
-      <div class=\"frow\">
-        <div class=\"field\"><label>Purchase price (u20b1)</label><input id=\"m-ipp\" type=\"number\" value=\"${ing?ing.purchasePrice:''}\"></div>
-        <div class=\"field\"><label>Shipping (u20b1)</label><input id=\"m-ish\" type=\"number\" value=\"${ing?ing.shippingCost:0}\"></div>
+      <div class="frow">
+        <div class="field"><label>Purchase price (u20b1)</label><input id="m-ipp" type="number" value="${ing?ing.purchasePrice:''}"></div>
+        <div class="field"><label>Shipping (u20b1)</label><input id="m-ish" type="number" value="${ing?ing.shippingCost:0}"></div>
       </div>
-      <div class=\"frow\">
-        <div class=\"field\"><label>Low stock at (base unit)</label><input id=\"m-ilo\" type=\"number\" value=\"${ing?ing.lowThresh:100}\"></div>
-        <div class=\"field\"><label>Sold out at (base unit)</label><input id=\"m-iso\" type=\"number\" value=\"${ing?ing.soThresh:20}\"></div>
+      <div class="frow">
+        <div class="field"><label>Low stock at (base unit)</label><input id="m-ilo" type="number" value="${ing?ing.lowThresh:100}"></div>
+        <div class="field"><label>Sold out at (base unit)</label><input id="m-iso" type="number" value="${ing?ing.soThresh:20}"></div>
       </div>
-    `,`<button class=\"btn btn-out\" onclick=\"closeModal()\">Cancel</button><button class=\"btn btn-blue\" onclick=\"saveIng('${d||''}')\">Save</button>`);
+    `,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveIng('${d||''}')">Save</button>`);
   }
 
   if(t==='editRecipe'){
@@ -1175,60 +1175,60 @@ function modalRender(){
     if(!U.rdraft.length&&!U.rdraft._set){U.rdraft=(p.recipe||[]).map(r=>({...r}));U.rdraft._set=true;}
     const cost=U.rdraft.reduce((s,r)=>{const i=ingBy(r.ingredientId);return s+(i?ucost(i)*r.qty:0);},0);
     return mwrap(`Recipe u2014 ${p.name}`,`
-      <div id=\"m-rrows\">${rRcpRows()}</div>
-      <div class=\"cprev\"><span>Cost per item</span><span id=\"m-rcost\">${peso(cost)}</span></div>
-    `,`<button class=\"btn btn-out btn-sm\" onclick=\"addRcpRow()\">${IC.pls} Add</button><button class=\"btn btn-out\" onclick=\"closeModal()\">Cancel</button><button class=\"btn btn-blue\" onclick=\"saveRcp('${d}')\">Save</button>`);
+      <div id="m-rrows">${rRcpRows()}</div>
+      <div class="cprev"><span>Cost per item</span><span id="m-rcost">${peso(cost)}</span></div>
+    `,`<button class="btn btn-out btn-sm" onclick="addRcpRow()">${IC.pls} Add</button><button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveRcp('${d}')">Save</button>`);
   }
 
   if(t==='receipt'){
     const o=S.orders.find(x=>x.id===d);if(!o)return'';
     return mwrap(`Order #${o.number}`,`
-      <div style=\"display:flex;gap:11px;flex-wrap:wrap;\">
-        <div class=\"chit\">
-          <div class=\"chit-num\">#${o.number}</div>
-          <div class=\"chit-type\">${o.orderType}</div>
-          ${o.items.map(i=>`<div style=\"margin-bottom:4px;\"><strong>${i.qty}x ${i.name}</strong>${(i.addons&&i.addons.length)?`<br><span style=\"font-size:.72rem;color:var(--ink2);\">+${i.addons.map(a=>a.name).join(', +')}</span>`:''}${i.note?`<br><span style=\"font-size:.7rem;color:var(--ink2);font-style:italic;\">ud83dudcdd${i.note}</span>`:''}</div>`).join('')}
-          <div style=\"border-top:1px dashed var(--ink3);margin:7px 0;font-size:.7rem;color:var(--ink2);\">${fdt(o.timestamp)} u00b7 ${ftm(o.timestamp)}</div>
-          <div style=\"font-size:.7rem;color:var(--ink2);\">WiFi: ${S.settings.wifiPw||'u2014'}</div>
+      <div style="display:flex;gap:11px;flex-wrap:wrap;">
+        <div class="chit">
+          <div class="chit-num">#${o.number}</div>
+          <div class="chit-type">${o.orderType}</div>
+          ${o.items.map(i=>`<div style="margin-bottom:4px;"><strong>${i.qty}x ${i.name}</strong>${(i.addons&&i.addons.length)?`<br><span style="font-size:.72rem;color:var(--ink2);">+${i.addons.map(a=>a.name).join(', +')}</span>`:''}${i.note?`<br><span style="font-size:.7rem;color:var(--ink2);font-style:italic;">ud83dudcdd${i.note}</span>`:''}</div>`).join('')}
+          <div style="border-top:1px dashed var(--ink3);margin:7px 0;font-size:.7rem;color:var(--ink2);">${fdt(o.timestamp)} u00b7 ${ftm(o.timestamp)}</div>
+          <div style="font-size:.7rem;color:var(--ink2);">WiFi: ${S.settings.wifiPw||'u2014'}</div>
         </div>
-        <div class=\"rcv\" style=\"flex:1;min-width:180px;\">
-          <div class=\"rcc\" style=\"font-weight:800;\">${S.settings.rcptHeader||'CAFE YOTO'}</div>
-          <div class=\"rcl\"></div>
-          <div class=\"rcr\"><span>#${o.number}</span><span>${o.orderType}</span></div>
-          <div class=\"rcr\"><span>${ftm(o.timestamp)}</span><span>${o.employeeName}</span></div>
-          <div class=\"rcl\"></div>
-          ${o.items.map(i=>`<div class=\"rcr\"><span>${i.qty}x ${i.name}</span><span>${peso(i.qty*i.price)}</span></div>${(i.addons||[]).map(a=>`<div style=\"padding-left:9px;color:var(--ink2);font-size:.74rem;\"> +${a.name} ${peso(a.price)}</div>`).join('')}${i.note?`<div style=\"padding-left:9px;font-style:italic;color:var(--ink2);font-size:.72rem;\">ud83dudcdd${i.note}</div>`:''}`).join('')}
-          <div class=\"rcl\"></div>
-          <div class=\"rcr\"><span>Subtotal</span><span>${peso(o.sub)}</span></div>
-          ${o.discount>0?`<div class=\"rcr\"><span>Discount</span><span>-${peso(o.discount)}</span></div>`:''}
-          <div class=\"rcr\"><span>VAT</span><span>${peso(o.vat)}</span></div>
-          <div class=\"rcr\" style=\"font-weight:800;\"><span>TOTAL</span><span>${peso(o.total)}</span></div>
-          <div class=\"rcl\"></div>
-          <div class=\"rcr\"><span>${o.paymentMethod}</span>${o.paymentMethod==='Cash'&&o.tendered?`<span>Change: ${peso(Math.max(0,o.tendered-o.total))}</span>`:''}</div>
-          ${o.payRef?`<div class=\"rcr\"><span>Ref</span><span>${o.payRef}</span></div>`:''}
+        <div class="rcv" style="flex:1;min-width:180px;">
+          <div class="rcc" style="font-weight:800;">${S.settings.rcptHeader||'CAFE YOTO'}</div>
+          <div class="rcl"></div>
+          <div class="rcr"><span>#${o.number}</span><span>${o.orderType}</span></div>
+          <div class="rcr"><span>${ftm(o.timestamp)}</span><span>${o.employeeName}</span></div>
+          <div class="rcl"></div>
+          ${o.items.map(i=>`<div class="rcr"><span>${i.qty}x ${i.name}</span><span>${peso(i.qty*i.price)}</span></div>${(i.addons||[]).map(a=>`<div style="padding-left:9px;color:var(--ink2);font-size:.74rem;"> +${a.name} ${peso(a.price)}</div>`).join('')}${i.note?`<div style="padding-left:9px;font-style:italic;color:var(--ink2);font-size:.72rem;">ud83dudcdd${i.note}</div>`:''}`).join('')}
+          <div class="rcl"></div>
+          <div class="rcr"><span>Subtotal</span><span>${peso(o.sub)}</span></div>
+          ${o.discount>0?`<div class="rcr"><span>Discount</span><span>-${peso(o.discount)}</span></div>`:''}
+          <div class="rcr"><span>VAT</span><span>${peso(o.vat)}</span></div>
+          <div class="rcr" style="font-weight:800;"><span>TOTAL</span><span>${peso(o.total)}</span></div>
+          <div class="rcl"></div>
+          <div class="rcr"><span>${o.paymentMethod}</span>${o.paymentMethod==='Cash'&&o.tendered?`<span>Change: ${peso(Math.max(0,o.tendered-o.total))}</span>`:''}</div>
+          ${o.payRef?`<div class="rcr"><span>Ref</span><span>${o.payRef}</span></div>`:''}
           ${o.discName?`<div>ID: ${o.discName} / ${o.discId}</div>`:''}
-          <div class=\"rcl\"></div>
-          <div class=\"rcc\">${S.settings.rcptFooter||'Thank you, come again!'}</div>
+          <div class="rcl"></div>
+          <div class="rcc">${S.settings.rcptFooter||'Thank you, come again!'}</div>
         </div>
       </div>
-    `,`<button class=\"btn btn-out btn-sm\" onclick=\"btPrint('chit','${o.id}')\">${IC.bt} Print Chit</button><button class=\"btn btn-out btn-sm\" onclick=\"btPrint('receipt','${o.id}')\">${IC.bt} Print Receipt</button><button class=\"btn btn-blue btn-sm\" onclick=\"printBoth('${o.id}')\">${IC.pr} Print Both</button><button class=\"btn btn-out\" onclick=\"closeModal()\">Close</button>`);
+    `,`<button class="btn btn-out btn-sm" onclick="btPrint('chit','${o.id}')">${IC.bt} Print Chit</button><button class="btn btn-out btn-sm" onclick="btPrint('receipt','${o.id}')">${IC.bt} Print Receipt</button><button class="btn btn-blue btn-sm" onclick="printBoth('${o.id}')">${IC.pr} Print Both</button><button class="btn btn-out" onclick="closeModal()">Close</button>`);
   }
 
   if(t==='editShift'){
     const s=S.shifts.find(x=>x.id===d);if(!s)return'';
     return mwrap('Edit Shift',`
-      <div class=\"field\"><label>Time In</label><input type=\"datetime-local\" id=\"m-si\" value=\"${new Date(s.timeIn).toISOString().slice(0,16)}\"></div>
-      <div class=\"field\"><label>Time Out</label><input type=\"datetime-local\" id=\"m-so2\" value=\"${s.timeOut?new Date(s.timeOut).toISOString().slice(0,16):''}\"></div>
-      <div class=\"field\"><label>Tips (u20b1)</label><input type=\"number\" id=\"m-stips\" value=\"${s.tips||0}\"></div>
-    `,`<button class=\"btn btn-out\" onclick=\"closeModal()\">Cancel</button><button class=\"btn btn-blue\" onclick=\"saveShiftEd('${s.id}')\">Save</button>`);
+      <div class="field"><label>Time In</label><input type="datetime-local" id="m-si" value="${new Date(s.timeIn).toISOString().slice(0,16)}"></div>
+      <div class="field"><label>Time Out</label><input type="datetime-local" id="m-so2" value="${s.timeOut?new Date(s.timeOut).toISOString().slice(0,16):''}"></div>
+      <div class="field"><label>Tips (u20b1)</label><input type="number" id="m-stips" value="${s.tips||0}"></div>
+    `,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveShiftEd('${s.id}')">Save</button>`);
   }
   return'';
 }
 function mwrap(title,body,foot){
-  return`<div class=\"ov\" onclick=\"closeModal()\"><div class=\"modal\" onclick=\"event.stopPropagation()\">
-    <div class=\"mh\"><h2>${title}</h2><button onclick=\"closeModal()\">${IC.xx}</button></div>
-    <div class=\"mb\">${body}</div>
-    ${foot?`<div class=\"mf\">${foot}</div>`:''}
+  return`<div class="ov" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
+    <div class="mh"><h2>${title}</h2><button onclick="closeModal()">${IC.xx}</button></div>
+    <div class="mb">${body}</div>
+    ${foot?`<div class="mf">${foot}</div>`:''}
   </div></div>`;
 }
 
@@ -1253,7 +1253,7 @@ function applyAO(cartIdx,prodId){
   U.cart[idx].addons.push({productId:a.id,name:a.name,price:a.sizes[0]?.price||0});
   closeModal();
 }
-function rSzRows(){return(U.sdraft||[]).filter(s=>s&&s.id).map((s,i)=>`<div style=\"display:grid;grid-template-columns:1fr 90px 26px;gap:6px;margin-bottom:6px;\"><input value=\"${s.label||''}\" placeholder=\"e.g. Regular\" oninput=\"U.sdraft[${i}].label=this.value;\"><input type=\"number\" value=\"${s.price||0}\" oninput=\"U.sdraft[${i}].price=parseFloat(this.value)||0;\"><button onclick=\"U.sdraft.splice(${i},1);document.getElementById('m-szrows').innerHTML=rSzRows();\" style=\"color:var(--red);\">${IC.xx}</button></div>`).join('');}
+function rSzRows(){return(U.sdraft||[]).filter(s=>s&&s.id).map((s,i)=>`<div style="display:grid;grid-template-columns:1fr 90px 26px;gap:6px;margin-bottom:6px;"><input value="${s.label||''}" placeholder="e.g. Regular" oninput="U.sdraft[${i}].label=this.value;"><input type="number" value="${s.price||0}" oninput="U.sdraft[${i}].price=parseFloat(this.value)||0;"><button onclick="U.sdraft.splice(${i},1);document.getElementById('m-szrows').innerHTML=rSzRows();" style="color:var(--red);">${IC.xx}</button></div>`).join('');}
 function addSzRow(){U.sdraft.push({id:uid(),label:'',price:0});const el=document.getElementById('m-szrows');if(el)el.innerHTML=rSzRows();}
 function saveProd(){
   const name=document.getElementById('m-pn')?.value.trim();
@@ -1280,7 +1280,7 @@ function saveIng(existId){
   else S.ingredients.push({id:uid(),name,baseUnit,purchaseLabel,purchaseQtyInBase,stockInBase,purchasePrice,shippingCost,lowThresh,soThresh});
   saveCore();closeModal();
 }
-function rRcpRows(){return(U.rdraft||[]).map((r,i)=>`<div style=\"display:grid;grid-template-columns:1fr 80px 26px;gap:6px;margin-bottom:6px;\"><select onchange=\"U.rdraft[${i}].ingredientId=this.value;updRcpCost();\">${S.ingredients.map(ing=>`<option value=\"${ing.id}\" ${r.ingredientId===ing.id?'selected':''}>${ing.name} (${ing.baseUnit})</option>`).join('')}</select><input type=\"number\" value=\"${r.qty}\" oninput=\"U.rdraft[${i}].qty=parseFloat(this.value)||0;updRcpCost();\" style=\"padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);\"><button onclick=\"U.rdraft.splice(${i},1);document.getElementById('m-rrows').innerHTML=rRcpRows();updRcpCost();\" style=\"color:var(--red);\">${IC.xx}</button></div>`).join('');}
+function rRcpRows(){return(U.rdraft||[]).map((r,i)=>`<div style="display:grid;grid-template-columns:1fr 80px 26px;gap:6px;margin-bottom:6px;"><select onchange="U.rdraft[${i}].ingredientId=this.value;updRcpCost();">${S.ingredients.map(ing=>`<option value="${ing.id}" ${r.ingredientId===ing.id?'selected':''}>${ing.name} (${ing.baseUnit})</option>`).join('')}</select><input type="number" value="${r.qty}" oninput="U.rdraft[${i}].qty=parseFloat(this.value)||0;updRcpCost();" style="padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"><button onclick="U.rdraft.splice(${i},1);document.getElementById('m-rrows').innerHTML=rRcpRows();updRcpCost();" style="color:var(--red);">${IC.xx}</button></div>`).join('');}
 function addRcpRow(){if(!S.ingredients.length){toast('Add an ingredient first.');return;}U.rdraft.push({ingredientId:S.ingredients[0].id,qty:1});const el=document.getElementById('m-rrows');if(el)el.innerHTML=rRcpRows();updRcpCost();}
 function updRcpCost(){const el=document.getElementById('m-rcost');if(el)el.textContent=peso(U.rdraft.reduce((s,r)=>{const i=ingBy(r.ingredientId);return s+(i?ucost(i)*r.qty:0);},0));}
 function saveRcp(pid){const p=S.products.find(x=>x.id===pid);if(!p)return;p.recipe=U.rdraft.filter(r=>r.ingredientId&&r.qty>0);saveCore();toast('Recipe saved.');closeModal();}
@@ -1294,7 +1294,7 @@ function saveShiftEd(sid){
 // CATEGORIES
 function addCategory(){const n=prompt('New category name');if(n&&n.trim()&&!S.categories.includes(n.trim())){S.categories.push(n.trim());saveCore();ra();}}
 function renameCategory(old){const n=prompt('Rename',old);if(n&&n.trim()){S.categories=S.categories.map(c=>c===old?n.trim():c);S.products.forEach(p=>{if(p.category===old)p.category=n.trim();});if(U.posCategory===old)U.posCategory=n.trim();saveCore();ra();}}
-function deleteCategory(name){if(S.products.some(p=>p.category===name)){toast('Remove all items first.');return;}if(confirm(`Delete \"${name}\"?`)){S.categories=S.categories.filter(c=>c!==name);if(U.posCategory===name)U.posCategory=null;saveCore();ra();}}
+function deleteCategory(name){if(S.products.some(p=>p.category===name)){toast('Remove all items first.');return;}if(confirm(`Delete "${name}"?`)){S.categories=S.categories.filter(c=>c!==name);if(U.posCategory===name)U.posCategory=null;saveCore();ra();}}
 
 // DATE RANGE
 function dRange(preset,start,end){
