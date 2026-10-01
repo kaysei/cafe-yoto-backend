@@ -3,13 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cafe Yoto">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#3B6FF0">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>Cafe Yoto</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-
-
-
 :root{
 --bg:#F4F7FD;--surf:#fff;--surf2:#EEF3FC;--ink:#161B26;--ink2:#616B82;--ink3:#9AA4BD;
 --blue:#3B6FF0;--blue2:#2952C4;--bluesoft:#DCE6FE;
@@ -109,8 +113,8 @@ tr:last-child td{border-bottom:none;}
 .cat-icon{width:38px;height:38px;border-radius:11px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0;}
 .cat-name{font-weight:700;font-size:.9rem;}
 .cat-count{font-size:.72rem;color:var(--ink2);}
-.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:9px;padding:12px;overflow-y:auto;flex:1;}
-.pc{background:var(--surf);border:1.5px solid var(--border);border-radius:13px;padding:11px;cursor:pointer;transition:all .15s;position:relative;}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:12px;overflow-y:auto;align-content:start;flex:1;}
+.pc{background:var(--surf);border:1.5px solid var(--border);border-radius:13px;padding:11px;cursor:pointer;transition:all .15s;position:relative;height:120px;display:flex;flex-direction:column;justify-content:flex-end;}
 .pc:hover{border-color:var(--blue);}
 .pc:active{transform:scale(.97);}
 .pc.em{border-style:dashed;}
@@ -204,23 +208,25 @@ tr:last-child td{border-bottom:none;}
 .chit-type{font-size:.7rem;font-weight:700;background:var(--bluesoft);color:var(--blue2);padding:2px 9px;border-radius:999px;display:inline-block;margin-bottom:5px;}
 
 #print-area{display:none;}
-@media print{body *{visibility:hidden;}#print-area,#print-area *{visibility:visible;}#print-area{display:block;position:absolute;top:0;left:0;width:280px;}}
+@media print{
+  @page{margin:0;}
+  body *{visibility:hidden;}
+  #print-area,#print-area *{visibility:visible;}
+  #print-area{display:block;position:absolute;top:0;left:0;}
+  #print-area.chit-size{width:40mm;font-size:8pt;line-height:1.4;}
+  #print-area.receipt-size{width:80mm;font-size:9pt;line-height:1.6;}
+  #print-area pre{white-space:pre-wrap;word-break:break-word;margin:0;padding:0;font-family:monospace;}
+}
 .toast{position:fixed;bottom:18px;right:18px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:.8rem;font-weight:600;box-shadow:var(--shlg);z-index:400;animation:ti .2s ease-out;max-width:280px;}
 @keyframes ti{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px 18px;color:var(--ink3);text-align:center;gap:7px;}
 .empty h3{color:var(--ink2);font-weight:700;font-size:.95rem;}
-
-
-
 </style>
 </head>
 <body>
 <div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--ink2);font-weight:700;">Loading Cafe Yoto…</div></div>
 <div id="print-area"></div>
 <script>
-
-
-
 const BK='https://cafe-yoto-backend.onrender.com';
 window.storage={
   async get(k){const r=await fetch(`${BK}/api/state/${encodeURIComponent(k)}`);if(r.status===404)return null;if(!r.ok)throw new Error();return r.json();},
@@ -263,6 +269,7 @@ let S={
     chitHeader:'CAFE YOTO',
     adminHash:'',
     latePenalty:30,
+    stockDetect:true,
     discountRate:0.20
   },
   categories:['Iced Coffee','Iced Drinks','Hot Drinks','Coffee Frappe','Shakes','Yogurt Series','Matcha Series','Cookies','Add-ons']
@@ -278,6 +285,16 @@ let U={
   modal:null,mdata:null,
   sdraft:[],rdraft:[],
   shiftEmpId:null,
+  shiftSelDate:undefined,
+  shiftCalYear:null,
+  shiftCalMo:undefined,
+  admTab:'receipt',
+  editSchedEmp:null,
+  editGoal:false,
+  adminShiftDate:undefined,
+  salaryPreset:'all',
+  salaryStart:'',
+  salaryEnd:'',
   clockWorkType:'',
   backendDown:false
 };
@@ -304,7 +321,7 @@ function pStatus(p){
   for(const r of p.recipe){const i=ingBy(r.ingredientId);if(!i)continue;if(isLow(i))return'low';}
   return'ok';
 }
-const pAvail=p=>pStatus(p)!=='so';
+const pAvail=p=>!S.settings.stockDetect||pStatus(p)!=='so';
 
 async function hashStr(s){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
@@ -315,15 +332,15 @@ async function hashStr(s){
 function calcPay(emp,shift){
   if(!shift.timeOut)return 0;
   const ms=new Date(shift.timeOut)-new Date(shift.timeIn);
-  const hrs=ms/3600000;
-  const fullHrs=Math.floor(hrs);
-  const rem=hrs-fullHrs;
-  const wt=(shift.workType||emp.role||'Barista').toLowerCase();
+  const totalMins=Math.floor(ms/60000);
+  const fullHrs=Math.floor(totalMins/60);
+  const remMins=totalMins%60;
+  const wt=(shift.workType||'barista').toLowerCase();
   const isBarista=wt==='barista';
-  const hrRate=isBarista?(emp.hourlyRate||64):(emp.catRate||57);
-  const extraRate=isBarista?(emp.extraHalfRate||35):(emp.catExtraRate||30);
-  let pay=fullHrs*hrRate;
-  if(rem>=0.4)pay+=extraRate;
+  const hrRate=isBarista?(S.settings.baristaRate||64):(S.settings.catRate||57);
+  const fiveMinBlocks=Math.floor(remMins/5);
+  const extraPay=fiveMinBlocks*5;
+  let pay=fullHrs*hrRate+extraPay;
   const st=shiftStatus(shift);
   if(st==='late')pay-=(S.settings.latePenalty||30);
   pay+=shift.tips||0;
@@ -333,9 +350,23 @@ function calcPay(emp,shift){
 function shiftStatus(shift){
   if(shift.lateExcused)return'valid';
   const tin=new Date(shift.timeIn);
+  const dow=tin.getDay(); // 0=Sun,1=Mon,...,6=Sat
+  if(dow===0)return'ontime'; // Sunday off, no penalty
+  if(dow===6)return'ontime'; // Saturday optional, no penalty
+  const dayMap={1:'mon',2:'tue',3:'wed',4:'thu',5:'fri'};
+  const dayKey=dayMap[dow];
+  const emp=S.employees.find(e=>e.id===shift.employeeId);
+  // Owner never gets late penalty
+  if(emp&&(emp.role||'').toLowerCase()==='owner')return'ontime';
+  // Get expected start from employee's schedule
+  let expectedStart='10:00';
+  if(emp&&emp.schedule&&emp.schedule[dayKey]&&emp.schedule[dayKey].start){
+    expectedStart=emp.schedule[dayKey].start;
+  } else if(S.settings.shiftDefs&&S.settings.shiftDefs[0]){
+    expectedStart=S.settings.shiftDefs[0].start;
+  }
+  const[eh,em]=expectedStart.split(':').map(Number);
   const hm=tin.getHours()*60+tin.getMinutes();
-  const expected=S.settings.shiftDefs[0]?.start||'10:00';
-  const[eh,em]=expected.split(':').map(Number);
   return hm>(eh*60+em)?'late':'ontime';
 }
 
@@ -366,66 +397,74 @@ function defIngs(){return[
   {id:'ing-straw',name:'Straws',baseUnit:'piece',purchaseLabel:'100-pc pack',purchaseQtyInBase:100,purchasePrice:40,shippingCost:0,stockInBase:100,lowThresh:20,soThresh:1}
 ];}
 const sz=(l,p)=>({id:uid(),label:l,price:p});
-function defProds(){
-const s=(l,p)=>({id:uid(),label:l,price:p});
-return[
-{id:'p-am',name:'Americano',category:'Iced Coffee',sizes:[s('16oz',80),s('22oz',100)],recipe:[{ingredientId:'ing-beans',qty:18},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-yl',name:'Yoto Latte',category:'Iced Coffee',sizes:[s('16oz',99),s('22oz',119)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-ld',name:'Lavender Deluxe',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[]},
-{id:'p-sw',name:'Sweet Spanish',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cond',qty:25},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-sw2',name:'Salty Sweet Spanish',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[]},
-{id:'p-cm',name:'Caramel Macchiato',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-wm',name:'White Mocha',category:'Iced Coffee',sizes:[s('16oz',125),s('22oz',145)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-dk',name:'Dark Mocha',category:'Iced Coffee',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-orc',name:'Oreo Coffee',category:'Iced Coffee',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-ntc',name:'Nutella Coffee',category:'Iced Coffee',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-bc',name:'Biscoff Coffee',category:'Iced Coffee',sizes:[s('16oz',160),s('22oz',180)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-bi',name:'Biscoff',category:'Iced Drinks',sizes:[s('16oz',131),s('22oz',151)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-cho',name:'Chocolate',category:'Iced Drinks',sizes:[s('16oz',110),s('22oz',130)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-oc',name:'Oreo Choco',category:'Iced Drinks',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-nt',name:'Nutella',category:'Iced Drinks',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-lv',name:'Lavender',category:'Iced Drinks',sizes:[s('16oz',110),s('22oz',130)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-bb',name:'Brown Sugar Boba',category:'Iced Drinks',sizes:[s('16oz',99),s('22oz',119)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-sml',name:'Smores Latte',category:'Iced Drinks',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-ham',name:'Hot Americano',category:'Hot Drinks',sizes:[s('8oz',80),s('12oz',100)],recipe:[{ingredientId:'ing-beans',qty:18},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-hla',name:'Hot Latte',category:'Hot Drinks',sizes:[s('8oz',99),s('12oz',119)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-hch',name:'Hot Chocolate',category:'Hot Drinks',sizes:[s('8oz',110),s('12oz',130)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-hma',name:'Hot Matcha',category:'Hot Drinks',sizes:[s('8oz',110),s('12oz',130)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-oat',qty:180},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-hbs',name:'Hot Brown Sugar',category:'Hot Drinks',sizes:[s('8oz',99),s('12oz',119)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-cof',name:'Coffee Frappe',category:'Coffee Frappe',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mof',name:'Mocha Frappe',category:'Coffee Frappe',sizes:[s('16oz',140),s('22oz',160)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-bif',name:'Biscoff Frappe',category:'Coffee Frappe',sizes:[s('16oz',160),s('22oz',180)],recipe:[{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-ntf',name:'Nutella Frappe',category:'Coffee Frappe',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-cups',qty:1}]},
-{id:'p-chs',name:'Chocolate Shake',category:'Shakes',sizes:[s('16oz',120),s('22oz',140)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-choc',qty:20},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-ors',name:'Oreo Shake',category:'Shakes',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-milk',qty:200},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-bis',name:'Biscoff Shake',category:'Shakes',sizes:[s('16oz',140),s('22oz',160)],recipe:[{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mgs',name:'Mango Shake',category:'Shakes',sizes:[s('16oz',120),s('22oz',140)],recipe:[{ingredientId:'ing-cups',qty:1}]},
-{id:'p-sts',name:'Strawberry Shake',category:'Shakes',sizes:[s('16oz',120),s('22oz',140)],recipe:[{ingredientId:'ing-cups',qty:1}]},
-{id:'p-py',name:'Plain Yogurt',category:'Yogurt Series',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mgy',name:'Mango Yogurt',category:'Yogurt Series',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-cups',qty:1}]},
-{id:'p-sty',name:'Strawberry Yogurt',category:'Yogurt Series',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mat',name:'Matcha',category:'Matcha Series',sizes:[s('16oz',115),s('22oz',135)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-oat',qty:180},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-dmt',name:'Dirty Matcha',category:'Matcha Series',sizes:[s('16oz',134),s('22oz',154)],recipe:[{ingredientId:'ing-beans',qty:9},{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-sam',name:'Samidori',category:'Matcha Series',sizes:[s('16oz',254),s('22oz',274)],recipe:[{ingredientId:'ing-sami',qty:4},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mlt',name:'Matcha Latte',category:'Matcha Series',sizes:[s('16oz',120),s('22oz',140)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-milk',qty:180},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mfp',name:'Matcha Frappe',category:'Matcha Series',sizes:[s('16oz',140),s('22oz',160)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mbc',name:'Matcha Biscoff',category:'Matcha Series',sizes:[s('16oz',160),s('22oz',180)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-biscoff',qty:30},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mnt',name:'Matcha Nutella',category:'Matcha Series',sizes:[s('16oz',160),s('22oz',180)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mor',name:'Matcha Oreo',category:'Matcha Series',sizes:[s('16oz',150),s('22oz',170)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-mot',name:'Matcha Oat',category:'Matcha Series',sizes:[s('16oz',130),s('22oz',150)],recipe:[{ingredientId:'ing-matcha',qty:10},{ingredientId:'ing-oat',qty:180},{ingredientId:'ing-cups',qty:1}]},
-{id:'p-ck1',name:'Chocolate Chip Cookie',category:'Cookies',sizes:[s('',55)],recipe:[]},
-{id:'p-ck2',name:'Oreo Cookie',category:'Cookies',sizes:[s('',55)],recipe:[]},
-{id:'p-ck3',name:'Red Velvet Cookie',category:'Cookies',sizes:[s('',55)],recipe:[]},
-{id:'p-es',name:'Extra Shot',category:'Add-ons',sizes:[s('',25)],recipe:[{ingredientId:'ing-beans',qty:9}]},
-{id:'p-om',name:'Oat Milk',category:'Add-ons',sizes:[s('',30)],recipe:[]},
-{id:'p-wc',name:'Whipped Cream',category:'Add-ons',sizes:[s('',20)],recipe:[]},
-{id:'p-exs',name:'Extra Syrup',category:'Add-ons',sizes:[s('',15)],recipe:[]},
-{id:'p-prl',name:'Pearl / Boba',category:'Add-ons',sizes:[s('',25)],recipe:[]},
-{id:'p-cin',name:'Cinnamon',category:'Add-ons',sizes:[s('',15)],recipe:[]},
-{id:'p-cbt',name:'Cookie Butter',category:'Add-ons',sizes:[s('',30)],recipe:[]},
-{id:'p-jly',name:'Jelly',category:'Add-ons',sizes:[s('',20)],recipe:[]},
-{id:'p-crm',name:'Cream Cheese',category:'Add-ons',sizes:[s('',35)],recipe:[]},
-{id:'p-slt',name:'Sea Salt',category:'Add-ons',sizes:[s('',15)],recipe:[]}
+function defProds(){return[
+  // ICED COFFEE
+  {id:'p-am',name:'Americano',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:80},{id:uid(),label:'22oz',price:100}],recipe:[]},
+  {id:'p-yl',name:'Yoto Latte',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:99},{id:uid(),label:'22oz',price:119}],recipe:[]},
+  {id:'p-ld',name:'Lavender Deluxe',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-ss',name:'Sweet Spanish',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-sss',name:'Salty Sweet Spanish',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:140}],recipe:[]},
+  {id:'p-cm',name:'Caramel Macchiato',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-wm',name:'White Mocha',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:125},{id:uid(),label:'22oz',price:145}],recipe:[]},
+  {id:'p-dm',name:'Dark Mocha',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:150},{id:uid(),label:'22oz',price:170}],recipe:[]},
+  {id:'p-oc',name:'Oreo Coffee',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:145}],recipe:[]},
+  {id:'p-nc',name:'Nutella Coffee',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:150},{id:uid(),label:'22oz',price:170}],recipe:[]},
+  {id:'p-bc',name:'Biscoff Coffee',category:'Iced Coffee',sizes:[{id:uid(),label:'16oz',price:160},{id:uid(),label:'22oz',price:180}],recipe:[]},
+  // ICED DRINKS
+  {id:'p-hjl',name:'Hojicha Latte',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:150}],recipe:[]},
+  {id:'p-mld',name:'Meloaty Dew',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:90},{id:uid(),label:'16oz',price:110},{id:uid(),label:'22oz',price:120}],recipe:[]},
+  {id:'p-ro',name:'Roasted Oat',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:99},{id:uid(),label:'16oz',price:120},{id:uid(),label:'22oz',price:130}],recipe:[]},
+  {id:'p-bu',name:'Blueberry Ube',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:100},{id:uid(),label:'16oz',price:120},{id:uid(),label:'22oz',price:135}],recipe:[]},
+  {id:'p-mo',name:'Milky Oreo',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:110},{id:uid(),label:'16oz',price:120},{id:uid(),label:'22oz',price:130}],recipe:[]},
+  {id:'p-sn',name:'Sweet Nutella',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:110},{id:uid(),label:'16oz',price:140},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-mb',name:'Milky Biscoff',category:'Iced Drinks',sizes:[{id:uid(),label:'12oz',price:115},{id:uid(),label:'16oz',price:150},{id:uid(),label:'22oz',price:160}],recipe:[]},
+  // HOT DRINKS
+  {id:'p-ha',name:'Hot Americano',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:80}],recipe:[]},
+  {id:'p-hcl',name:'Hot Cafe Latte',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:99}],recipe:[]},
+  {id:'p-hml',name:'Hot Matcha Latte',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:120}],recipe:[]},
+  {id:'p-sd',name:'Spanish Deluxe',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:120}],recipe:[]},
+  {id:'p-sc',name:'Swiss Choco',category:'Hot Drinks',sizes:[{id:uid(),label:'Regular',price:100}],recipe:[]},
+  // COFFEE FRAPPE
+  {id:'p-djf',name:'Dark Java Frappe',category:'Coffee Frappe',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-scf',name:'Salted Caramel Frappe',category:'Coffee Frappe',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-baf',name:'Buttery Almond Frappe',category:'Coffee Frappe',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-wmf',name:'White Mocha Frappe',category:'Coffee Frappe',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  // SHAKES
+  {id:'p-cs',name:'Creamy Strawberry',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-cc',name:'Cookies & Cream',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-sch',name:'Salted Cheesecake',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-crb',name:'Creme Biscoff',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-dhc',name:'Dark Hershey Chocolate',category:'Shakes',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  // YOGURT SERIES
+  {id:'p-sty',name:'Strawberry Yogurt',category:'Yogurt Series',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-hdy',name:'Honeydew Yogurt',category:'Yogurt Series',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-bly',name:'Blueberry Yogurt',category:'Yogurt Series',sizes:[{id:uid(),label:'22oz',price:160}],recipe:[]},
+  // MATCHA SERIES
+  // Hot
+  {id:'p-hcm',name:'Hot Ceremonial Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'Regular',price:180}],recipe:[]},
+  {id:'p-hml2',name:'Hot Matcha Latte',category:'Matcha Series',sizes:[{id:uid(),label:'Regular',price:110}],recipe:[]},
+  {id:'p-hdm',name:'Hot Dirty Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'Regular',price:120}],recipe:[]},
+  // Iced
+  {id:'p-icm',name:'Ceremonial Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:180},{id:uid(),label:'22oz',price:200}],recipe:[]},
+  {id:'p-sml',name:'Sweet Matcha Latte',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:130},{id:uid(),label:'22oz',price:145}],recipe:[]},
+  {id:'p-dmi',name:'Dirty Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:140},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-smu',name:'Sweet Matcha Ube',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:140},{id:uid(),label:'22oz',price:160}],recipe:[]},
+  {id:'p-stm',name:'Strawberry Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:140},{id:uid(),label:'22oz',price:150}],recipe:[]},
+  {id:'p-crm',name:'Creme Matcha',category:'Matcha Series',sizes:[{id:uid(),label:'16oz',price:160}],recipe:[]},
+  // COOKIES
+  {id:'p-smr',name:'Smores Cookie',category:'Cookies',sizes:[{id:uid(),label:'Regular',price:0}],recipe:[]},
+  {id:'p-chc',name:'Choco Chip Cookie',category:'Cookies',sizes:[{id:uid(),label:'Regular',price:0}],recipe:[]},
+  {id:'p-bck',name:'Biscoff Cookie',category:'Cookies',sizes:[{id:uid(),label:'Regular',price:0}],recipe:[]},
+  // ADD-ONS
+  {id:'p-esp',name:'Espresso',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]},
+  {id:'p-oat',name:'Oatside',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]},
+  {id:'p-fcm',name:'Full Cream Milk',category:'Add-ons',sizes:[{id:uid(),label:'',price:15}],recipe:[]},
+  {id:'p-cfm',name:'Creamy Foam',category:'Add-ons',sizes:[{id:uid(),label:'',price:15}],recipe:[]},
+  {id:'p-xsy',name:'Extra Syrup',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]},
+  {id:'p-musc',name:'Muscovado',category:'Add-ons',sizes:[{id:uid(),label:'',price:10}],recipe:[]},
+  {id:'p-hon',name:'Honey',category:'Add-ons',sizes:[{id:uid(),label:'',price:15}],recipe:[]},
+  {id:'p-bag',name:'Blue Agave',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]},
+  {id:'p-van',name:'Vanilla',category:'Add-ons',sizes:[{id:uid(),label:'',price:20}],recipe:[]}
 ];}
 
 function migrateP(p){
@@ -439,7 +478,7 @@ async function loadData(){
     const c=await window.storage.get('yoto-core');
     if(c&&c.value){
       const d=JSON.parse(c.value);
-      S.employees=d.employees||[];
+      S.employees=d.employees&&d.employees.length?d.employees:defEmployees();
       S.shifts=d.shifts||[];
       S.products=(d.products&&d.products.length?d.products:defProds()).map(migrateP);
       S.ingredients=d.ingredients&&d.ingredients.length?d.ingredients:defIngs();
@@ -447,7 +486,7 @@ async function loadData(){
       S.settings={...S.settings,...d.settings};
       S.categories=d.categories||S.categories;
       if(!S.settings.shiftDefs)S.settings.shiftDefs=[{id:'s1',name:'Morning',start:'10:00',end:'14:00'},{id:'s2',name:'Afternoon',start:'14:00',end:'18:00'}];
-    }else{S.products=defProds();S.ingredients=defIngs();await saveCore();}
+    }else{S.products=defProds();S.ingredients=defIngs();S.employees=defEmployees();await saveCore();}
   }catch(e){S.products=defProds();S.ingredients=defIngs();U.backendDown=true;}
   try{const o=await window.storage.get('yoto-orders');if(o&&o.value)S.orders=JSON.parse(o.value).orders||[];}catch(e){U.backendDown=true;}
   if(!U.posCategory&&S.categories.length)U.posCategory=S.categories[0];
@@ -466,7 +505,8 @@ function nextNum(){
 const curEmp=()=>S.employees.find(e=>e.id===U.activeEmpId);
 const actShift=id=>S.shifts.find(s=>s.employeeId===id&&!s.timeOut);
 const mode=()=>{if(U.activeEmpId&&actShift(U.activeEmpId))return'active';if(U.viewOnly)return'viewonly';return'locked';};
-const canM=()=>mode()==='active';
+const canM=()=>mode()==='active'||mode()==='viewonly';
+const canSave=()=>mode()==='active';
 
 // NUMPAD
 function openNP(target,cur){U.npShow=true;U.npTarget=target;U.npVal=cur?String(cur):'';ra();}
@@ -556,8 +596,8 @@ function rClock(){
       ${S.employees.map(e=>`<option value="${e.id}" ${U.activeEmpId===e.id?'selected':''}>${e.name}</option>`).join('')}
     </select>
     ${emp&&!sh?`
-    <select onchange="U.clockWorkType=this.value;" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:12px;font-size:.86rem;">
-      <option value="">Select work type for this shift…</option>
+    <select onchange="U.clockWorkType=this.value;ra();" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:12px;font-size:.86rem;">
+      <option value="" ${!U.clockWorkType?'selected':''} disabled>Select work type for this shift…</option>
       <option value="Barista" ${U.clockWorkType==='Barista'?'selected':''}>☕ Barista</option>
       <option value="Cat Front Desk" ${U.clockWorkType==='Cat Front Desk'?'selected':''}>🐱 Cat Front Desk</option>
     </select>`:''}
@@ -570,27 +610,52 @@ function rClock(){
         <span style="font-size:.7rem;font-weight:700;color:var(--ink2);">TEAM</span>
         <button class="btn btn-out btn-sm" onclick="openModal('addEmp')">${IC.pls} Add</button>
       </div>
-      ${S.employees.map(e=>{const s=actShift(e.id);return`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.81rem;"><span>${e.name}</span><div style="display:flex;align-items:center;gap:6px;">${s?`<span style="font-size:.7rem;color:var(--ink2);">${s.workType||''}</span>`:''}<span class="pill ${s?'pill-ot':''}" style="${s?'':'background:var(--surf2);color:var(--ink3);'}">${s?'On shift':'Off'}</span></div></div>`;}).join('')||'<div style="color:var(--ink3);font-size:.8rem;">No employees yet.</div>'}
+      ${S.employees.map(e=>{const s=actShift(e.id);const isOwner=(e.role||'').toLowerCase()==='owner';return`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.81rem;align-items:center;"><span style="display:flex;align-items:center;gap:6px;">${e.name}${isOwner?`<span style="background:var(--blue);color:#fff;font-size:.6rem;font-weight:800;padding:1px 6px;border-radius:999px;">OWNER</span>`:''}</span><div style="display:flex;align-items:center;gap:6px;">${s?`<span style="font-size:.7rem;color:var(--ink2);">${s.workType||''}</span>`:''}<span class="pill ${s?'pill-ot':''}" style="${s?'':'background:var(--surf2);color:var(--ink3);'}">${s?'On shift':'Off'}</span></div></div>`;}).join('')||'<div style="color:var(--ink3);font-size:.8rem;">No employees yet.</div>'}
     </div>
   </div></div>`;
 }
 setInterval(()=>{const el=document.getElementById('ctcard');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');},1000);
 
 async function timeIn(){
-  if(!U.activeEmpId)return;
+  if(!U.activeEmpId||!U.clockWorkType)return;
   const ua=navigator.userAgent;
-  const device=ua.includes('Mobile')?'Mobile':'Desktop';
+  const deviceType=/iPhone|iPad/.test(ua)?'iPhone/iPad':/Android/.test(ua)?'Android':'Desktop';
   const browser=ua.includes('Chrome')?'Chrome':ua.includes('Firefox')?'Firefox':ua.includes('Safari')?'Safari':'Browser';
-  const deviceStr=device+' · '+browser;
-  S.shifts.push({id:uid(),employeeId:U.activeEmpId,workType:U.clockWorkType,timeIn:new Date().toISOString(),timeOut:null,lateExcused:false,tips:0,location:'',device:deviceStr});
-  U.viewOnly=false;saveCore();ra();toast('Timed in!');
+  const device=`${deviceType} · ${browser}`;
+  // Save immediately with pending location — don't wait for GPS
+  const newShift={id:uid(),employeeId:U.activeEmpId,workType:U.clockWorkType,timeIn:new Date().toISOString(),timeOut:null,lateExcused:false,tips:0,location:'Getting location…',device};
+  S.shifts.push(newShift);
+  U.viewOnly=false;U.clockWorkType='';
+  await saveCore();
+  ra();toast('Timed in!');
+  // Get location in background and update
+  try{
+    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000,enableHighAccuracy:true}));
+    const{latitude:lat,longitude:lng}=pos.coords;
+    let loc=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+      const d=await r.json();
+      loc=d.display_name||loc;
+    }catch{}
+    newShift.location=loc;
+    await saveCore();
+    ra();
+  }catch(err){
+    newShift.location=err.code===1?'Location denied':'Location unavailable';
+    await saveCore();
+    ra();
+  }
 }
-function timeOut(){
+async function timeOut(){
   const s=actShift(U.activeEmpId);if(!s)return;
+  if(s._saving)return; s._saving=true;
   s.timeOut=new Date().toISOString();
-  saveCore();ra();toast(`Shift ended — ${fdur(new Date(s.timeOut)-new Date(s.timeIn))} worked.`);
+  await saveCore();
+  s._saving=false;
+  ra();toast(`Shift ended — ${fdur(new Date(s.timeOut)-new Date(s.timeIn))} worked.`);
 }
-function signOut(){timeOut();U.activeEmpId=null;setView('clock');}
+async function signOut(){await timeOut();U.activeEmpId=null;setView('clock');}
 
 // POS
 function rPOS(){
@@ -607,7 +672,7 @@ function rPOS(){
     <div class="cat-list">
       ${S.categories.map(c=>{
         const items=S.products.filter(p=>p.category===c);
-        const icons={'Iced Coffee':'☕','Iced Drinks':'🧋','Hot Drinks':'☕','Coffee Frappe':'🧊','Shakes':'🥤','Yogurt Series':'🥛','Matcha Series':'🍵','Cookies':'🍪','Add-ons':'✨'};
+        const icons={'Iced Coffee':'☕','Iced Drinks':'🧋','Hot Drinks':'🔥','Coffee Frappe':'🧊','Shakes':'🥤','Yogurt Series':'🍓','Matcha Series':'🍵','Cookies':'🍪','Add-ons':'✨','Pastries':'🥐'};
         return`<button class="cat-card" onclick="U.posCategory='${c}';ra();">
           <div class="cat-icon">${icons[c]||'🍵'}</div>
           <div style="flex:1;text-align:left;"><div class="cat-name">${c}</div><div class="cat-count">${items.length} items</div></div>
@@ -647,11 +712,6 @@ function rPOS(){
       ${U.cart.length?U.cart.map((ci,idx)=>`
       <div class="cib">
         <div class="cim">
-          <div class="qc">
-            <button onclick="changeQty(${idx},-1)">${IC.mns}</button>
-            <span style="font-weight:700;font-size:.82rem;min-width:16px;text-align:center;">${ci.qty}</span>
-            <button onclick="changeQty(${idx},1)">${IC.pls}</button>
-          </div>
           <div style="flex:1;"><div class="ci-name">${ci.name}</div><div class="ci-price">${peso(ci.price)}</div></div>
           <button onclick="U.cart.splice(${idx},1);ra();" style="color:var(--ink3);">${IC.xx}</button>
         </div>
@@ -668,9 +728,10 @@ function rPOS(){
         <div class="disc-row">
           ${['none','senior','pwd'].map(d=>`<button class="db ${U.discType===d?'act':''}" onclick="U.discType='${d}';ra();">${d==='none'?'None':d.charAt(0).toUpperCase()+d.slice(1)}</button>`).join('')}
         </div>
-        ${U.discType!=='none'?`<div style="display:flex;gap:5px;margin-top:5px;">
-          <input placeholder="ID holder name" value="${U.discName}" oninput="U.discName=this.value;" style="flex:1;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
+        ${U.discType!=='none'?`<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;">
+          <input placeholder="ID holder name" value="${U.discName}" oninput="U.discName=this.value;" style="flex:1;min-width:100px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
           <input placeholder="ID #" value="${U.discId}" oninput="U.discId=this.value;" style="width:80px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
+          <button class="btn btn-out btn-sm" onclick="openCamera('id')" title="Take photo of ID">📷 ID</button>
         </div>`:''}
       </div>
       <div class="sect">
@@ -681,14 +742,17 @@ function rPOS(){
           <button class="tb2 exact" onclick="U.tendered=${totals.total.toFixed(2)};ra();">Exact ${peso(totals.total)}</button>
           <button class="tb2 amt" onclick="openNP('tendered',U.tendered)">Enter Amount</button>
         </div>
-        ${U.tendered&&U.tendered!==totals.total?`<div style="font-size:.78rem;color:var(--ink2);padding:2px;">Change: <strong>${peso(Math.max(0,U.tendered-totals.total))}</strong></div>`:''}`
-        :`<input placeholder="Reference no." value="${U.payRef}" oninput="U.payRef=this.value;" style="width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);margin-bottom:5px;">`}
+        ${U.tendered&&U.tendered!==totals.total?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--greensoft);border-radius:9px;padding:6px 11px;margin-top:3px;"><span style="font-size:.78rem;font-weight:700;color:var(--green);">Change</span><span style="font-size:1.3rem;font-weight:900;color:var(--green);">${peso(Math.max(0,U.tendered-totals.total))}</span></div>`:''}`
+        :`<div style="display:flex;gap:6px;margin-bottom:5px;">
+          <input placeholder="Reference no. or type note" value="${U.payRef}" oninput="U.payRef=this.value;" style="flex:1;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--bg);">
+          <button class="btn btn-out btn-sm" onclick="openCamera('ref')" title="Take photo of proof">📷</button>
+        </div>`}
       </div>
       <div class="sumbox">
         <div class="sr"><span>Subtotal</span><span>${peso(totals.sub)}</span></div>
         ${totals.disc>0?`<div class="sr" style="color:var(--green);"><span>Discount (20%)</span><span>-${peso(totals.disc)}</span></div>`:''}
         <div class="sr" style="font-size:.75rem;"><span>VAT ${U.discType!=='none'?'(exempt)':'(12% incl.)'}</span><span>${peso(totals.vat)}</span></div>
-        <div class="sr tot"><span>Total</span><span>${peso(totals.total)}</span></div>
+        <div class="sr tot" style="font-size:1.15rem;"><span>Total</span><span style="font-size:1.25rem;font-weight:900;">${peso(totals.total)}</span></div>
       </div>
       <div style="padding:8px 13px 12px;"><button class="btn btn-blue" style="width:100%;justify-content:center;padding:11px;" ${U.cart.length&&canM()?'':'disabled'} onclick="completeSale()">Send to Queue &amp; Pay</button></div>
     </div>
@@ -704,7 +768,7 @@ function addToCart(productId){
   if(!canM())return;
   const p=S.products.find(x=>x.id===productId);if(!p||!pAvail(p))return;
   if(p.sizes.length>1){openModal('pickSize',productId);return;}
-  U.cart.push({productId:p.id,sizeId:p.sizes[0].id,name:p.name,price:p.sizes[0].price,qty:1,addons:[],note:''});
+  U.cart.push({id:uid(),productId:p.id,sizeId:p.sizes[0].id,name:p.name,price:p.sizes[0].price,qty:1,addons:[],note:''});
   ra();
 }
 function changeQty(idx,d){U.cart[idx].qty+=d;if(U.cart[idx].qty<=0)U.cart.splice(idx,1);ra();}
@@ -730,10 +794,27 @@ function completeSale(){
     sub:t.sub,discount:t.disc,vat:t.vat,total:t.total,
     status:'preparing',timestamp:new Date().toISOString(),isRefunded:false
   };
+  if(!canSave()){
+    // View Only: show change screen but don't save
+    if(t.total>0&&U.payMethod==='Cash'&&U.tendered){
+      const ch=Math.max(0,U.tendered-t.total);
+      U.cart=[];U.tendered=0;ra();
+      openModal('changeScreen',{change:ch,total:t.total,tendered:U.tendered,oid:null});
+    } else {
+      clearCart();ra();
+    }
+    toast('View Only — not recorded.');
+    return;
+  }
   S.orders.push(order);saveCore();saveOrders();
   const oid=order.id;clearCart();ra();
   toast(`#${order.number} sent to queue`);
-  openModal('receipt',oid);
+  if(order.paymentMethod==='Cash'&&order.tendered){
+    const change=Math.max(0,order.tendered-order.total);
+    openModal('changeScreen',{change,total:order.total,tendered:order.tendered,oid:order.id});
+  } else {
+    openModal('receipt',oid);
+  }
 }
 
 // ORDERS
@@ -751,9 +832,11 @@ function rOrders(){
         <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">${o.employeeName} · <span class="pill ${o.orderType==='Grab'?'pill-late':o.orderType==='Take Out'?'pill-low':'pill-ot'}">${o.orderType}</span></div><div style="font-size:.68rem;color:var(--ink3);">${ftm(o.timestamp)}</div></div>
         <span class="pill ${o.status==='preparing'?'pill-so':'pill-low'}">${o.status}</span>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
-          ${o.status==='preparing'?`<button class="btn btn-out btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','ready')">Ready</button>`:''}
-          ${o.status==='ready'&&allDone?`<button class="btn btn-grn btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','completed')">Complete</button>`:''}
+          ${o.status==='preparing'&&allDone?`<button class="btn btn-out btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','ready')">Ready</button>`:''}
+          ${o.status==='preparing'&&!allDone?`<span style="font-size:.72rem;color:var(--ink3);padding:4px 6px;">Check all drinks first</span>`:''}
+          ${o.status==='ready'?`<button class="btn btn-grn btn-sm" ${canM()?'':'disabled'} onclick="advOrder('${o.id}','completed')">Complete</button>`:''}
           <button class="btn btn-out btn-sm" onclick="openModal('receipt','${o.id}')">${IC.pr}</button>
+          ${canM()?`<button class="btn btn-out btn-sm" onclick="openModal('addOrderAddon','${o.id}')">+ Add-on</button>`:''}
           ${canM()?`<button class="btn btn-red btn-sm" onclick="refundOrder('${o.id}')">Refund</button>`:''}
         </div>
       </div>
@@ -772,6 +855,28 @@ function rOrders(){
     </div>`;
   }).join(''):`<div class="empty"><h3>Queue is empty</h3><p>New orders appear here.</p></div>`}
   </div>`;
+}
+function addAddonToOrder(orderId,prodId){
+  const o=S.orders.find(x=>x.id===orderId);
+  const p=S.products.find(x=>x.id===prodId);
+  if(!o||!p)return;
+  if(!o.extraCharges)o.extraCharges=[];
+  const price=p.sizes[0]?.price||0;
+  o.extraCharges.push({name:p.name,price});
+  o.total=(o.total||0)+price;
+  o.sub=(o.sub||0)+price;
+  saveOrders();ra();toast('Added '+p.name+' to order #'+o.number);
+}
+function addCustomAddonToOrder(orderId){
+  const name=document.getElementById('ord-ao-name')?.value.trim();
+  const amt=parseFloat(document.getElementById('ord-ao-amt')?.value)||0;
+  if(!name||amt<=0){toast('Enter description and amount.');return;}
+  const o=S.orders.find(x=>x.id===orderId);if(!o)return;
+  if(!o.extraCharges)o.extraCharges=[];
+  o.extraCharges.push({name,price:amt});
+  o.total=(o.total||0)+amt;
+  o.sub=(o.sub||0)+amt;
+  saveOrders();ra();toast('Added '+name+' '+peso(amt));
 }
 function toggleCheck(oid,idx){const o=S.orders.find(x=>x.id===oid);if(!o)return;o.items[idx].checked=!o.items[idx].checked;saveOrders();ra();}
 function advOrder(id,status){if(!canM())return;const o=S.orders.find(x=>x.id===id);if(!o)return;o.status=status;saveOrders();ra();}
@@ -792,9 +897,16 @@ function rInventory(){
     ${manage?`<button class="btn btn-blue" onclick="openModal('${U.invTab==='ingredients'?'addIng':'addProd'}')">${IC.pls} ${U.invTab==='ingredients'?'Add Ingredient':'Add Item'}</button>`:''}
   </div>
   ${low.length||so.length?`<div style="background:var(--redsoft);color:var(--red);padding:9px 13px;border-radius:10px;font-size:.8rem;font-weight:700;margin-bottom:12px;">⚠ ${so.map(i=>i.name+' (Sold Out)').concat(low.map(i=>i.name+' (Low)')).join(' · ')}</div>`:''}
-  <div style="display:flex;gap:7px;margin-bottom:11px;">
+  <div style="display:flex;gap:7px;margin-bottom:11px;flex-wrap:wrap;align-items:center;">
     <button class="dp ${U.invTab==='menu'?'act':''}" onclick="U.invTab='menu';ra();">Menu Items</button>
     <button class="dp ${U.invTab==='ingredients'?'act':''}" onclick="U.invTab='ingredients';ra();">Ingredients</button>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:7px;">
+      <span style="font-size:.74rem;font-weight:700;color:var(--ink2);">Stock Detection</span>
+      <button onclick="S.settings.stockDetect=!S.settings.stockDetect;saveCore();ra();" style="width:42px;height:24px;border-radius:999px;border:none;background:${S.settings.stockDetect!==false?'var(--green)':'var(--border)'};position:relative;transition:background .2s;cursor:pointer;">
+        <span style="position:absolute;top:3px;left:${S.settings.stockDetect!==false?'21':'3'}px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+      </button>
+      <span style="font-size:.72rem;color:${S.settings.stockDetect!==false?'var(--green)':'var(--ink3)'};">${S.settings.stockDetect!==false?'On':'Off'}</span>
+    </div>
     ${U.invTab==='ingredients'?`<button class="dp ${U.invFilter==='warn'?'act':''}" onclick="U.invFilter=U.invFilter==='warn'?'all':'warn';ra();">⚠ Warning ${low.length+so.length?`<span style="background:var(--red);color:#fff;border-radius:999px;padding:1px 6px;font-size:.62rem;margin-left:3px;">${low.length+so.length}</span>`:''}</button>`:''}
   </div>
   ${U.invTab==='menu'?rMenuTab(manage):rIngTab(manage)}`;
@@ -850,8 +962,8 @@ function rExpenses(){
   return`<h1 style="font-weight:800;font-size:1.25rem;margin-bottom:12px;">Expenses</h1>
   ${manage?`<div class="card" style="padding:13px;margin-bottom:14px;">
     <div style="display:flex;gap:7px;margin-bottom:10px;">
-      <button onclick="U.expType='Cafe';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Cafe'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">☕ Cafe</button>
-      <button onclick="U.expType='Personal';" style="flex:1;padding:7px;border-radius:9px;border:1.5px solid var(--border);font-weight:700;font-size:.78rem;${U.expType==='Personal'?'background:var(--blue);color:#fff;border-color:var(--blue);':''}">👤 Personal</button>
+      <button class="btn ${U.expType==='Cafe'?'btn-blue':'btn-out'}" style="flex:1;" onclick="U.expType='Cafe';ra();">☕ Cafe</button>
+      <button class="btn ${U.expType==='Personal'?'btn-blue':'btn-out'}" style="flex:1;" onclick="U.expType='Personal';ra();">👤 Personal</button>
     </div>
     <div style="display:grid;grid-template-columns:1.5fr 1fr auto;gap:9px;align-items:end;">
       <div class="field"><label>What did you buy</label><input id="exp-name" placeholder="e.g. Coffee beans"></div>
@@ -860,11 +972,18 @@ function rExpenses(){
     </div>
   </div>`:''}
   <div class="dfbar">${presets.map(([k,l])=>`<button class="dp ${U.expPreset===k?'act':''}" onclick="setExpPreset('${k}')">${l}</button>`).join('')}${U.expPreset==='custom'?`<div style="display:flex;align-items:center;gap:5px;"><input type="date" value="${U.expStart}" onchange="U.expStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.expEnd}" onchange="U.expEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:''}</div>
-  <div class="stat-grid">
-    <div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(netSales)}</div></div>
-    <div class="card sc"><div class="lbl">Cafe Expenses</div><div class="val">${peso(cafeExp)}</div></div>
-    <div class="card sc"><div class="lbl">Personal</div><div class="val">${peso(persExp)}</div></div>
-    <div class="card sc"><div class="lbl">Money Left</div><div class="val">${peso(netSales-cafeExp)}</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div class="stat-grid" style="margin-bottom:0;">
+      <div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(netSales)}</div></div>
+      <div class="card sc"><div class="lbl">Cafe Expenses</div><div class="val">${peso(cafeExp)}</div></div>
+      <div class="card sc"><div class="lbl">Personal</div><div class="val">${peso(persExp)}</div></div>
+    </div>
+    <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px;font-size:.84rem;">
+      <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Money Remaining</div>
+      <div style="display:flex;justify-content:space-between;"><span>Net Sales</span><span>${peso(netSales)}</span></div>
+      <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cafe Expenses</span><span>${peso(cafeExp)}</span></div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${(netSales-cafeExp)>=0?'var(--green)':'var(--red)'};">${peso(netSales-cafeExp)}</span></div>
+    </div>
   </div>
   <div class="card"><table>
     <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Amount</th>${manage?'<th></th>':''}</tr></thead>
@@ -885,12 +1004,23 @@ function delExp(id){if(!canM())return;S.expenses=S.expenses.filter(e=>e.id!==id)
 // REPORTS
 function rReports(){
   const rng=dRange(U.repPreset,U.repStart,U.repEnd);
+  // completed (non-refunded) orders in range
   const ords=S.orders.filter(o=>{if(o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
-  const gross=ords.reduce((s,o)=>s+o.sub,0);
-  const discs=ords.reduce((s,o)=>s+o.discount,0);
+  // refunded orders in range (to show refund amounts)
+  const refundedOrds=S.orders.filter(o=>{if(!o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
+  const gross=ords.reduce((s,o)=>s+(o.sub||o.subtotal||o.total||0),0);
+  const discs=ords.reduce((s,o)=>s+(o.discount||0),0);
   const net=ords.reduce((s,o)=>s+o.total,0);
   const cogs=ords.reduce((s,o)=>s+o.items.reduce((ss,i)=>ss+(i.costEach||0)*i.qty,0),0);
-  const refunds=S.orders.filter(o=>o.isRefunded).reduce((s,o)=>s+o.total,0);
+  const grossProfit=net-cogs;
+  const refundAmt=refundedOrds.reduce((s,o)=>s+o.total,0);
+  const cafeExp=S.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=rng.s&&d<=rng.e&&e.type==='Cafe';}).reduce((s,e)=>s+e.amount,0);
+  const persExp=S.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=rng.s&&d<=rng.e&&e.type==='Personal';}).reduce((s,e)=>s+e.amount,0);
+  const staffSalary=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner').reduce((total,e)=>{
+    const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
+    return total+empShifts.reduce((sum,s)=>sum+calcPay(e,s),0)+(e.tips||0);
+  },0);
+  const moneyLeft=net-cogs-discs-refundAmt-cafeExp-staffSalary;
   const itemMap={};ords.forEach(o=>o.items.forEach(i=>{itemMap[i.name]=itemMap[i.name]||{qty:0,rev:0};itemMap[i.name].qty+=i.qty;itemMap[i.name].rev+=i.qty*i.price;}));
   const itemRows=Object.entries(itemMap).sort((a,b)=>b[1].qty-a[1].qty);
   const catMap={};ords.forEach(o=>o.items.forEach(i=>{catMap[i.category]=catMap[i.category]||{qty:0,rev:0};catMap[i.category].qty+=i.qty;catMap[i.category].rev+=i.qty*i.price;}));
@@ -898,258 +1028,588 @@ function rReports(){
   const presets=[['today','Today'],['week','7 days'],['month','30 days'],['all','All'],['custom','Custom']];
   const tabs=[['summary','Summary'],['item','By Item'],['category','By Category'],['employee','By Employee']];
   let body='';
-  if(U.repTab==='summary')body=`<div class="stat-grid"><div class="card sc"><div class="lbl">Gross Sales</div><div class="val">${peso(gross)}</div></div><div class="card sc"><div class="lbl">Discounts</div><div class="val">${peso(discs)}</div></div><div class="card sc"><div class="lbl">Refunds</div><div class="val">${peso(refunds)}</div></div><div class="card sc"><div class="lbl">Net Sales</div><div class="val">${peso(net)}</div></div><div class="card sc"><div class="lbl">Gross Profit</div><div class="val">${peso(net-cogs)}</div></div><div class="card sc"><div class="lbl">Orders</div><div class="val">${ords.length}</div></div></div>`;
-  else if(U.repTab==='item')body=`<div class="card"><table><thead><tr><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${itemRows.map(([n,d],i)=>`<tr><td>${n}${i===0?'<span class="tflag">TOP</span>':''}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
+  if(U.repTab==='summary'){
+    body=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:6px;">
+      <div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Sales Breakdown</div>
+        <div class="stat-grid" style="margin-bottom:0;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
+          <div class="card sc"><div class="lbl">Gross Sales</div><div class="val">${peso(gross)}</div></div>
+          <div class="card sc"><div class="lbl">− Refunds</div><div class="val" style="color:var(--red);">${peso(refundAmt)}</div></div>
+          <div class="card sc"><div class="lbl">− Discounts</div><div class="val" style="color:var(--red);">${peso(discs)}</div></div>
+          <div class="card sc"><div class="lbl">= Net Sales</div><div class="val" style="color:var(--blue2);font-size:1.1rem;">${peso(gross-refundAmt-discs)}</div></div>
+          <div class="card sc"><div class="lbl">Cost of Goods</div><div class="val">${peso(cogs)}</div></div>
+          <div class="card sc"><div class="lbl">Orders</div><div class="val">${ords.length}</div></div>
+          <div class="card sc"><div class="lbl">Refunded</div><div class="val">${refundedOrds.length}</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Money Remaining</div>
+        <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:7px;font-size:.84rem;">
+          <div style="display:flex;justify-content:space-between;font-weight:600;"><span>Gross Sales</span><span>${peso(gross)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Refunds</span><span>${peso(refundAmt)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Discounts</span><span>${peso(discs)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--border);padding-top:5px;margin-top:3px;"><span>= Net Sales</span><span style="color:var(--blue2);">${peso(gross-refundAmt-discs)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);margin-top:5px;"><span>− Cost of Goods</span><span>${peso(cogs)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Cafe Expenses</span><span>${peso(cafeExp)}</span></div>
+          <div style="display:flex;justify-content:space-between;color:var(--red);"><span>− Staff Salary</span><span>${peso(staffSalary)}</span></div>
+          <div style="border-top:2px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;"><span>Money Left</span><span style="color:${moneyLeft>=0?'var(--green)':'var(--red)'};">${peso(moneyLeft)}</span></div>
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border);font-size:.72rem;color:var(--ink2);">
+            <div style="display:flex;justify-content:space-between;"><span>Cafe Expenses</span><span>${peso(cafeExp)}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>Personal Expenses</span><span>${peso(persExp)}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+  else if(U.repTab==='item'){
+    // Full order log with per-item details
+    const allItemOrds=[];
+    ords.forEach(o=>{
+      o.items.forEach(item=>{
+        allItemOrds.push({name:item.name,price:item.price,addons:(item.addons||[]).map(a=>a.name).join(', '),note:item.note||'',orderNum:o.number,orderType:o.orderType,payMethod:o.paymentMethod,empName:o.employeeName,time:o.timestamp,disc:o.discountType!=='none'?o.discountType:''});
+      });
+    });
+    body=`<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:.8rem;font-weight:700;color:var(--ink2);">${allItemOrds.length} items sold</span>
+      <button class="btn btn-out btn-sm" onclick="printItemReport()">${IC.pr} Print Report</button>
+    </div>
+    <div class="card" style="overflow-x:auto;"><table>
+      <thead><tr><th>Time</th><th>#</th><th>Item</th><th>Add-ons</th><th>Note</th><th>Type</th><th>Payment</th><th>Cashier</th><th>Discount</th><th>Price</th></tr></thead>
+      <tbody>${allItemOrds.map(r=>`<tr>
+        <td style="white-space:nowrap;font-size:.74rem;">${ftm(r.time)}</td>
+        <td>${r.orderNum}</td>
+        <td style="font-weight:600;">${r.name}</td>
+        <td style="font-size:.74rem;color:var(--ink2);">${r.addons||'—'}</td>
+        <td style="font-size:.74rem;color:var(--ink2);font-style:italic;">${r.note||'—'}</td>
+        <td><span class="pill ${r.orderType==='Grab'?'pill-late':r.orderType==='Take Out'?'pill-low':'pill-ot'}" style="font-size:.64rem;">${r.orderType}</span></td>
+        <td style="font-size:.74rem;">${r.payMethod}</td>
+        <td style="font-size:.74rem;">${r.empName}</td>
+        <td style="font-size:.74rem;color:var(--yellow);">${r.disc||'—'}</td>
+        <td style="font-weight:700;">${peso(r.price)}</td>
+      </tr>`).join('')||'<tr><td colspan="10" style="color:var(--ink3);">No data.</td></tr>'}
+      </tbody>
+    </table></div>`;
+  }
   else if(U.repTab==='category')body=`<div class="card"><table><thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>${Object.entries(catMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.qty}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
   else if(U.repTab==='employee')body=`<div class="card"><table><thead><tr><th>Employee</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>${Object.entries(empMap).sort((a,b)=>b[1].rev-a[1].rev).map(([n,d])=>`<tr><td>${n}</td><td>${d.count}</td><td>${peso(d.rev)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3);">No data.</td></tr>'}</tbody></table></div>`;
-  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><h1 style="font-weight:800;font-size:1.25rem;">Reports</h1><button class="btn btn-out" onclick="exportXls()">${IC.dl} Export Excel</button></div>
+  const dailyGoal=S.settings.dailyGoal||0;
+  const avgPrice=S.products.length?S.products.reduce((s,p)=>s+(p.sizes[0]?.price||0),0)/S.products.length:150;
+  const cupsNeeded=dailyGoal>0?Math.ceil(dailyGoal/avgPrice):0;
+  const todayOrdCount=S.orders.filter(o=>!o.isRefunded&&o.timestamp.slice(0,10)===today()).length;
+  const todayGross=S.orders.filter(o=>!o.isRefunded&&o.timestamp.slice(0,10)===today()).reduce((s,o)=>s+(o.sub||o.total),0);
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><h1 style="font-weight:800;font-size:1.25rem;">Reports</h1><button class="btn btn-out" onclick="exportXls()">${IC.dl} Export Excel</button></div>
+  ${dailyGoal>0?`<div style="background:var(--bluesoft);border-radius:12px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div><div style="font-size:.7rem;font-weight:700;color:var(--blue2);text-transform:uppercase;letter-spacing:.04em;">Daily Goal</div>
+    <div style="font-size:1.2rem;font-weight:800;color:var(--blue2);">${peso(dailyGoal)} <span style="font-size:.8rem;font-weight:600;">/ ~${cupsNeeded} cups</span></div></div>
+    <div style="text-align:right;"><div style="font-size:.7rem;font-weight:700;color:var(--blue2);">Today so far</div>
+    <div style="font-size:1.1rem;font-weight:800;color:${todayGross>=dailyGoal?'var(--green)':'var(--blue2)'};">${peso(todayGross)}</div>
+    <div style="font-size:.72rem;color:var(--blue2);">${todayOrdCount} orders · ${todayGross>=dailyGoal?'🎉 Goal reached!':peso(dailyGoal-todayGross)+' to go'}</div></div>
+    <button class="btn btn-out btn-sm" onclick="U.editGoal=true;ra();">Edit Goal</button>
+  </div>`:''}
+  ${U.editGoal?`<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;"><input type="number" id="goal-inp" value="${dailyGoal}" placeholder="Daily sales goal (₱)" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.86rem;background:var(--bg);width:200px;"><button class="btn btn-blue" onclick="S.settings.dailyGoal=parseFloat(document.getElementById('goal-inp').value)||0;U.editGoal=false;saveCore();ra();">Set Goal</button><button class="btn btn-out" onclick="U.editGoal=false;ra();">Cancel</button></div>`:dailyGoal===0?`<button class="btn btn-out btn-sm" style="margin-bottom:10px;" onclick="U.editGoal=true;ra();">+ Set Daily Goal</button>`:''}
   <div class="dfbar">${presets.map(([k,l])=>`<button class="dp ${U.repPreset===k?'act':''}" onclick="setRepPreset('${k}')">${l}</button>`).join('')}${U.repPreset==='custom'?`<div style="display:flex;align-items:center;gap:5px;"><input type="date" value="${U.repStart}" onchange="U.repStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.repEnd}" onchange="U.repEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:''}</div>
   <div class="rtabs">${tabs.map(([k,l])=>`<button class="dp ${U.repTab===k?'act':''}" onclick="U.repTab='${k}';ra();">${l}</button>`).join('')}</div>
   ${body}`;
+}
+function printItemReport(){
+  const pa=document.getElementById('print-area');
+  pa.className='receipt-size';pa.style.width='80mm';pa.style.fontSize='8pt';
+  const rng=dRange(U.repPreset,U.repStart,U.repEnd);
+  const ords=S.orders.filter(o=>{if(o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
+  let text=sanitizePrint('CAFE YOTO - SALES REPORT')+'\
+';
+  text+='-'.repeat(40)+'\
+';
+  ords.forEach(o=>{
+    o.items.forEach(i=>{
+      text+=ftm(o.timestamp)+' #'+o.number+' '+sanitizePrint(i.name);
+      text+=' P'+(i.price).toFixed(2);
+      text+=' '+sanitizePrint(o.orderType)+' '+sanitizePrint(o.paymentMethod)+'\
+';
+      if(i.addons&&i.addons.length)text+='  +'+i.addons.map(a=>sanitizePrint(a.name)).join(', ')+'\
+';
+    });
+  });
+  text+='-'.repeat(40)+'\
+';
+  text+='Total items: '+ords.reduce((s,o)=>s+o.items.length,0)+'\
+';
+  text+='Total: P'+ords.reduce((s,o)=>s+o.total,0).toFixed(2)+'\
+';
+  pa.innerHTML='<pre>'+text+'</pre>';
+  window.print();
 }
 function setRepPreset(k){U.repPreset=k;if(k==='custom'&&!U.repStart){const t=today();U.repStart=t;U.repEnd=t;}ra();}
 function exportXls(){
   const rng=dRange(U.repPreset,U.repStart,U.repEnd);
   const ords=S.orders.filter(o=>{if(o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
-  const net=ords.reduce((s,o)=>s+o.total,0);const gross=ords.reduce((s,o)=>s+o.sub,0);const discs=ords.reduce((s,o)=>s+o.discount,0);
+  const refundedOrds=S.orders.filter(o=>{if(!o.isRefunded)return false;const d=new Date(o.timestamp);return d>=rng.s&&d<=rng.e;});
+  const net=ords.reduce((s,o)=>s+o.total,0);
+  const gross=ords.reduce((s,o)=>s+(o.sub||o.subtotal||o.total||0),0);
+  const discs=ords.reduce((s,o)=>s+(o.discount||0),0);
+  const cogs=ords.reduce((s,o)=>s+o.items.reduce((ss,i)=>ss+(i.costEach||0)*i.qty,0),0);
+  const refundAmt=refundedOrds.reduce((s,o)=>s+o.total,0);
+  const cafeExp=S.expenses.filter(e=>{const d=new Date(e.timestamp);return d>=rng.s&&d<=rng.e&&e.type==='Cafe';}).reduce((s,e)=>s+e.amount,0);
   const itemMap={};ords.forEach(o=>o.items.forEach(i=>{itemMap[i.name]=itemMap[i.name]||{qty:0,rev:0};itemMap[i.name].qty+=i.qty;itemMap[i.name].rev+=i.qty*i.price;}));
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Cafe Yoto Sales'],[],['Gross Sales',gross],['Discounts',discs],['Net Sales',net],['Orders',ords.length]]),'Summary');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Cafe Yoto Sales Summary'],[],
+    ['Gross Sales',gross],['Discounts',discs],['Refunds',refundAmt],
+    ['Net Sales',net],['Cost of Goods',cogs],['Gross Profit',net-cogs],
+    ['Cafe Expenses',cafeExp],['Money Left',net-cogs-discs-refundAmt-cafeExp],
+    ['Orders',ords.length],['Refunded Orders',refundedOrds.length]
+  ]),'Summary');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Item','Qty','Revenue'],...Object.entries(itemMap).map(([n,d])=>[n,d.qty,d.rev])]),'By Item');
   XLSX.writeFile(wb,`CafeYoto-${today()}.xlsx`);
 }
 
 // SHIFTS
 function rShifts(){
-  const isAdmin=U.isAdmin;
-  const empId=isAdmin?(U.shiftEmpId||S.employees[0]?.id):U.activeEmpId;
-  const emp=S.employees.find(e=>e.id===empId);
-  const myShifts=empId?S.shifts.filter(s=>s.employeeId===empId).sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn)):[];
-  const now=new Date();const yr=now.getFullYear();const mo=now.getMonth();
-  const dim=new Date(yr,mo+1,0).getDate();const fd=new Date(yr,mo,1).getDay();
-  const worked=new Set(myShifts.map(s=>new Date(s.timeIn).getDate()));
-  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-    <h1 style="font-weight:800;font-size:1.25rem;">Shifts</h1>
-    ${isAdmin?`<select onchange="U.shiftEmpId=this.value;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">${S.employees.map(e=>`<option value="${e.id}" ${empId===e.id?'selected':''}>${e.name}</option>`).join('')}</select>`:''}
-  </div>
-  ${emp?`<div class="card" style="padding:13px;margin-bottom:13px;">
-    <div style="font-weight:700;margin-bottom:9px;font-size:.88rem;">${emp.name} — ${new Date(yr,mo).toLocaleString('en-PH',{month:'long',year:'numeric'})}</div>
-    <div class="cal-grid">
-      ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div style="text-align:center;font-size:.62rem;font-weight:700;color:var(--ink3);padding-bottom:3px;">${d}</div>`).join('')}
-      ${Array(fd).fill('<div></div>').join('')}
-      ${Array.from({length:dim},(_,i)=>i+1).map(d=>`<div class="cal-day ${worked.has(d)?'worked':''} ${d===now.getDate()&&mo===now.getMonth()?'today-d':''}">${d}</div>`).join('')}
+  const isAdmin=U.isAdmin&&U.view==='admin_shifts'; // only show admin cols from admin page
+  const now=new Date();
+  const todayStr2=today();
+  // default to today if no date selected
+  const selDate=U.shiftSelDate!==undefined?U.shiftSelDate:todayStr2;
+  if(U.shiftSelDate===undefined)U.shiftSelDate=todayStr2;
+  // get all shifts for the selected date across ALL employees
+  const allShifts=selDate?S.shifts.filter(s=>s.timeIn.slice(0,10)===selDate):S.shifts;
+  const myShifts=[...allShifts].sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn));
+  const selLabel=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'})+' '+new Date(selDate+'T00:00:00').getFullYear():'All Shifts';
+  const isToday=selDate===todayStr2;
+  return`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size:1.6rem;font-weight:800;">${isToday?'Today':''+selLabel}</div>
+      <div style="font-size:1rem;font-weight:600;color:var(--ink2);">${selLabel}</div>
     </div>
-  </div>`:''}
+    <div style="display:flex;gap:8px;align-items:center;">
+      ${!isToday?`<button class="btn btn-out btn-sm" onclick="U.shiftSelDate=today();ra();">Today</button>`:''}
+      <input type="date" value="${selDate||''}" onchange="U.shiftSelDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;cursor:pointer;">
+    </div>
+  </div>
   <div class="card" style="overflow-x:auto;">
     <table>
-      <thead><tr><th>Date</th><th>Work Type</th><th>In</th><th>Out</th><th>Hours</th><th>Status</th><th>Pay</th>${isAdmin?`<th>Location</th><th></th>`:''}</tr></thead>
+      <thead><tr><th>Name</th><th>Work Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th>${isAdmin?`<th>Pay</th><th>Location</th><th>Device</th><th></th>`:''}</tr></thead>
       <tbody>${myShifts.length?myShifts.map(s=>{
         const st=shiftStatus(s);
         const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
-        const emp2=S.employees.find(e=>e.id===s.employeeId)||{};
-        const pay=calcPay(emp2,s);
+        const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
+        const pay=calcPay(rowEmp,s);
+        const totalMinsMain=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
+        const hrsLabelH=Math.floor(totalMinsMain/60);const hrsLabelM=totalMinsMain%60;
+        const hrsLabel=s.timeOut?(hrsLabelM>0?hrsLabelH+'hr '+hrsLabelM+'min':hrsLabelH+'hr'):'—';
+        const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
+        const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
         return`<tr>
-          <td>${fdt(s.timeIn)}</td>
+          <td style="font-weight:600;">${rowEmp.name||'—'}</td>
           <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}">${s.workType||'—'}</span></td>
           <td>${ftm(s.timeIn)}</td>
           <td>${s.timeOut?ftm(s.timeOut):'—'}</td>
-          <td>${s.timeOut?dur.toFixed(2)+'h':'ongoing'}</td>
-          <td><span class="pill pill-${st}">${st==='late'?'Late':st==='valid'?'Valid':' On Time'}</span></td>
-          <td>${s.timeOut?peso(pay):'—'}</td>
-          ${isAdmin?`<td style="font-size:.72rem;color:var(--ink2);max-width:160px;word-break:break-all;">${s.location||'—'}</td>
+          <td>${hrsLabel}</td>
+          <td><span class="pill ${stPill}">${stLabel}</span></td>
+          ${isAdmin?`<td>${s.timeOut?peso(pay):'—'}</td>
+          <td style="font-size:.7rem;color:var(--ink2);max-width:110px;word-break:break-all;">${s.location||'—'}</td>
+          <td style="font-size:.7rem;color:var(--ink2);white-space:nowrap;">${s.device||'—'}</td>
           <td><div style="display:flex;gap:3px;flex-wrap:wrap;">
-            ${st==='late'?`<button class="btn btn-out btn-xs" onclick="acceptLate('${s.id}')">Accept Late</button>`:''}
             <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
           </div></td>`:''}
         </tr>`;
-      }).join(''):'<tr><td colspan="9" style="color:var(--ink3);">No shifts yet.</td></tr>'}
+      }).join(''):`<tr><td colspan="10" style="color:var(--ink3);">No shifts${selDate?' on '+selLabel:''}.</td></tr>`}
       </tbody>
     </table>
   </div>`;
 }
-function acceptLate(id){if(!U.isAdmin)return;const s=S.shifts.find(x=>x.id===id);if(!s)return;s.lateExcused=true;saveCore();ra();toast('Late excuse accepted.');}
-
-function buildShiftsLogHtml(myShifts){
-  const grouped={};
-  myShifts.forEach(s=>{const d=s.timeIn.slice(0,10);if(!grouped[d])grouped[d]=[];grouped[d].push(s);});
-  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const sortedDates=Object.keys(grouped).sort();
-  if(!sortedDates.length)return'<div class="empty"><p>No shifts for this period.</p></div>';
-  return sortedDates.map(dateKey=>{
-    const dt=new Date(dateKey+'T00:00:00');
-    const dayName=dayNames[dt.getDay()];
-    const dateLabel=dt.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
-    const dayShifts=grouped[dateKey];
-    const dayTotal=dayShifts.reduce((s,sh)=>{const emp=S.employees.find(e=>e.id===sh.employeeId)||{};return s+(sh.timeOut?calcPay(emp,sh):0);},0);
-    const rows=dayShifts.map(s=>{
-      const emp=S.employees.find(e=>e.id===s.employeeId)||{};
-      const st=shiftStatus(s);
-      const pay=calcPay(emp,s);
-      const dur=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
-      const h=Math.floor(dur/60);const m=dur%60;const r5=Math.floor(m/5)*5;
-      const hrsLabel=s.timeOut?(r5>0?h+'hr '+r5+'min':h+'hr'):'ongoing';
-      const stBg=st==='late'?'var(--redsoft)':st==='valid'?'var(--yellowsoft)':'var(--greensoft)';
-      const stFg=st==='late'?'var(--red)':st==='valid'?'var(--yellow)':'var(--green)';
-      const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
-      const loc=(s.location||'').split(',').slice(0,2).join(',');
-      return`<tr>
-        <td style="font-weight:700;">${emp.name||'?'}</td>
-        <td><span class="pill pill-cafe" style="font-size:.64rem;">${s.workType||'?'}</span></td>
-        <td>${ftm(s.timeIn)}</td>
-        <td>${s.timeOut?ftm(s.timeOut):'—'}</td>
-        <td>${hrsLabel}</td>
-        <td><span class="pill" style="background:${stBg};color:${stFg};">${stLabel}</span></td>
-        <td style="font-weight:700;">${s.timeOut?peso(pay):'—'}</td>
-        <td><button class="btn btn-xs ${emp.salaryPaid?'btn-grn':'btn-out'}" onclick="toggleSalaryPaid('${emp.id||''}')">${emp.salaryPaid?'Paid':'Unpaid'}</button></td>
-        <td style="font-size:.7rem;color:var(--ink2);">${loc||'—'}</td>
-        <td>
-          ${st==='late'?`<button class="btn btn-xs btn-grn" onclick="acceptLate('${s.id}')">Accept</button>`:''}
-          ${st!=='late'?`<button class="btn btn-xs btn-red" onclick="markLate('${s.id}')">Late</button>`:''}
-          <button class="btn btn-xs btn-out" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
-        </td>
-      </tr>`;
-    }).join('');
-    return`<div style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 13px;background:var(--ink);color:#fff;border-radius:10px 10px 0 0;">
-        <span style="font-weight:800;">${dateLabel} | ${dayName}</span>
-        <span style="font-size:.78rem;opacity:.8;">Total: ${peso(dayTotal)}</span>
-      </div>
-      <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-top:none;">
-        <thead><tr style="background:var(--surf2);">
-          <th>Name</th><th>Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th><th>Pay</th><th>Salary</th><th>Location</th><th>Actions</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-  }).join('');
-}
+function prevShiftMo(){} function nextShiftMo(){}
 function rAdminShifts(){
-  const todayStr=today();
-  const selDate=U.adminShiftDate!==undefined?U.adminShiftDate:todayStr;
-  if(U.adminShiftDate===undefined)U.adminShiftDate=todayStr;
-  const endDate=U.adminShiftEnd||selDate;
-  const myShifts=S.shifts.filter(s=>{
-    const emp=S.employees.find(e=>e.id===s.employeeId);
-    if(emp&&(emp.role||'').toLowerCase()==='owner')return false;
-    if(!selDate)return true;
-    const d=s.timeIn.slice(0,10);
-    return d>=selDate&&d<=(endDate||selDate);
-  }).sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn));
-  const dt1=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'';
-  const dt2=endDate&&endDate!==selDate?new Date(endDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'';
-  const heading=selDate===todayStr?'Today':(dt1+(dt2?' — '+dt2:''));
-  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">';
-  html+='<div style="font-size:1.1rem;font-weight:800;">'+heading+'</div>';
-  html+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">';
-  if(selDate!==todayStr)html+='<button class="btn btn-out btn-sm" onclick="U.adminShiftDate=today();U.adminShiftEnd=null;ra();">Today</button>';
-  html+='<input type="date" value="'+(selDate||'')+'" onchange="U.adminShiftDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">';
-  html+='<span style="font-size:.8rem;color:var(--ink2);">to</span>';
-  html+='<input type="date" value="'+(endDate||'')+'" onchange="U.adminShiftEnd=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">';
-  html+='<button class="btn btn-out btn-sm" onclick="exportShiftsXls(this.dataset.s,this.dataset.e)" data-s="'+(selDate||'')+'" data-e="'+(endDate||'')+'">'+(IC.dl||'')+'Export Excel</button>';
-  html+='</div></div>';
-  html+='<div style="overflow-x:auto;">'+buildShiftsLogHtml(myShifts)+'</div>';
-  return html;
-}
-function safeAdminShifts(){try{return rAdminShifts();}catch(e){return'<div style="color:var(--red);padding:12px;font-weight:700;">Shifts error: '+e.message+'</div>';}}
-function acceptLate(id){const s=S.shifts.find(x=>x.id===id);if(!s)return;s.lateExcused=true;saveCore();ra();toast('Marked Valid.');}
-function markLate(id){const s=S.shifts.find(x=>x.id===id);if(!s)return;s.lateExcused=false;saveCore();ra();toast('Marked Late.');}
-function toggleSalaryPaid(empId){const e=S.employees.find(x=>x.id===empId);if(!e)return;e.salaryPaid=!e.salaryPaid;saveCore();ra();}
-function renderRatesTab(){
-  const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
-  const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
-  const presets=[['all','All time'],['month','This month'],['week','This week'],['today','Today'],['custom','Custom']];
-  const presetsHtml=presets.map(([k,l])=>`<button class="btn btn-sm ${(U.salaryPreset||'all')===k?'btn-blue':'btn-out'}" onclick="U.salaryPreset='${k}';if('${k}'==='custom'&&!U.salaryStart){U.salaryStart=today();U.salaryEnd=today();}ra();">${l}</button>`).join('');
-  const customDates=(U.salaryPreset||'all')==='custom'?`<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><input type="date" value="${U.salaryStart||''}" onchange="U.salaryStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"><span>to</span><input type="date" value="${U.salaryEnd||''}" onchange="U.salaryEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;"></div>`:'';
-  const tableRows=staffEmps.map(e=>{
-    const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
-    const earnedRaw=empShifts.reduce((sum,s)=>{const ms=new Date(s.timeOut)-new Date(s.timeIn);const totalM=Math.floor(ms/60000);const fullH=Math.floor(totalM/60);const remM=totalM%60;const wt=(s.workType||'barista').toLowerCase();const hr=wt==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);return sum+fullH*hr+Math.floor(remM/5)*5;},0);
-    const totalPenalty=empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
-    const tips=e.tips||0;
-    const totalMinsAll=empShifts.reduce((sum,s)=>sum+Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000),0);
-    const dispH=Math.floor(totalMinsAll/60);const dispM=totalMinsAll%60;
-    const hrsDisp=dispM>0?dispH+'hr '+dispM+'min':dispH+'hr';
-    const empIdx=S.employees.findIndex(x=>x.id===e.id);
-    const total=earnedRaw-totalPenalty+tips;
-    const paidCls=e.salaryPaid?'btn-grn':'btn-out';
-    return `<tr>
-      <td style="font-weight:700;">${e.name}</td>
-      <td>${hrsDisp}</td>
-      <td>${peso(earnedRaw)}</td>
-      <td><input type="number" value="${tips}" onchange="S.employees[${empIdx}].tips=parseFloat(this.value)||0;saveCore();" style="width:75px;padding:4px 7px;border:1.5px solid var(--border);border-radius:7px;font-size:.8rem;background:var(--bg);"></td>
-      <td style="color:var(--red);">-${peso(totalPenalty)}</td>
-      <td style="font-weight:800;color:var(--blue2);">${peso(total)}</td>
-      <td><button class="btn btn-xs ${paidCls}" onclick="toggleSalaryPaid('${e.id}')">${e.salaryPaid?'Paid':'Mark Paid'}</button></td>
-    </tr>`;
-  }).join('');
-  return`<div class="card" style="padding:16px;margin-bottom:14px;">
-    <div style="font-weight:700;margin-bottom:4px;">Rates by Role</div>
-    <div style="font-size:.74rem;color:var(--ink2);margin-bottom:10px;">P5 per every 5 min past a full hour. e.g. 4hr 20min = 4xrate + P20</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px;">
-      <div style="background:var(--bg);border-radius:10px;padding:12px;">
-        <div style="font-weight:700;margin-bottom:7px;">Barista</div>
-        <div class="field"><label>P/hr</label><input type="number" value="${S.settings.baristaRate||64}" onchange="S.settings.baristaRate=parseFloat(this.value)||0;saveCore();" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;width:100%;background:var(--bg);"></div>
-      </div>
-      <div style="background:var(--bg);border-radius:10px;padding:12px;">
-        <div style="font-weight:700;margin-bottom:7px;">Cat Care</div>
-        <div class="field"><label>P/hr</label><input type="number" value="${S.settings.catRate||57}" onchange="S.settings.catRate=parseFloat(this.value)||0;saveCore();" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;width:100%;background:var(--bg);"></div>
-      </div>
+  const now=new Date();
+  const todayStr2=today();
+  const selDate=U.adminShiftDate!==undefined?U.adminShiftDate:todayStr2;
+  if(U.adminShiftDate===undefined)U.adminShiftDate=todayStr2;
+  const allShifts=selDate?S.shifts.filter(s=>s.timeIn.slice(0,10)===selDate):S.shifts;
+  const myShifts=[...allShifts].sort((a,b)=>new Date(b.timeIn)-new Date(a.timeIn));
+  const selLabel=selDate?new Date(selDate+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'All';
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+    <div style="font-size:1.1rem;font-weight:800;">${selDate===todayStr2?'Today':''+selLabel}</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      ${selDate!==todayStr2?`<button class="btn btn-out btn-sm" onclick="U.adminShiftDate=today();ra();">Today</button>`:''}
+      <input type="date" value="${selDate||''}" onchange="U.adminShiftDate=this.value||null;ra();" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.8rem;">
     </div>
-    <div class="field"><label>Late Penalty (P)</label><input type="number" value="${S.settings.latePenalty||30}" onchange="S.settings.latePenalty=parseFloat(this.value)||0;saveCore();" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;width:120px;background:var(--bg);"></div>
   </div>
-  <div class="card" style="padding:16px;margin-bottom:14px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div style="font-weight:700;">Staff Salary Summary</div>
-      <button class="btn btn-out btn-sm" onclick="exportSalaryXls()">${IC.dl} Export Excel</button>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${presetsHtml}</div>
-    ${customDates}
-    ${staffEmps.length?`<div style="overflow-x:auto;"><table>
-      <thead><tr><th>Name</th><th>Hrs</th><th>Earned</th><th>Tips (P)</th><th>Penalty</th><th style="color:var(--blue2);">Total</th><th>Status</th></tr></thead>
-      <tbody>${tableRows}</tbody>
-    </table></div>`:'<div style="color:var(--ink3);font-size:.82rem;">No staff yet.</div>'}
+  <div style="overflow-x:auto;">
+    <table style="min-width:600px;">
+      <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Out</th><th>Hrs</th><th>Status</th><th>Pay</th><th style="max-width:120px;">Location</th><th>Actions</th></tr></thead>
+      <tbody>${myShifts.length?myShifts.map(s=>{
+        const st=shiftStatus(s);
+        const dur=s.timeOut?(new Date(s.timeOut)-new Date(s.timeIn))/3600000:0;
+        const rowEmp=S.employees.find(e=>e.id===s.employeeId)||{};
+        const pay=calcPay(rowEmp,s);
+        const totalMinsAdm=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
+        const hrsAdmH=Math.floor(totalMinsAdm/60);const remMinsAdm=totalMinsAdm%60;
+        const fiveRnd=Math.floor(remMinsAdm/5)*5;
+        const hrsLabel=s.timeOut?(fiveRnd>0?hrsAdmH+'hr '+fiveRnd+'min':hrsAdmH+'hr'):'—';
+        const stPill=st==='late'?'pill-late':st==='valid'?'pill-valid':'pill-ot';
+        const stLabel=st==='late'?'Late':st==='valid'?'Valid':'Present';
+        const shortLoc=(s.location||'—').split(',').slice(0,2).join(',');
+        const devShort=(s.device||'—').split('·')[0].trim();
+        return`<tr>
+          <td style="font-weight:600;white-space:nowrap;">${rowEmp.name||'—'}</td>
+          <td><span class="pill ${(s.workType||'').toLowerCase()==='barista'?'pill-cafe':'pill-pers'}" style="white-space:nowrap;font-size:.64rem;">${s.workType||'—'}</span></td>
+          <td style="white-space:nowrap;">${ftm(s.timeIn)}</td>
+          <td style="white-space:nowrap;">${s.timeOut?ftm(s.timeOut):'—'}</td>
+          <td style="white-space:nowrap;">${hrsLabel}</td>
+          <td><span class="pill ${stPill}" style="white-space:nowrap;">${stLabel}</span></td>
+          <td style="white-space:nowrap;">${s.timeOut?peso(pay):'—'}</td>
+          <td style="font-size:.68rem;color:var(--ink2);max-width:120px;" title="${s.location||'—'}">${shortLoc}<br><span style="color:var(--ink3);">${devShort}</span></td>
+          <td><div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center;">
+            ${st==='late'?`<button class="btn btn-red btn-xs" style="pointer-events:none;cursor:default;">Late</button><button class="btn btn-grn btn-xs" onclick="acceptLate('${s.id}')">✓ Valid</button>`:''}
+            ${st==='valid'?`<button class="btn btn-grn btn-xs" style="pointer-events:none;cursor:default;">✓ Valid</button><button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">✗ Invalid</button>`:''}
+            ${st!=='late'&&st!=='valid'?`<button class="btn btn-red btn-xs" onclick="markLate('${s.id}')">Mark Late</button>`:''}
+            <button class="btn btn-out btn-xs" onclick="openModal('editShift','${s.id}')">${IC.pe}</button>
+          </div></td>
+        </tr>`;
+      }).join(''):`<tr><td colspan="9" style="color:var(--ink3);">No shifts${selDate?' on '+selLabel:''}.</td></tr>`}
+      </tbody>
+    </table>
   </div>`;
 }
 function rAdmin(){
-  if(!U.isAdmin){
-    return`<div class="lockgate"><div style="font-size:2rem;">&#128272;</div><h2>Admin Access</h2><p>Owner only. Enter password.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;
-  }
+  if(!U.isAdmin){return`<div class="lockgate"><div style="font-size:2rem;">🔐</div><h2>Admin Access</h2><p>Owner only. Enter the admin password.</p><div style="display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:10px;"><input type="password" id="adm-pw" placeholder="Password" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;" onkeydown="if(event.key==='Enter')checkAdmPw();"><div id="adm-err" style="color:var(--red);font-size:.78rem;display:none;">Incorrect password. Default is Aekei14! — if changed, check your saved settings.</div><button class="btn btn-blue" style="justify-content:center;" onclick="checkAdmPw()">Unlock</button></div></div>`;}
+  const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
   const admTab=U.admTab||'receipt';
-  const tabs=[['receipt','Receipt & Chit'],['rates','Rates & Salary'],['shifts_log','Shifts Log']];
-  const tabBtns=tabs.map(([k,l])=>`<button class="btn ${admTab===k?'btn-blue':'btn-out'}" onclick="U.admTab='${k}';ra();">${l}</button>`).join('');
-  let tabContent='';
-  if(admTab==='receipt'){
-    tabContent=`<div class="card" style="padding:14px;margin-bottom:12px;">
-      <div style="font-weight:700;margin-bottom:9px;">Receipt & Chit</div>
-      <div class="frow">
-        <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" onchange="S.settings.rcptHeader=this.value;saveCore();"></div>
-        <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" onchange="S.settings.rcptFooter=this.value;saveCore();"></div>
-      </div>
-      <div class="frow" style="margin-top:8px;">
-        <div class="field"><label>Chit Header</label><input value="${S.settings.chitHeader||''}" onchange="S.settings.chitHeader=this.value;saveCore();"></div>
-        <div class="field"><label>Wifi Password</label><input value="${S.settings.wifiPw||''}" onchange="S.settings.wifiPw=this.value;saveCore();"></div>
-      </div>
-    </div>`;
-  } else if(admTab==='rates'){
-    tabContent=renderRatesTab();
-  } else if(admTab==='shifts_log'){
-    tabContent='<div>'+safeAdminShifts()+'</div>';
-  }
   return`<div style="width:100%;">
     <h1 style="font-weight:800;font-size:1.25rem;margin-bottom:14px;">Admin Settings</h1>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2px solid var(--border);padding-bottom:10px;">${tabBtns}</div>
-    ${tabContent}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2px solid var(--border);padding-bottom:10px;">
+      ${[['receipt','🧾 Receipt & Chit'],['shifts_tab','📅 Shift Schedule'],['rates','💰 Rates & Salary'],['shifts_log','👥 Shifts Log']].map(([k,l])=>`<button class="btn ${admTab===k?'btn-blue':'btn-out'}" onclick="U.admTab='${k}';ra();">${l}</button>`).join('')}
+    </div>
+    ${admTab==='receipt'?`
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:10px;">Bluetooth Printer</div>
+      <div style="font-size:.76rem;color:var(--ink2);margin-bottom:10px;">Connect once — stays saved for all future prints.</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;padding:10px 13px;background:var(--bg);border-radius:10px;font-size:.82rem;">
+          ${S.settings.savedPrinterName?`<span style="font-weight:700;">🖨 ${S.settings.savedPrinterName}</span><span class="pill pill-ok" style="margin-left:8px;font-size:.65rem;">Connected</span>`:'<span style="color:var(--ink3);">No printer saved</span>'}
+        </div>
+        <button class="btn btn-blue" onclick="connectPrinter()">🔵 Connect Printer</button>
+        ${S.settings.savedPrinterName?`<button class="btn btn-red btn-sm" onclick="S.settings.savedPrinterName='';saveCore();ra();">Remove</button>`:''}
+      </div>
+    </div>
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:12px;">Receipt &amp; Chit Designer</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="field"><label>Receipt Header</label><input value="${S.settings.rcptHeader||''}" oninput="S.settings.rcptHeader=this.value;updRcptPrev();"></div>
+          <div class="field"><label>Receipt Footer</label><input value="${S.settings.rcptFooter||''}" oninput="S.settings.rcptFooter=this.value;updRcptPrev();"></div>
+          <div class="field"><label>Chit Header</label><input value="${S.settings.chitHeader||''}" oninput="S.settings.chitHeader=this.value;updChitPrev();"></div>
+          <div class="field"><label>Wifi Password</label><input value="${S.settings.wifiPw||''}" oninput="S.settings.wifiPw=this.value;updChitPrev();"></div>
+          <div class="field"><label>Receipt Font Size: <span id="rcpt-fs-val">${S.settings.rcptFontSize||12}px</span></label>
+            <input type="range" min="10" max="16" value="${S.settings.rcptFontSize||12}" oninput="S.settings.rcptFontSize=parseInt(this.value);updRcptPrev();document.getElementById('rcpt-fs-val').textContent=this.value+'px';">
+          </div>
+          <div class="field"><label>Chit Paper Size</label>
+            <select oninput="S.settings.chitPaperSize=this.value;updChitPrev();" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.84rem;background:var(--bg);">
+              <option value="40x30" ${(S.settings.chitPaperSize||'40x30')==='40x30'?'selected':''}>40×30mm (Sticker — current)</option>
+              <option value="57x30" ${(S.settings.chitPaperSize||'')==='57x30'?'selected':''}>57×30mm</option>
+              <option value="58x40" ${(S.settings.chitPaperSize||'')==='58x40'?'selected':''}>58×40mm</option>
+              <option value="custom" ${(S.settings.chitPaperSize||'')==='custom'?'selected':''}>Custom</option>
+            </select>
+            ${(S.settings.chitPaperSize||'40x30')==='custom'?`<div style="display:flex;gap:7px;margin-top:5px;align-items:center;"><input type="number" placeholder="W (mm)" value="${S.settings.chitW||40}" oninput="S.settings.chitW=parseInt(this.value);updChitPrev();" style="width:80px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);">×<input type="number" placeholder="H (mm)" value="${S.settings.chitH||30}" oninput="S.settings.chitH=parseInt(this.value);updChitPrev();" style="width:80px;padding:6px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"><span style="font-size:.74rem;color:var(--ink2);">mm</span></div>`:''}
+          </div>
+          <div class="field"><label>Receipt Paper Width</label>
+            <select oninput="S.settings.rcptPaperSize=this.value;" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.84rem;background:var(--bg);">
+              <option value="80mm" ${(S.settings.rcptPaperSize||'80mm')==='80mm'?'selected':''}>80mm (standard thermal)</option>
+              <option value="58mm" ${(S.settings.rcptPaperSize||'')==='58mm'?'selected':''}>58mm (narrow thermal)</option>
+              <option value="57mm" ${(S.settings.rcptPaperSize||'')==='57mm'?'selected':''}>57mm</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <div style="font-size:.68rem;color:var(--ink3);margin-bottom:5px;font-weight:700;text-transform:uppercase;">Receipt Preview</div>
+            <div id="rcpt-prev" style="font-family:monospace;font-size:${S.settings.rcptFontSize||12}px;background:#fff;padding:12px;border-radius:10px;border:1px dashed var(--border);line-height:1.7;">
+              <div style="text-align:center;font-weight:800;">${S.settings.rcptHeader||'CAFE YOTO'}</div>
+              <div style="border-top:1px dashed #ccc;margin:5px 0;"></div>
+              <div style="display:flex;justify-content:space-between;"><span>#1 Dine In</span><span>10:00 AM</span></div>
+              <div style="border-top:1px dashed #ccc;margin:5px 0;"></div>
+              <div style="display:flex;justify-content:space-between;"><span>Latte</span><span>&#8369;103</span></div>
+              <div style="border-top:1px dashed #ccc;margin:5px 0;"></div>
+              <div style="display:flex;justify-content:space-between;font-weight:800;"><span>TOTAL</span><span>&#8369;103</span></div>
+              <div style="border-top:1px dashed #ccc;margin:5px 0;"></div>
+              <div style="text-align:center;">${S.settings.rcptFooter||'Thank you, come again!'}</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.68rem;color:var(--ink3);margin-bottom:5px;font-weight:700;text-transform:uppercase;">Chit Preview (per drink)</div>
+            <div id="chit-prev" style="font-family:monospace;font-size:13px;background:#fff;padding:12px;border-radius:10px;border:1px dashed var(--border);line-height:1.7;width:${S.settings.chitWidth||200}px;max-width:100%;overflow:hidden;">
+              <div style="font-size:22px;font-weight:900;color:var(--blue);">#1</div>
+              <div style="background:#000;color:#fff;display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-bottom:5px;">DINE IN</div>
+              <div><strong>Latte</strong></div>
+              <div style="border-top:1px dashed #ccc;margin:5px 0;font-size:10px;color:#666;">Aug 5, 2026</div>
+              <div id="chit-wifi" style="font-size:10px;color:#666;">WiFi: ${S.settings.wifiPw||'—'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    `:''}
+    ${admTab==='shifts_tab'?`
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:4px;">Late Penalty</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+        <input type="number" value="${S.settings.latePenalty||30}" oninput="S.settings.latePenalty=parseFloat(this.value)||0;" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.86rem;width:110px;background:var(--bg);">
+        <span style="font-size:.82rem;color:var(--ink2);">₱ deducted per late time-in (Mon–Fri only)</span>
+      </div>
+    </div>
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:4px;">Employee Schedules <span style="font-size:.72rem;font-weight:500;color:var(--ink2);">Mon–Fri · Sat optional no penalty · Sun off</span></div>
+      <div style="font-size:.76rem;color:var(--ink2);margin-bottom:12px;">Set expected start and end per day per employee.</div>
+      ${S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner').map((e,ei)=>{
+        const empIdx=S.employees.findIndex(x=>x.id===e.id);
+        if(!S.employees[empIdx].schedule)S.employees[empIdx].schedule={};
+        const sched=S.employees[empIdx].schedule;
+        const days=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri']];
+        return`<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-weight:700;font-size:.88rem;">${e.name}</div>
+            <button class="btn btn-out btn-xs" onclick="U.editSchedEmp=U.editSchedEmp==='${e.id}'?null:'${e.id}';ra();">${U.editSchedEmp===e.id?'✓ Done':'✏ Edit'}</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;">
+            ${days.map(([d,dl])=>`<div style="background:var(--bg);padding:8px 10px;border-radius:9px;">
+              <div style="font-size:.7rem;font-weight:700;color:var(--ink2);margin-bottom:4px;">${dl}</div>
+              <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+                <input type="time" value="${sched[d]?.start||'10:00'}" onchange="S.employees[${empIdx}].schedule=S.employees[${empIdx}].schedule||{};S.employees[${empIdx}].schedule['${d}']=S.employees[${empIdx}].schedule['${d}']||{};S.employees[${empIdx}].schedule['${d}'].start=this.value;" style="width:85px;padding:4px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:.76rem;">
+                <span style="font-size:.68rem;color:var(--ink3);">–</span>
+                <input type="time" value="${sched[d]?.end||'18:00'}" onchange="S.employees[${empIdx}].schedule=S.employees[${empIdx}].schedule||{};S.employees[${empIdx}].schedule['${d}']=S.employees[${empIdx}].schedule['${d}']||{};S.employees[${empIdx}].schedule['${d}'].end=this.value;" style="width:85px;padding:4px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:.76rem;">
+              </div>
+            </div>`).join('')}
+            <div style="background:var(--surf2);padding:8px 10px;border-radius:9px;display:flex;flex-direction:column;justify-content:center;">
+              <div style="font-size:.7rem;font-weight:700;color:var(--ink3);">Sat — Optional</div>
+              <div style="font-size:.68rem;color:var(--ink3);margin-top:2px;">No penalty if late or absent</div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    `:''}
+        ${admTab==='shifts_log'?`<div>${rAdminShifts()}</div>`:''}
+    ${admTab==='rates'?`<div class="card" style="padding:16px;margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:4px;">Rates by Role</div>
+      <div style="font-size:.74rem;color:var(--ink2);margin-bottom:12px;">Set the default rates per role. These apply to all staff based on their work type at time-in.</div>
+      <div style="font-size:.76rem;color:var(--ink2);margin-bottom:10px;">Overtime: ₱5 per every 5 minutes worked past a full hour. (e.g. 3hrs 15min = 3×rate + ₱15 extra)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px;">
+        <div style="background:var(--bg);border-radius:10px;padding:12px;">
+          <div style="font-weight:700;margin-bottom:8px;">☕ Barista</div>
+          <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.baristaRate||64}" oninput="S.settings.baristaRate=parseFloat(this.value)||0;"></div>
+        </div>
+        <div style="background:var(--bg);border-radius:10px;padding:12px;">
+          <div style="font-weight:700;margin-bottom:8px;">🐱 Cat Care</div>
+          <div class="field"><label>₱/hr</label><input type="number" value="${S.settings.catRate||57}" oninput="S.settings.catRate=parseFloat(this.value)||0;"></div>
+        </div>
+      </div>
+      <div style="font-weight:700;margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border);">Staff Salary Summary</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <div style="font-size:.76rem;color:var(--ink2);">Period:</div>
+        ${[['all','All time'],['month','This month'],['week','This week'],['today','Today'],['custom','Custom']].map(([k,l])=>`<button class="btn btn-sm ${(U.salaryPreset||'all')===k?'btn-blue':'btn-out'}" onclick="U.salaryPreset='${k}';ra();">${l}</button>`).join('')}
+        ${(U.salaryPreset||'all')==='custom'?`<div style="display:flex;align-items:center;gap:5px;margin-top:4px;">
+          <input type="date" value="${U.salaryStart||''}" onchange="U.salaryStart=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;">
+          <span style="font-size:.8rem;">to</span>
+          <input type="date" value="${U.salaryEnd||''}" onchange="U.salaryEnd=this.value;ra();" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.76rem;">
+        </div>`:''}
+      </div>
+      ${staffEmps.length?`<div style="overflow-x:auto;"><table>
+        <thead><tr><th>Name</th><th>Hrs</th><th>Earned</th><th>Tips (₱)</th><th>Penalty</th><th style="color:var(--blue2);">Total Earned</th></tr></thead>
+        <tbody>${staffEmps.map((e,ei)=>{
+          const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
+          const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
+          // Use manual override if set, else calculate from shifts
+          const useOverride=e.hrsOverrideH!==undefined||e.hrsOverrideM!==undefined;
+          const overrideH=e.hrsOverrideH!==undefined?e.hrsOverrideH:dispH;
+          const overrideM=e.hrsOverrideM!==undefined?e.hrsOverrideM:(Math.floor(dispM/5)*5);
+          const wt2=(empShifts[0]?.workType||'barista').toLowerCase();
+          const hrRate2=wt2==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);
+          const earnedBase=useOverride?(overrideH*hrRate2+Math.floor(overrideM/5)*5):empShifts.reduce((sum,s)=>{
+            const ms=new Date(s.timeOut)-new Date(s.timeIn);
+            const totalM=Math.floor(ms/60000);
+            const fullH=Math.floor(totalM/60);
+            const remM=totalM%60;
+            const wt=(s.workType||'barista').toLowerCase();
+            const hr=wt==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);
+            return sum+fullH*hr+Math.floor(remM/5)*5;
+          },0);
+          const totalPenalty=empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
+          const tips=e.tips||0;
+          const total=earnedBase-totalPenalty+tips;
+          const totalMinsAll=empShifts.reduce((sum,s)=>sum+Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000),0);
+          const dispH=Math.floor(totalMinsAll/60);const dispM=totalMinsAll%60;
+          const hrsDisp=dispM>0?dispH+'hr '+dispM+'min':dispH+'hr';
+          const empIdx=S.employees.findIndex(x=>x.id===e.id);
+          return`<tr>
+            <td style="font-weight:700;">${e.name}</td>
+            <td style="white-space:nowrap;">
+              <div style="font-size:.82rem;font-weight:600;">${hrsDisp}</div>
+              <div style="display:flex;gap:3px;margin-top:3px;align-items:center;">
+                <input type="number" min="0" max="23" value="${e.hrsOverrideH!==undefined?e.hrsOverrideH:dispH}" onchange="const idx=${empIdx};S.employees[idx].hrsOverrideH=parseInt(this.value)||0;saveCore();" title="Override hours" style="width:38px;padding:3px 5px;border:1.5px solid var(--border);border-radius:6px;font-size:.72rem;background:var(--bg);">
+                <span style="font-size:.68rem;color:var(--ink2);">h</span>
+                <input type="number" min="0" max="55" step="5" value="${e.hrsOverrideM!==undefined?e.hrsOverrideM:(Math.floor(dispM/5)*5)}" onchange="const idx=${empIdx};S.employees[idx].hrsOverrideM=parseInt(this.value)||0;saveCore();" title="Override minutes (5-min steps)" style="width:38px;padding:3px 5px;border:1.5px solid var(--border);border-radius:6px;font-size:.72rem;background:var(--bg);">
+                <span style="font-size:.68rem;color:var(--ink2);">m</span>
+              </div>
+            </td>
+            <td>${peso(earnedBase)}</td>
+            <td><input type="number" value="${tips}" oninput="S.employees[${empIdx}].tips=parseFloat(this.value)||0;saveCore();" style="width:80px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);"></td>
+            <td style="color:var(--red);">-${peso(totalPenalty)}</td>
+            <td style="font-weight:800;color:var(--blue2);">${peso(total)}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table></div>`:'<div style="color:var(--ink3);font-size:.82rem;">No staff employees yet.</div>'}
+    </div>
+
+    `:''}
     <div style="display:flex;gap:9px;margin-top:14px;flex-wrap:wrap;">
       <button class="btn btn-blue" onclick="saveAdm()">Save All Settings</button>
       <button class="btn btn-out" onclick="U.isAdmin=false;ra();">Lock Admin</button>
-      <button class="btn btn-red" onclick="confirmReset()">Reset Orders & Shifts</button>
+      <button class="btn btn-red" onclick="confirmReset()">🗑 Reset Orders & Shifts</button>
+      <button class="btn btn-red" onclick="confirmMenuReset()">🍵 Reset Menu to New</button>
+      <button class="btn btn-out" onclick="fixEmployees()">👥 Fix Employees</button>
     </div>
   </div>`;
 }
-
+function exportShiftsXls(startDate,endDate){
+  endDate=endDate||startDate;
+  const shifts=startDate?S.shifts.filter(s=>{const d=s.timeIn.slice(0,10);return d>=startDate&&d<=(endDate||startDate);}):S.shifts;
+  const rows=[['Name','Work Type','Date','Time In','Time Out','Hours','Status','Pay (₱)','Tips (₱)','Salary Status','Device']];
+  shifts.sort((a,b)=>new Date(a.timeIn)-new Date(b.timeIn)).forEach(s=>{
+    const emp=S.employees.find(e=>e.id===s.employeeId)||{};
+    const st=shiftStatus(s);
+    const dur=s.timeOut?Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000):0;
+    const h=Math.floor(dur/60);const m=dur%60;
+    const hrsStr=m>0?h+'hr '+m+'min':h+'hr';
+    const pay=s.timeOut?calcPay(emp,s):0;
+    rows.push([emp.name||'—',s.workType||'—',fdt(s.timeIn),ftm(s.timeIn),s.timeOut?ftm(s.timeOut):'ongoing',hrsStr,st==='late'?'Late':st==='valid'?'Valid':'Present',pay,s.tips||0,emp.salaryPaid?'Paid':'Unpaid',s.device||'—']);
+  });
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Shifts');
+  XLSX.writeFile(wb,'CafeYoto-Shifts-'+(startDate||'all')+(endDate&&endDate!==startDate?'_to_'+endDate:'')+'.xlsx');
+  toast('Shifts exported!');
+}
+function exportSalaryXls(){
+  const rng=dRange(U.salaryPreset||'all',U.salaryStart||'',U.salaryEnd||'');
+  const staffEmps=S.employees.filter(e=>(e.role||'').toLowerCase()!=='owner');
+  const rows=[['Name','Hours','Earned (₱)','Tips (₱)','Penalty (₱)','Total (₱)','Status']];
+  staffEmps.forEach(e=>{
+    const empShifts=S.shifts.filter(s=>s.employeeId===e.id&&s.timeOut&&new Date(s.timeIn)>=rng.s&&new Date(s.timeIn)<=rng.e);
+    const totalM=empShifts.reduce((sum,s)=>sum+Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000),0);
+    const hrsStr=Math.floor(totalM/60)+'hr '+(totalM%60)+'min';
+    const earned=empShifts.reduce((sum,s)=>{const tm=Math.floor((new Date(s.timeOut)-new Date(s.timeIn))/60000);const fh=Math.floor(tm/60);const rm=tm%60;const wt=(s.workType||'barista').toLowerCase();const hr=wt==='barista'?(S.settings.baristaRate||64):(S.settings.catRate||57);return sum+fh*hr+Math.floor(rm/5)*5;},0);
+    const penalty=empShifts.filter(s=>shiftStatus(s)==='late').length*(S.settings.latePenalty||30);
+    const tips=e.tips||0;
+    rows.push([e.name,hrsStr,earned,tips,penalty,earned-penalty+tips,e.salaryPaid?'Paid':'Unpaid']);
+  });
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Salary');
+  XLSX.writeFile(wb,'CafeYoto-Salary-'+(U.salaryPreset||'all')+'-'+today()+'.xlsx');
+  toast('Salary exported!');
+}
+function acceptLate(shiftId){
+  const s=S.shifts.find(x=>x.id===shiftId);if(!s)return;
+  s.lateExcused=true;saveCore();ra();toast('Marked as Valid — penalty removed.');
+}
+function markLate(shiftId){
+  const s=S.shifts.find(x=>x.id===shiftId);if(!s)return;
+  s.lateExcused=false;saveCore();ra();toast('Marked as Late — penalty applied.');
+}
 async function checkAdmPw(){
-  const v=document.getElementById('adm-pw')?.value;if(!v)return;
-  const h=await hashStr(v);
-  if(h===S.settings.adminHash){U.isAdmin=true;ra();}else toast('Incorrect password.');
+  const el=document.getElementById('adm-pw');
+  const errEl=document.getElementById('adm-err');
+  if(!el)return;
+  const val=el.value;
+  if(!val){if(errEl)errEl.style.display='block';return;}
+  const h=await hashStr(val);
+  if(h===S.settings.adminHash){
+    U.isAdmin=true;
+    if(errEl)errEl.style.display='none';
+    ra();
+  }else{
+    if(errEl)errEl.style.display='block';
+    el.value='';
+    el.focus();
+  }
+}
+function updRcptPrev(){
+  const el=document.getElementById('rcpt-prev');if(!el)return;
+  el.style.fontSize=(S.settings.rcptFontSize||12)+'px';
+  const hdr=el.querySelector('div:first-child');if(hdr)hdr.textContent=S.settings.rcptHeader||'CAFE YOTO';
+  const ftr=el.querySelector('div:last-child');if(ftr)ftr.textContent=S.settings.rcptFooter||'Thank you, come again!';
+}
+function updChitPrev(){
+  const el=document.getElementById('chit-prev');if(!el)return;
+  el.style.width=(S.settings.chitWidth||200)+'px';
+  const wifi=el.querySelector('div:last-child');if(wifi)wifi.textContent='WiFi: '+(S.settings.wifiPw||'—');
+}
+function fixEmployees(){
+  if(!U.isAdmin)return;
+  const defaults=defEmployees();
+  // Update existing employees with correct schedules and roles
+  S.employees.forEach(e=>{
+    const match=defaults.find(d=>d.name.toLowerCase()===e.name.toLowerCase());
+    if(match){
+      e.role=match.role;
+      if(!e.schedule||Object.keys(e.schedule).length===0)e.schedule=match.schedule;
+    }
+    if(e.name.toLowerCase()==='owner'||e.name.toLowerCase()==='keisha'){
+      e.role='owner';e.name='Keisha';e.schedule={};
+    }
+  });
+  // Add missing default employees
+  defaults.forEach(def=>{
+    const exists=S.employees.find(e=>e.name.toLowerCase()===def.name.toLowerCase());
+    if(!exists)S.employees.push({...def,id:uid()});
+  });
+  saveCore();ra();toast('Employees updated with latest schedules!');
+}
+function confirmMenuReset(){
+  if(!U.isAdmin)return;
+  if(!confirm('This will replace your current menu and categories with the new Cafe Yoto menu.\
+\
+Recipes you added will be lost. Employees and settings are kept.\
+\
+Continue?'))return;
+  S.products=defProds();
+  S.categories=['Iced Coffee','Iced Drinks','Hot Drinks','Coffee Frappe','Shakes','Yogurt Series','Cookies','Add-ons'];
+  U.posCategory=null;
+  saveCore();ra();toast('Menu updated to new Cafe Yoto menu!');
+}
+function confirmReset(){
+  if(!U.isAdmin)return;
+  const confirmed=confirm(
+    'This will permanently delete:\
+\
+' +
+    '• All shift/time-in logs\
+' +
+    '• All orders and receipts\
+' +
+    '• All expenses\
+\
+' +
+    'Your employees, menu items, ingredients, and settings will be kept.\
+\
+' +
+    'Type RESET in the next prompt to confirm.'
+  );
+  if(!confirmed)return;
+  const code=prompt('Type RESET to confirm (case sensitive):');
+  if(code!=='RESET'){toast('Reset cancelled — text did not match.');return;}
+  resetData();
+}
+async function resetData(){
+  S.shifts=[];
+  S.orders=[];
+  S.expenses=[];
+  S.settings.orderCounter=0;
+  S.settings.lastOrderDate='';
+  await saveCore();
+  await saveOrders();
+  toast('Data reset. Shifts, orders and expenses cleared.');
+  ra();
 }
 function saveAdm(){saveCore();toast('Settings saved.');}
 
@@ -1175,7 +1635,39 @@ function modalRender(){
   if(!U.modal)return'';
   const t=U.modal;const d=U.mdata;
 
-  if(t==='addEmp')return mwrap('Add Employee',`<div class="field"><label>Name</label><input id="m-en" placeholder="e.g. Maria Santos" autofocus></div><div class="frow"><div class="field"><label>Role</label><select id="m-er"><option value="barista">Barista</option><option value="cat">Cat Care</option></select></div><div class="field"><label>Rate/hr (₱)</label><input type="number" id="m-ehr" value="64"></div></div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveEmp()">Add</button>`);
+  if(t==='changeScreen'){
+    const {change,total,tendered,oid}=d;
+    return`<div class="ov" style="background:rgba(22,27,38,.85);" onclick="${oid?`closeModal();openModal('receipt','${oid}')`:'closeModal()'}">
+      <div style="text-align:center;padding:40px 30px;max-width:360px;width:100%;">
+        <div style="font-size:1rem;font-weight:700;color:#fff;opacity:.7;margin-bottom:8px;">CHANGE</div>
+        <div style="font-size:5rem;font-weight:900;color:#fff;line-height:1;">${peso(change)}</div>
+        <div style="margin-top:20px;display:flex;gap:20px;justify-content:center;font-size:.9rem;color:rgba(255,255,255,.7);">
+          <div><div>Paid</div><div style="font-size:1.3rem;font-weight:800;color:#fff;">${peso(tendered)}</div></div>
+          <div><div>Total</div><div style="font-size:1.3rem;font-weight:800;color:#fff;">${peso(total)}</div></div>
+        </div>
+        <div style="margin-top:30px;color:rgba(255,255,255,.5);font-size:.82rem;">Tap anywhere to view receipt</div>
+      </div>
+    </div>`;
+  }
+  if(t==='camera'){
+    const purpose=d?.purpose||'ref'; // 'ref' for payment, 'id' for senior/pwd
+    const label=purpose==='id'?'ID Photo':'Payment Reference';
+    return`<div class="ov" onclick="void(0)"><div class="modal" style="max-width:400px;">
+      <div class="mh"><h2>📷 ${label}</h2><button onclick="stopCamera();closeModal();">${IC.xx}</button></div>
+      <div class="mb" style="padding:0;">
+        <video id="cam-preview" autoplay playsinline style="width:100%;border-radius:0;max-height:300px;object-fit:cover;background:#000;"></video>
+        <canvas id="cam-canvas" style="display:none;"></canvas>
+        <div id="cam-captured" style="display:none;"><img id="cam-img" style="width:100%;max-height:300px;object-fit:contain;border-radius:0;"></div>
+      </div>
+      <div class="mf">
+        <button class="btn btn-out" id="cam-retake" style="display:none;" onclick="retakePhoto()">Retake</button>
+        <button class="btn btn-red" onclick="stopCamera();closeModal();">Cancel</button>
+        <button class="btn btn-out" id="cam-capture-btn" onclick="capturePhoto('${purpose}')">📸 Capture</button>
+        <button class="btn btn-blue" id="cam-save-btn" style="display:none;" onclick="savePhoto('${purpose}')">💾 Save Photo</button>
+      </div>
+    </div></div>`;
+  }
+  if(t==='addEmp')return mwrap('Add Employee',`<div class="field"><label>Name</label><input id="m-en" placeholder="e.g. Maria Santos" autofocus></div>`,`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-blue" onclick="saveEmp()">Add</button>`);
 
   if(t==='pickSize'){
     const p=S.products.find(x=>x.id===d);if(!p)return'';
@@ -1234,12 +1726,14 @@ function modalRender(){
     const o=S.orders.find(x=>x.id===d);if(!o)return'';
     return mwrap(`Order #${o.number}`,`
       <div style="display:flex;gap:11px;flex-wrap:wrap;">
-        <div class="chit">
-          <div class="chit-num">#${o.number}</div>
-          <div class="chit-type">${o.orderType}</div>
-          ${o.items.map(i=>`<div style="margin-bottom:4px;"><strong>${i.qty}x ${i.name}</strong>${(i.addons&&i.addons.length)?`<br><span style="font-size:.72rem;color:var(--ink2);">+${i.addons.map(a=>a.name).join(', +')}</span>`:''}${i.note?`<br><span style="font-size:.7rem;color:var(--ink2);font-style:italic;">📝${i.note}</span>`:''}</div>`).join('')}
-          <div style="border-top:1px dashed var(--ink3);margin:7px 0;font-size:.7rem;color:var(--ink2);">${fdt(o.timestamp)} · ${ftm(o.timestamp)}</div>
-          <div style="font-size:.7rem;color:var(--ink2);">WiFi: ${S.settings.wifiPw||'—'}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${o.items.map(item=>`<div class="chit">
+            <div class="chit-num">#${o.number}</div>
+            <div class="chit-type">${o.orderType}</div>
+            <div style="margin-bottom:4px;"><strong>${item.name}</strong>${(item.addons&&item.addons.length)?`<br><span style="font-size:.72rem;color:var(--ink2);">+${item.addons.map(a=>a.name).join(', +')}</span>`:''}${item.note?`<br><span style="font-size:.7rem;color:var(--ink2);font-style:italic;">📝${item.note}</span>`:''}</div>
+            <div style="border-top:1px dashed var(--ink3);margin:7px 0;font-size:.7rem;color:var(--ink2);">${fdt(o.timestamp)} · ${ftm(o.timestamp)}</div>
+            <div style="font-size:.7rem;color:var(--ink2);">WiFi: ${S.settings.wifiPw||'—'}</div>
+          </div>`).join('')}
         </div>
         <div class="rcv" style="flex:1;min-width:180px;">
           <div class="rcc" style="font-weight:800;">${S.settings.rcptHeader||'CAFE YOTO'}</div>
@@ -1264,6 +1758,22 @@ function modalRender(){
     `,`<button class="btn btn-out btn-sm" onclick="btPrint('chit','${o.id}')">${IC.bt} Print Chit</button><button class="btn btn-out btn-sm" onclick="btPrint('receipt','${o.id}')">${IC.bt} Print Receipt</button><button class="btn btn-blue btn-sm" onclick="printBoth('${o.id}')">${IC.pr} Print Both</button><button class="btn btn-out" onclick="closeModal()">Close</button>`);
   }
 
+  if(t==='addOrderAddon'){
+    const o=S.orders.find(x=>x.id===d);if(!o)return'';
+    const aos=addOnProds();
+    return mwrap('Add to Order #'+o.number,`
+      <div style="margin-bottom:10px;font-size:.8rem;color:var(--ink2);">Select add-on to charge customer:</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+        ${aos.map(a=>`<button onclick="addAddonToOrder('${o.id}','${a.id}')" style="display:flex;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-weight:700;width:100%;font-size:.86rem;"><span>${a.name}</span><span>+${peso(a.sizes[0]?.price||0)}</span></button>`).join('')}
+      </div>
+      <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:6px;">Or enter custom amount:</div>
+      <div style="display:flex;gap:7px;align-items:center;">
+        <input id="ord-ao-name" placeholder="Description" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.84rem;background:var(--bg);">
+        <input id="ord-ao-amt" type="number" placeholder="0.00" style="width:90px;padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.84rem;background:var(--bg);">
+        <button class="btn btn-blue" onclick="addCustomAddonToOrder('${o.id}')">Add</button>
+      </div>
+    `,`<button class="btn btn-out" onclick="closeModal()">Done</button>`);
+  }
   if(t==='editShift'){
     const s=S.shifts.find(x=>x.id===d);if(!s)return'';
     return mwrap('Edit Shift',`
@@ -1283,17 +1793,39 @@ function mwrap(title,body,foot){
 }
 
 // MODAL ACTIONS
+function defEmployees(){return[
+  {id:'emp-owner',name:'Keisha',role:'owner',hourlyRate:0,catRate:0,extraHalfRate:0,catExtraRate:0,tips:0,schedule:{}},
+  {id:'emp-anicia',name:'Anicia',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0,schedule:{
+    mon:{start:'15:00',end:'18:00'},
+    tue:{start:'10:00',end:'18:00'}, // not scheduled but no penalty if absent
+    wed:{start:'10:00',end:'18:00'},
+    thu:{start:'15:00',end:'18:00'},
+    fri:{start:'10:00',end:'14:30'}  // not scheduled fri pm
+  }},
+  {id:'emp-nass',name:'Nass',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0,schedule:{
+    mon:{start:'15:30',end:'18:00'},
+    tue:{start:'14:30',end:'18:00'},
+    wed:{start:'10:00',end:'14:30'},
+    thu:{start:'10:00',end:'18:00'}, // not scheduled thu
+    fri:{start:'14:30',end:'18:00'}
+  }},
+  {id:'emp-inno',name:'Inno',role:'staff',hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0,schedule:{
+    mon:{start:'10:00',end:'15:00'},
+    tue:{start:'10:00',end:'14:00'},
+    wed:{start:'10:00',end:'18:00'}, // not scheduled wed
+    thu:{start:'10:00',end:'15:00'},
+    fri:{start:'10:00',end:'14:30'}
+  }}
+];}
 function saveEmp(){
   const name=document.getElementById('m-en')?.value.trim();
-  const role=document.getElementById('m-er')?.value||'barista';
-  const hr=parseFloat(document.getElementById('m-ehr')?.value)||(role==='barista'?64:57);
   if(!name)return;
-  S.employees.push({id:uid(),name,role,hourlyRate:hr,extraHalfRate:role==='barista'?35:30,tips:0});
+  S.employees.push({id:uid(),name,hourlyRate:64,catRate:57,extraHalfRate:35,catExtraRate:30,tips:0});
   saveCore();closeModal();
 }
 function pickSz(pid,sid){
   const p=S.products.find(x=>x.id===pid);const s=p?.sizes.find(x=>x.id===sid);if(!p||!s)return;
-  U.cart.push({productId:p.id,sizeId:s.id,name:p.name+(p.sizes.length>1?` (${s.label})`:''),price:s.price,qty:1,addons:[],note:''});
+  U.cart.push({id:uid(),productId:p.id,sizeId:s.id,name:p.name+(p.sizes.length>1?` (${s.label})`:''),price:s.price,qty:1,addons:[],note:''});
   closeModal();
 }
 function applyAO(cartIdx,prodId){
@@ -1358,66 +1890,235 @@ function dRange(preset,start,end){
 }
 
 // PRINT
+// Sanitize text for thermal printer (remove emojis/special chars that cause Chinese garbage)
+function sanitizePrint(str){
+  return (str||'').replace(/[^\-]/g,c=>{
+    const map={'₱':'P','—':'-','–':'-','📝':'Note:','✓':'v','×':'x','·':'.','…':'...'};
+    return map[c]||'';
+  });
+}
+function pLine(label,val,width){
+  width=width||32;
+  const l=sanitizePrint(label);const v=sanitizePrint(val);
+  const space=Math.max(1,width-l.length-v.length);
+  return l+' '.repeat(space)+v;
+}
 function buildChit(o){
-  return`${S.settings.chitHeader||'CAFE YOTO'}\
-#${o.number}  ${o.orderType.toUpperCase()}\
-${'—'.repeat(28)}\
-`+o.items.map(i=>`${i.qty}x ${i.name}${(i.addons&&i.addons.length)?'\
-  +'+i.addons.map(a=>a.name).join(', +'):''}${i.note?'\
-  📝'+i.note:''}`).join('\
-')+`\
-${'—'.repeat(28)}\
-${fdt(o.timestamp)} ${ftm(o.timestamp)}\
-WiFi: ${S.settings.wifiPw||'—'}\
+  const div='-'.repeat(32);
+  return o.items.map(item=>{
+    const hdr=sanitizePrint(S.settings.chitHeader||'CAFE YOTO');
+    let t='';
+    t+=hdr+'\
+';
+    t+='#'+o.number+'  '+sanitizePrint(o.orderType.toUpperCase())+'\
+';
+    t+=div+'\
+';
+    t+=sanitizePrint(item.name)+'\
+';
+    if(item.addons&&item.addons.length)t+='  +'+item.addons.map(a=>sanitizePrint(a.name)).join(', +')+'\
+';
+    if(item.note)t+='  Note: '+sanitizePrint(item.note)+'\
+';
+    t+=div+'\
+';
+    t+=fdt(o.timestamp)+' '+ftm(o.timestamp)+'\
+';
+    t+='WiFi: '+sanitizePrint(S.settings.wifiPw||'-')+'\
+';
+    t+='\
 \
 \
-`;
+';
+    return t;
+  });
 }
 function buildRcpt(o){
-  return`${S.settings.rcptHeader||'CAFE YOTO'}\
-${'—'.repeat(28)}\
-#${o.number}  ${o.orderType}  ${ftm(o.timestamp)}\
-${o.employeeName}\
-${'—'.repeat(28)}\
-`+o.items.map(i=>`${i.qty}x ${i.name}  ${peso(i.qty*i.price)}${(i.addons||[]).map(a=>'\
-  +'+a.name+' '+peso(a.price)).join('')}${i.note?'\
-  📝'+i.note:''}`).join('\
-')+`\
-${'—'.repeat(28)}\
-Subtotal: ${peso(o.sub)}\
-${o.discount>0?'Discount: -'+peso(o.discount)+'\
-':''}VAT: ${peso(o.vat)}\
-TOTAL: ${peso(o.total)}\
-${'—'.repeat(28)}\
-${o.paymentMethod}${o.paymentMethod==='Cash'&&o.tendered?'  Change: '+peso(Math.max(0,o.tendered-o.total)):''}\
-${o.payRef?'Ref: '+o.payRef+'\
-':''}${o.discName?'ID: '+o.discName+' ('+o.discId+')\
-':''}${'—'.repeat(28)}\
-${S.settings.rcptFooter||'Thank you!'}\
+  const div='-'.repeat(32);
+  const pesoP=n=>'P'+(Math.round((n||0)*100)/100).toFixed(2);
+  let t='';
+  t+=sanitizePrint(S.settings.rcptHeader||'CAFE YOTO')+'\
+';
+  t+=div+'\
+';
+  t+='#'+o.number+'  '+sanitizePrint(o.orderType)+'  '+ftm(o.timestamp)+'\
+';
+  t+=sanitizePrint(o.employeeName)+'\
+';
+  t+=div+'\
+';
+  o.items.forEach(i=>{
+    t+=pLine(sanitizePrint(i.name),pesoP(i.price));
+    (i.addons||[]).forEach(a=>{t+='\
+  +'+sanitizePrint(a.name)+' '+pesoP(a.price);});
+    if(i.note)t+='\
+  Note: '+sanitizePrint(i.note);
+    t+='\
+';
+  });
+  t+=div+'\
+';
+  t+=pLine('Subtotal:',pesoP(o.sub))+'\
+';
+  if(o.discount>0)t+=pLine('Discount:','-'+pesoP(o.discount))+'\
+';
+  t+=pLine('VAT:',pesoP(o.vat))+'\
+';
+  t+=pLine('TOTAL:',pesoP(o.total))+'\
+';
+  t+=div+'\
+';
+  t+=sanitizePrint(o.paymentMethod);
+  if(o.paymentMethod==='Cash'&&o.tendered)t+='  Change: '+pesoP(Math.max(0,o.tendered-o.total));
+  t+='\
+';
+  if(o.payRef)t+='Ref: '+sanitizePrint(o.payRef)+'\
+';
+  if(o.discName)t+='ID: '+sanitizePrint(o.discName)+' ('+sanitizePrint(o.discId)+')\
+';
+  t+=div+'\
+';
+  t+=sanitizePrint(S.settings.rcptFooter||'Thank you!')+'\
 \
 \
-`;
+';
+  return t;
+}
+// btPrint moved to bottom
+
+// INIT
+// CAMERA
+let _camStream=null;
+async function openCamera(purpose){
+  openModal('camera',{purpose});
+  await new Promise(r=>setTimeout(r,300));
+  try{
+    _camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    const vid=document.getElementById('cam-preview');
+    if(vid){vid.srcObject=_camStream;}
+  }catch(e){toast('Camera not available: '+e.message);}
+}
+function stopCamera(){if(_camStream){_camStream.getTracks().forEach(t=>t.stop());_camStream=null;}}
+function capturePhoto(purpose){
+  const vid=document.getElementById('cam-preview');
+  const canvas=document.getElementById('cam-canvas');
+  const img=document.getElementById('cam-img');
+  if(!vid||!canvas)return;
+  canvas.width=vid.videoWidth;canvas.height=vid.videoHeight;
+  canvas.getContext('2d').drawImage(vid,0,0);
+  const dataUrl=canvas.toDataURL('image/jpeg',0.9);
+  if(img)img.src=dataUrl;
+  document.getElementById('cam-preview').style.display='none';
+  document.getElementById('cam-captured').style.display='block';
+  document.getElementById('cam-capture-btn').style.display='none';
+  document.getElementById('cam-retake').style.display='inline-flex';
+  document.getElementById('cam-save-btn').style.display='inline-flex';
+  canvas.dataset.dataUrl=dataUrl;
+  canvas.dataset.purpose=purpose;
+}
+function retakePhoto(){
+  document.getElementById('cam-preview').style.display='block';
+  document.getElementById('cam-captured').style.display='none';
+  document.getElementById('cam-capture-btn').style.display='inline-flex';
+  document.getElementById('cam-retake').style.display='none';
+  document.getElementById('cam-save-btn').style.display='none';
+}
+function savePhoto(purpose){
+  const canvas=document.getElementById('cam-canvas');
+  if(!canvas)return;
+  const dataUrl=canvas.dataset.dataUrl;
+  if(!dataUrl)return;
+  const link=document.createElement('a');
+  const now=new Date();
+  const timeStr=now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true}).replace(/:/g,'-').replace(/ /g,'');
+  const dateStr=(now.getMonth()+1)+'-'+now.getDate()+'-'+(now.getFullYear()+'').slice(2);
+  // Build drink name from current cart
+  const drinkName=U.cart.length?U.cart.map(c=>c.name.replace(/[^a-zA-Z0-9]/g,'')).join('_'):'order';
+  const filename=`${drinkName}-${timeStr}-${dateStr}.jpg`;
+  link.download=filename;
+  link.href=dataUrl;
+  link.click();
+  if(purpose==='ref')U.payRef='[Ref photo: '+filename+']';
+  if(purpose==='id')U.discPhoto=dataUrl;
+  stopCamera();closeModal();
+  toast('Photo saved: '+filename);ra();
+}
+
+// BLUETOOTH PRINTER
+let _savedPrinterDevice=null;
+async function connectPrinter(){
+  if(!navigator.bluetooth){toast('Bluetooth not supported on this browser.');return;}
+  try{
+    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
+    _savedPrinterDevice=dev;
+    S.settings.savedPrinterName=dev.name||'Bluetooth Printer';
+    saveCore();ra();
+    toast('Printer saved: '+S.settings.savedPrinterName);
+  }catch(e){toast('Printer connection cancelled.');}
 }
 async function btPrint(type,oid){
   const o=S.orders.find(x=>x.id===oid);if(!o)return;
-  const text=type==='chit'?buildChit(o):buildRcpt(o);
-  if(!navigator.bluetooth){document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();return;}
-  try{
-    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
+  const texts=type==='chit'?buildChit(o):[buildRcpt(o)];
+  const text=texts.join('\\f');
+  const printViaBluetoothDevice=async(dev)=>{
     const srv=await dev.gatt.connect();
     for(const svc of['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']){
-      try{const s=await srv.getPrimaryService(svc);const cs=await s.getCharacteristics();const w=cs.find(c=>c.properties.write||c.properties.writeWithoutResponse);if(w){await w.writeValue(new TextEncoder().encode(text));toast('Sent to printer!');return;}}catch(e){}
+      try{const s=await srv.getPrimaryService(svc);const cs=await s.getCharacteristics();const w=cs.find(c=>c.properties.write||c.properties.writeWithoutResponse);if(w){const enc=new TextEncoder().encode(text);const chunk=512;for(let i=0;i<enc.length;i+=chunk){await w.writeValue(enc.slice(i,i+chunk));}toast('Sent to printer!');return true;}}catch(e){}
     }
-    toast('No print service found. Printing via browser.');document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();
-  }catch(e){document.getElementById('print-area').innerHTML=`<pre>${text}</pre>`;window.print();}
+    return false;
+  };
+  // Try saved printer first
+  if(_savedPrinterDevice){
+    try{const ok=await printViaBluetoothDevice(_savedPrinterDevice);if(ok)return;}catch(e){_savedPrinterDevice=null;}
+  }
+  const pa=document.getElementById('print-area');
+  if(type==='chit'){
+    const chitSize=S.settings.chitPaperSize||'40x30';
+    const wMm=chitSize==='custom'?(S.settings.chitW||40):parseInt(chitSize.split('x')[0]);
+    pa.style.width=wMm+'mm';
+    pa.style.fontSize='7pt';
+    pa.className='chit-size';
+  } else {
+    const rcptW=S.settings.rcptPaperSize||'80mm';
+    pa.style.width=rcptW;
+    pa.style.fontSize='9pt';
+    pa.className='receipt-size';
+  }
+  pa.innerHTML=`<pre>${text}</pre>`;
+  if(!navigator.bluetooth){window.print();return;}
+  try{
+    const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455']});
+    await printViaBluetoothDevice(dev);
+  }catch(e){window.print();}
 }
 function printBoth(oid){btPrint('chit',oid);setTimeout(()=>btPrint('receipt',oid),2000);}
 
-// INIT
 (async()=>{await loadData();ra();})();
 
-
-
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js').then(reg=>{
+      // Check for updates every 2 minutes
+      setInterval(()=>reg.update(),120000);
+      // Listen for new SW taking over — reload the page
+      reg.addEventListener('updatefound',()=>{
+        const newSW=reg.installing;
+        newSW.addEventListener('statechange',()=>{
+          if(newSW.state==='activated'){
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(e=>console.log('SW failed:',e));
+    // Listen for message from SW telling us to reload
+    navigator.serviceWorker.addEventListener('message',e=>{
+      if(e.data&&e.data.type==='SW_UPDATED'){
+        window.location.reload();
+      }
+    });
+  });
+}
 </script>
 </body>
 </html>
+","stderr":""}
